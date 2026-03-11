@@ -9,7 +9,7 @@ export default function HomeScreen() {
       </Text>
 
       <Text style={{ color: "gray", marginBottom: 20 }}>
-        Authentic Filipino BBQ
+        Authentic Filipino BBQ Testing
       </Text>
 
       <Image
