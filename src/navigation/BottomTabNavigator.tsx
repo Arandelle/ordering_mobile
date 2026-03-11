@@ -5,9 +5,9 @@ import {
   ShoppingCart,
   Handbag,
   UserRound,
-  Ham,
   LucideIcon,
   Bell,
+  Utensils,
 } from 'lucide-react-native';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -29,7 +29,7 @@ const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const icons: Record<keyof BottomTabParamList, LucideIcon> = {
   Home: House,
-  Menu: Ham,
+  Menu: Utensils,
   Cart: ShoppingCart,
   Orders: Handbag,
   Profile: UserRound,
@@ -106,7 +106,6 @@ export default function BottomTabNavigator() {
           // Header
           headerShown: true,
           headerStyle: {
-            height: 70,
             backgroundColor: '#fff', // ✅ solid background
             elevation: 0, // ✅ no shadow Android
             shadowOpacity: 0, // ✅ no shadow iOS
