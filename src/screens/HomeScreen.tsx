@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Text,
   ScrollView,
@@ -9,8 +9,12 @@ import {
   Dimensions,
   FlatList,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { Tag, Clock, ChevronRight, Flame, Star } from 'lucide-react-native';
+import Categories from './home/components/Categories';
+import { useCategories } from '@/hooks/useCategories';
+import { useProducts } from '@/hooks/useProducts';
 
 const { width } = Dimensions.get('window');
 const BANNER_WIDTH = width - 32;
@@ -277,24 +281,64 @@ function SectionHeader({ title, onPress }: { title: string; onPress?: () => void
 
 // ─── Main Screen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
+  const { refetch: refetchCategories } = useCategories();
+  const { refetch: refetchProducts } = useProducts();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchCategories(), refetchProducts()]); // refetch both at once
+    setRefreshing(false);
+  }, [refetchCategories, refetchProducts]);
+  
   return (
     <ScrollView
       className="flex-1 bg-[#f9f5f2]"
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 32 }}>
-      {/* Greeting */}
-      <View className="px-4 pb-8 pt-4">
-        <View>
-          <Text className="text-sm text-gray-500">Good afternoon 👋</Text>
-          <Text className="text-xl font-bold text-gray-800">What are you craving?</Text>
+      contentContainerStyle={{ paddingBottom: 32 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#e13e00"
+          colors={['#e13e00']}
+        />
+      }>
+      <View className="mx-4 mt-4 overflow-hidden rounded-[28px] bg-[#E13E00] px-6 py-5 shadow-lg">
+        {/* Background Accent */}
+        <View className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#ff8a57]/20" />
+        <View className="absolute -bottom-12 -left-10 h-32 w-32 rounded-full bg-[#ffffff]/10" />
+
+        <View className="flex-row items-center justify-between">
+          {/* Text Content */}
+          <View className="flex-1 pr-4">
+            <Text className="text-sm font-medium text-orange-100">Good afternoon 👋</Text>
+
+            <Text className="mt-1 text-3xl font-extrabold leading-tight text-white">
+              What are you{'\n'}craving today?
+            </Text>
+
+            <Text className="mt-3 text-sm leading-5 text-orange-50/90">
+              Freshly grilled meals and favorites waiting for you.
+            </Text>
+          </View>
+
+          {/* Character / Welcome Image */}
+          <View className="items-center justify-center">
+            <View className="h-28 w-28 overflow-hidden rounded-full border-4 border-white/20 bg-white/10">
+              <Image
+                source={require('assets/images/char-icon-white.png')}
+                className="h-full w-full"
+                resizeMode="cover"
+              />
+            </View>
+          </View>
         </View>
       </View>
 
-      {/* Banner Carousel */}
-      <View className="px-4">
-        <BannerCarousel />
+      <View>
+        <Categories />
       </View>
-
       {/* Promos */}
       <View className="mt-6">
         <SectionHeader title="🎁 Ongoing Promos" />
