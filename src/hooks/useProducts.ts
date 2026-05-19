@@ -1,4 +1,4 @@
-import { getProducts } from '@/services/product.service';
+import { getProducts } from '@/services/products.service';
 import { useQuery } from '@tanstack/react-query';
 
 export function useProducts() {
