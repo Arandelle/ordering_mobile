@@ -172,7 +172,12 @@ const ProductList = ({
       }
       // Pull-to-refresh works here
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e13e00" />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#e13e00"
+          colors={['#e13e00']}
+        />
       }
       ListFooterComponent={
         isFetchingNextPage ? (
