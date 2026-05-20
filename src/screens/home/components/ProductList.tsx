@@ -1,18 +1,19 @@
-import { useProducts } from "@/hooks/useProducts";
-import { Heart } from "lucide-react-native";
-import React, { useState } from "react";
+import { useProducts } from '@/hooks/useProducts';
+import { Heart } from 'lucide-react-native';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Image,
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useRouter } from "expo-router";
+} from 'react-native';
+import { useRouter } from 'expo-router';
 
-const { width } = Dimensions.get("window");
+const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 cols, 16px side padding + 16px gap
 
 type Product = {
@@ -26,55 +27,79 @@ type Product = {
 const ProductCard = ({ item }: { item: Product }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handleLike = () => {
+    setLiked((prev) => !prev);
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 1.4, useNativeDriver: true, speed: 50 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30 }),
+    ]).start();
+  };
 
   return (
-    <View
-      className="overflow-hidden rounded-2xl bg-white"
-      style={{ width: CARD_WIDTH }}
-    >
-      {/* Image area */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push(`/product/${item._id}`)}
-        className="relative"
-      >
-        <View className="items-center justify-center bg-orange-50" style={{ height: CARD_WIDTH }}>
-          <Image
-            source={
-              item.image?.url
-                ? { uri: item.image.url }
-                : require("assets/images/char-icon.jpg")
-            }
-            style={{ width: CARD_WIDTH * 0.75, height: CARD_WIDTH * 0.75 }}
-            resizeMode="contain"
-          />
-        </View>
+    <TouchableOpacity
+      activeOpacity={0.93}
+      onPress={() => router.push(`/product/${item._id}`)}
+      className="rounded-lg bg-white shadow-sm"
+      style={{
+        width: CARD_WIDTH,
+      }}>
+      {/* Image Block */}
+      <View
+        style={{
+          height: CARD_WIDTH,
+          backgroundColor: '#f5f0ed',
+          position: 'relative',
+        }}>
+        <Image
+          source={
+            item.image?.url ? { uri: item.image.url } : require('assets/images/char-icon.jpg')
+          }
+          style={{ width: '100%', height: '100%' }}
+          className="rounded-t-lg"
+          resizeMode="cover"
+        />
 
-        {/* Heart icon */}
+        {/* Heart button — top right, floating */}
         <TouchableOpacity
-          onPress={() => setLiked((prev) => !prev)}
-          className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-white"
-          style={{ elevation: 2 }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Heart
-            size={15}
-            color={liked ? "#e13e00" : "#d1d5db"}
-            fill={liked ? "#e13e00" : "transparent"}
-          />
+          onPress={handleLike}
+          activeOpacity={0.8}
+          className="elevation absolute right-3 top-3 h-8 w-8 items-center justify-center rounded-full bg-gray-200 shadow-md">
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Heart
+              size={15}
+              color={liked ? '#e13e00' : '#aaa'}
+              fill={liked ? '#e13e00' : 'transparent'}
+            />
+          </Animated.View>
         </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
 
-      {/* Info */}
-      <View className="px-3 py-2.5">
-        <Text className="text-xs font-semibold text-gray-800" numberOfLines={1}>
+      {/* Info row */}
+      <View className="flex flex-row items-center justify-between gap-2 px-3 pb-4 pt-3">
+        <Text
+          numberOfLines={1}
+          className="flex-1 text-sm font-semibold text-slate-900"
+          style={{
+            letterSpacing: -0.1,
+          }}>
           {item.name}
         </Text>
-        <Text className="mt-0.5 text-sm font-bold text-[#e13e00]">
-          ₱{item.price}
-        </Text>
+
+        {/* Price pill */}
+        <View>
+          <Text
+            className="text-lg font-bold"
+            style={{
+              color: '#e13e00',
+              letterSpacing: -0.2,
+            }}>
+            ₱{item.price}
+          </Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -95,10 +120,7 @@ const ProductList = () => {
     return (
       <View className="flex-1 items-center justify-center py-16">
         <Text className="mb-3 text-sm text-gray-400">Failed to load products</Text>
-        <TouchableOpacity
-          onPress={() => refetch()}
-          className="rounded-full bg-[#e13e00] px-5 py-2"
-        >
+        <TouchableOpacity onPress={() => refetch()} className="rounded-full bg-[#e13e00] px-5 py-2">
           <Text className="text-xs font-semibold text-white">Try again</Text>
         </TouchableOpacity>
       </View>
@@ -110,7 +132,7 @@ const ProductList = () => {
       data={products}
       keyExtractor={(item) => item._id}
       numColumns={2}
-      scrollEnabled={false}       // parent ScrollView handles scroll
+      scrollEnabled={false} // parent ScrollView handles scroll
       contentContainerStyle={{ padding: 16, gap: 16 }}
       columnWrapperStyle={{ gap: 16 }}
       ListHeaderComponent={
