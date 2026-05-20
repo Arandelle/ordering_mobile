@@ -1,5 +1,5 @@
 import { Heart } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -32,7 +32,7 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 cols, 16px side padding + 16px gap
 
 // ─── Product Card ─────────────────────────────────────────────────────────
-const ProductCard = ({ item }: { item: Product }) => {
+const ProductCard = React.memo(({ item }: { item: Product }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
@@ -112,7 +112,9 @@ const ProductCard = ({ item }: { item: Product }) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
+
+const renderItem = useCallback(({ item }: { item: Product }) => <ProductCard item={item} />, []);
 
 // ─── Product List ─────────────────────────────────────────────────────────
 const ProductList = ({
@@ -126,7 +128,6 @@ const ProductList = ({
   onRefresh,
   refreshing,
 }: ProductListProps) => {
-
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center py-16">
@@ -149,7 +150,7 @@ const ProductList = ({
   return (
     <FlatList
       data={products}
-      keyExtractor={(item) => item._id}
+      keyExtractor={useCallback((item: Product) => item._id, [])}
       numColumns={2}
       columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
       contentContainerStyle={{
@@ -158,7 +159,7 @@ const ProductList = ({
         paddingBottom: 32,
         backgroundColor: '#f9f5f2',
       }}
-      renderItem={({ item }) => <ProductCard item={item} />}
+      renderItem={renderItem}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.4}
       // Banner + Categories live here as header
