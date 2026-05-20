@@ -1,4 +1,3 @@
-import { useProducts } from '@/hooks/useProducts';
 import { Heart } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
@@ -7,21 +6,30 @@ import {
   Dimensions,
   FlatList,
   Image,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { Product } from '@/types/products';
+import Banner from './Banner';
+import Categories from './Categories';
+
+type ProductListProps = {
+  products: Product[];
+  hasNextPage: boolean | undefined;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+  onEndReached: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+};
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 cols, 16px side padding + 16px gap
-
-type Product = {
-  _id: string;
-  name: string;
-  price: number;
-  image: { url: string; public_id: string };
-};
 
 // ─── Product Card ─────────────────────────────────────────────────────────
 const ProductCard = ({ item }: { item: Product }) => {
@@ -107,9 +115,17 @@ const ProductCard = ({ item }: { item: Product }) => {
 };
 
 // ─── Product List ─────────────────────────────────────────────────────────
-const ProductList = () => {
-  const { data, isLoading, isError, refetch } = useProducts();
-  const products: Product[] = data?.data ?? [];
+const ProductList = ({
+  products,
+  hasNextPage,
+  isFetchingNextPage,
+  isLoading,
+  isError,
+  refetch,
+  onEndReached,
+  onRefresh,
+  refreshing,
+}: ProductListProps) => {
 
   if (isLoading) {
     return (
@@ -135,18 +151,40 @@ const ProductList = () => {
       data={products}
       keyExtractor={(item) => item._id}
       numColumns={2}
-      scrollEnabled={false} // parent ScrollView handles scroll
-      contentContainerStyle={{ padding: 16, gap: 16 }}
-      columnWrapperStyle={{ gap: 16 }}
+      columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+      contentContainerStyle={{
+        gap: 12,
+        paddingTop: 8,
+        paddingBottom: 32,
+        backgroundColor: '#f9f5f2',
+      }}
+      renderItem={({ item }) => <ProductCard item={item} />}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.4}
+      // Banner + Categories live here as header
       ListHeaderComponent={
-        <Text className="mb-1 text-base font-bold text-gray-900">All Products</Text>
+        <>
+          <Banner />
+          <Categories />
+          <Text className="px-4 pb-1 pt-2 text-base font-bold text-gray-900">All Products</Text>
+        </>
+      }
+      // Pull-to-refresh works here
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e13e00" />
+      }
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <ActivityIndicator size="small" color="#e13e00" className="py-4" />
+        ) : !hasNextPage && products.length > 0 ? (
+          <Text className="py-4 text-center text-xs text-gray-400">All products loaded</Text>
+        ) : null
       }
       ListEmptyComponent={
-        <View className="items-center py-16">
-          <Text className="text-sm text-gray-400">No products found</Text>
+        <View className="items-center py-10">
+          <Text className="text-gray-400">No products found.</Text>
         </View>
       }
-      renderItem={({ item }) => <ProductCard item={item} />}
     />
   );
 };
