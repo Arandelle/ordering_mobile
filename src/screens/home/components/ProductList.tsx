@@ -26,6 +26,8 @@ type ProductListProps = {
   onEndReached: () => void;
   onRefresh: () => void;
   refreshing: boolean;
+  activeCategory: string | null;
+  setActiveCategory: (name: string | null) => void;
 };
 
 const { width } = Dimensions.get('window');
@@ -127,71 +129,69 @@ const ProductList = ({
   onEndReached,
   onRefresh,
   refreshing,
+  activeCategory,
+  setActiveCategory,
 }: ProductListProps) => {
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center py-16">
-        <ActivityIndicator size="large" color="#e13e00" />
-      </View>
-    );
-  }
-
-  if (isError) {
-    return (
-      <View className="flex-1 items-center justify-center py-16">
-        <Text className="mb-3 text-sm text-gray-400">Failed to load products</Text>
-        <TouchableOpacity onPress={() => refetch()} className="rounded-full bg-[#e13e00] px-5 py-2">
-          <Text className="text-xs font-semibold text-white">Try again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <FlatList
-      data={products}
-      keyExtractor={useCallback((item: Product) => item._id, [])}
-      numColumns={2}
-      columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-      contentContainerStyle={{
-        gap: 12,
-        paddingTop: 8,
-        paddingBottom: 32,
-        backgroundColor: '#f9f5f2',
-      }}
-      renderItem={renderItem}
-      onEndReached={onEndReached}
-      onEndReachedThreshold={0.4}
-      // Banner + Categories live here as header
-      ListHeaderComponent={
-        <>
-          <Banner />
-          <Categories />
-          <Text className="px-4 pb-1 pt-2 text-base font-bold text-gray-900">All Products</Text>
-        </>
-      }
-      // Pull-to-refresh works here
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#e13e00"
-          colors={['#e13e00']}
-        />
-      }
-      ListFooterComponent={
-        isFetchingNextPage ? (
-          <ActivityIndicator size="small" color="#e13e00" className="py-4" />
-        ) : !hasNextPage && products.length > 0 ? (
-          <Text className="py-4 text-center text-xs text-gray-400">All products loaded</Text>
-        ) : null
-      }
-      ListEmptyComponent={
-        <View className="items-center py-10">
-          <Text className="text-gray-400">No products found.</Text>
-        </View>
-      }
-    />
+    <>
+      <FlatList
+        data={products}
+        keyExtractor={useCallback((item: Product) => item._id, [])}
+        numColumns={2}
+        columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+        contentContainerStyle={{
+          gap: 12,
+          paddingTop: 8,
+          paddingBottom: 32,
+          backgroundColor: '#f9f5f2',
+        }}
+        renderItem={renderItem}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        // Banner + Categories live here as header
+        ListHeaderComponent={
+          <>
+            <Banner />
+            <Categories activeCategory={activeCategory} onCategoryPress={setActiveCategory} /> {/** pass the getter and setter category */}
+            <Text className="px-4 pb-1 pt-2 text-base font-bold text-gray-900">All Products</Text>
+          </>
+        }
+        // Pull-to-refresh works here
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#e13e00"
+            colors={['#e13e00']}
+          />
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <ActivityIndicator size="small" color="#e13e00" className="py-4" />
+          ) : !hasNextPage && products.length > 0 ? (
+            <Text className="py-4 text-center text-xs text-gray-400">All products loaded</Text>
+          ) : null
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <View className="items-center py-16">
+              <ActivityIndicator size="large" color="#e13e00" />
+            </View>
+          ) : isError ? (
+            <View className="items-center py-16">
+              <Text className="mb-3 text-sm text-gray-400">Failed to load products</Text>
+              <TouchableOpacity onPress={() => refetch()}>
+                <Text className="text-xs font-semibold text-white">Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View className="items-center py-10">
+              <Text className="text-gray-400">No products found.</Text>
+            </View>
+          )
+        }
+      />
+    </>
   );
 };
 
