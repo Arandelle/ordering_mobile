@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "my-expo-app",
-    "slug": "my-expo-app",
+    "name": "Harrison - House of Inasal & BBQ",
+    "slug": "harrison-inasal",
+    "scheme" : "harrison",
     "version": "1.0.0",
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/images/harrison_logo.png",
       "bundler": "metro"
     },
     "experiments": {
@@ -14,7 +15,7 @@
       "expo-router"
     ],
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/harrison_logo.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
