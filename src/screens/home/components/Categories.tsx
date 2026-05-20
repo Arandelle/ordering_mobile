@@ -1,11 +1,16 @@
 import { useCategories } from '@/hooks/useCategories';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
+import {  Image, Text, TouchableOpacity, View } from 'react-native';
 
 const VISIBLE_COUNT = 3;
 
-const Categories = () => {
+type CategoriesProps = {
+  activeCategory: string | null;
+  onCategoryPress: (name: string | null) => void;
+};
+
+const Categories = ({ activeCategory, onCategoryPress }: CategoriesProps) => {
   const { data: categories = [], isLoading, isError, refetch } = useCategories();
   const [startIndex, setStartIndex] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -36,7 +41,7 @@ const Categories = () => {
     return (
       <View className="mt-12">
         <View className="px-6 mb-4">
-          <Text className="font-bold text-black">Food Categories</Text>
+          <Text className="font-bold text-black italic">Loading food categories...</Text>
         </View>
         <View className=" flex-row justify-between px-8">
           {Array.from({ length: VISIBLE_COUNT }).map((_, index) => (
@@ -84,7 +89,7 @@ const Categories = () => {
             return (
               <TouchableOpacity
                 key={category._id}
-                onPress={() => setActiveId(isActive ? null : category._id)}
+                 onPress={() => onCategoryPress(category.name)}
                 className="items-center"
                 style={{ width: '25%' }}
                 activeOpacity={0.75}>
