@@ -6,6 +6,9 @@ import ProductList from './home/components/ProductList';
 // ─── Main Screen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { refetch: refetchCategories } = useCategories();
+
+   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
   const {
     data: infiniteData,
     fetchNextPage,
@@ -14,7 +17,7 @@ export default function HomeScreen() {
     isLoading,
     isError,
     refetch: refetchProducts,
-  } = useProductsInfinite({ limit: 20, enabled: true });
+  } = useProductsInfinite({ limit: 20, enabled: true,  categoryName: activeCategory ?? undefined, });
 
   const [refreshing, setRefreshing] = useState(false);
   const allProducts = infiniteData?.pages.flatMap((p) => p.data) ?? [];
@@ -43,6 +46,8 @@ export default function HomeScreen() {
       onEndReached={handleEndReached}
       onRefresh={onRefresh}     
       refreshing={refreshing}    
+      activeCategory={activeCategory}
+      setActiveCategory={setActiveCategory}
     />
   );
 }
