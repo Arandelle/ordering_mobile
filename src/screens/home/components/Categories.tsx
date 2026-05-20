@@ -138,12 +138,7 @@ const Categories = () => {
           {Array.from({ length: totalPages }).map((_, i) => (
             <View
               key={i}
-              className="mx-0.5 rounded"
-              style={{
-                height: 4,
-                width: i === currentPage ? 18 : 6,
-                backgroundColor: i === currentPage ? '#e13e00' : '#e5e7eb',
-              }}
+              className={`mx-0.5 rounded-sm h-1 ${i === currentPage ? "w-5 bg-[#e13e00]" : "w-2 bg-gray-300"}`}
             />
           ))}
         </View>
