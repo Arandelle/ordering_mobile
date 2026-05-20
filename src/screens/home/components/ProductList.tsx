@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 cols, 16px side padding + 16px gap
@@ -37,10 +37,16 @@ const ProductCard = ({ item }: { item: Product }) => {
     ]).start();
   };
 
+  const handlePress = () => {
+    if (router) {
+      router.push(`/product/${item._id}`);
+    }
+  };
+
   return (
     <TouchableOpacity
       activeOpacity={0.93}
-      onPress={() => router.push(`/product/${item._id}`)}
+      onPress={handlePress}
       className="rounded-lg bg-white shadow-sm"
       style={{
         width: CARD_WIDTH,
@@ -60,7 +66,6 @@ const ProductCard = ({ item }: { item: Product }) => {
           className="rounded-t-lg"
           resizeMode="cover"
         />
-
         {/* Heart button — top right, floating */}
         <TouchableOpacity
           onPress={handleLike}
@@ -75,7 +80,6 @@ const ProductCard = ({ item }: { item: Product }) => {
           </Animated.View>
         </TouchableOpacity>
       </View>
-
       {/* Info row */}
       <View className="flex flex-row items-center justify-between gap-2 px-3 pb-4 pt-3">
         <Text
@@ -86,7 +90,6 @@ const ProductCard = ({ item }: { item: Product }) => {
           }}>
           {item.name}
         </Text>
-
         {/* Price pill */}
         <View>
           <Text
