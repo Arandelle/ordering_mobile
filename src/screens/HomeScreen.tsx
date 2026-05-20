@@ -1,50 +1,48 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Text,
-  ScrollView,
-  View,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  RefreshControl,
-} from 'react-native';
-import Categories from './home/components/Categories';
 import { useCategories } from '@/hooks/useCategories';
-import { useProducts } from '@/hooks/useProducts';
-import Banner from './home/components/Banner';
+import { useProductsInfinite } from '@/hooks/useProducts';
 import ProductList from './home/components/ProductList';
 
 // ─── Main Screen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { refetch: refetchCategories } = useCategories();
-  const { refetch: refetchProducts } = useProducts();
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch: refetchProducts,
+  } = useProductsInfinite({ limit: 20, enabled: true });
+
   const [refreshing, setRefreshing] = useState(false);
+  const allProducts = infiniteData?.pages.flatMap((p) => p.data) ?? [];
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([refetchCategories(), refetchProducts()]); // refetch both at once
-    setRefreshing(false);
+    try {
+      setRefreshing(true);
+      await Promise.all([refetchCategories(), refetchProducts()]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [refetchCategories, refetchProducts]);
 
-  return (
-    <ScrollView
-      className="flex-1 bg-[#f9f5f2]"
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#e13e00"
-          colors={['#e13e00']}
-        />
-      }>
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-      {/** Welcome banner */}
-      <Banner />
-      {/** Product Categories */}
-      <Categories />
-      <ProductList />
-    </ScrollView>
+  return (
+    <ProductList
+      products={allProducts}
+      hasNextPage={hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
+      isLoading={isLoading}
+      isError={isError}
+      refetch={refetchProducts}
+      onEndReached={handleEndReached}
+      onRefresh={onRefresh}     
+      refreshing={refreshing}    
+    />
   );
 }
