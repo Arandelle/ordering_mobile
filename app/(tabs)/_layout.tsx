@@ -46,15 +46,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
-        options={{
-          title: 'Our Menu',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Utensils size={size} color={color} strokeWidth={focused ? 2.5 : 1.8} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="orders"
         options={{
           title: 'My Orders',
