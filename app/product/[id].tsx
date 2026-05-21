@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,136 +14,75 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProduct } from '@/hooks/useProducts';
+import { IncludedItem, Product } from '@/types/products';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 420;
 const SHEET_BORDER_RADIUS = 28;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Badge ────────────────────────────────────────────────────────────────────
 
-export interface Category {
-  _id: string;
-  name: string;
-}
-
-export interface SubCategory {
-  _id: string;
-  name: string;
-}
-
-export type ProductType = string;
-
-
-// ─── Sub-components ────────────────────────────────────────────────────────────
+const variantMap = {
+  default: {
+    container: 'bg-gray-200 rounded-2xl px-3 py-1',
+    text: 'text-xs font-medium text-gray-600',
+  },
+  category: {
+    container: 'bg-gray-200 rounded-2xl px-3 py-1',
+    text: 'text-xs font-medium text-gray-600',
+  },
+  subcategory: {
+    container: 'bg-amber-200 rounded-2xl px-3 py-1',
+    text: 'text-xs font-medium text-amber-600',
+  },
+  popular: {
+    container: 'bg-orange-200 rounded-2xl px-3 py-1 border border-orange-500',
+    text: 'text-xs font-medium text-orange-600',
+  },
+  signature: {
+    container: 'bg-orange-200 rounded-2xl px-3 py-1 border border-orange-500',
+    text: 'text-xs font-medium text-orange-600',
+  },
+};
 
 function Badge({
   label,
   variant = 'default',
 }: {
   label: string;
-  variant?: 'default' | 'category' | 'subcategory' | 'popular' | 'signature';
+  variant?: keyof typeof variantMap;
 }) {
-  const styles = {
-    default: { bg: '#f3f4f6', text: '#6b7280' },
-    category: { bg: '#f3f4f6', text: '#6b7280' },
-    subcategory: { bg: '#fef3c7', text: '#92400e' },
-    popular: { bg: '#fff3ee', text: '#c13500' },
-    signature: { bg: '#fff3ee', text: '#c13500' },
-  }[variant];
-
+  const { container, text } = variantMap[variant];
   return (
-    <View
-      style={[
-        badgeStyles.container,
-        { backgroundColor: styles.bg },
-        (variant === 'popular' || variant === 'signature') && badgeStyles.accentBorder,
-      ]}>
-      <Text style={[badgeStyles.text, { color: styles.text }]}>{label}</Text>
+    <View className={container}>
+      <Text className={text}>{label}</Text>
     </View>
   );
 }
 
-const badgeStyles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  accentBorder: {
-    borderWidth: 0.5,
-    borderColor: 'rgba(225,62,0,0.2)',
-  },
-  text: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-});
+// ─── IncludedItemCard ─────────────────────────────────────────────────────────
 
 function IncludedItemCard({ item }: { item: IncludedItem }) {
   return (
-    <View style={includedStyles.card}>
-      <View style={includedStyles.iconBox}>
+    <View className="flex-row items-center gap-2 rounded-xl bg-gray-50 p-3">
+      <View className="h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-50">
         <Ionicons name="checkmark" size={16} color="#e13e00" />
       </View>
-      <View style={includedStyles.textBlock}>
-        <Text style={includedStyles.name} numberOfLines={1}>
+      <View className="flex-1">
+        <Text className="text-xs font-medium text-gray-900" numberOfLines={1}>
           {item.product.name}
         </Text>
       </View>
       {item.quantity != null && item.quantity > 0 && (
-        <View style={includedStyles.qtyPill}>
-          <Text style={includedStyles.qtyText}>x{item.quantity}</Text>
+        <View className="rounded-2xl bg-orange-50 px-2 py-1">
+          <Text className="text-xs font-medium text-orange-600">x{item.quantity}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const includedStyles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 10,
-  },
-  iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#fff3ee',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  textBlock: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  desc: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginTop: 2,
-  },
-  qtyPill: {
-    backgroundColor: '#fff3ee',
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  qtyText: {
-    fontSize: 11,
-    color: '#e13e00',
-    fontWeight: '500',
-  },
-});
-
-// ─── Quantity Stepper ──────────────────────────────────────────────────────────
+// ─── QuantityStepper ──────────────────────────────────────────────────────────
 
 function QuantityStepper({
   value,
@@ -156,21 +94,25 @@ function QuantityStepper({
   onIncrement: () => void;
 }) {
   return (
-    <View style={stepperStyles.container}>
+    <View className="flex-row items-center overflow-hidden rounded-xl border border-gray-200">
       <TouchableOpacity
         onPress={onDecrement}
-        style={stepperStyles.btn}
+        className="h-12 w-10 items-center justify-center"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="remove" size={16} color="#111827" />
       </TouchableOpacity>
-      <View style={stepperStyles.divider} />
-      <View style={stepperStyles.countBox}>
-        <Text style={stepperStyles.count}>{value}</Text>
+
+      <View className="h-12 w-px bg-gray-200" />
+
+      <View className="h-12 w-10 items-center justify-center">
+        <Text className="text-sm font-medium text-gray-900">{value}</Text>
       </View>
-      <View style={stepperStyles.divider} />
+
+      <View className="h-12 w-px bg-gray-200" />
+
       <TouchableOpacity
         onPress={onIncrement}
-        style={stepperStyles.btn}
+        className="h-12 w-10 items-center justify-center"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="add" size={16} color="#e13e00" />
       </TouchableOpacity>
@@ -178,40 +120,7 @@ function QuantityStepper({
   );
 }
 
-const stepperStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#e5e7eb',
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  btn: {
-    width: 38,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countBox: {
-    width: 32,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  count: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  divider: {
-    width: 0.5,
-    height: 48,
-    backgroundColor: '#e5e7eb',
-  },
-});
-
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailsPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -222,16 +131,7 @@ export default function ProductDetailsPage() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const sheetAnim = useRef(new Animated.Value(40)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const qtyRef = useRef(1);
-  const [qty, setQty] = [
-    useRef(1).current,
-    (n: number) => {
-      qtyRef.current = n;
-    },
-  ];
-
-  // Re-render qty via state
-  const [quantity, setQuantity] = useStateShim(1);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (product) {
@@ -251,7 +151,6 @@ export default function ProductDetailsPage() {
     }
   }, [product]);
 
-  // Header opacity based on scroll
   const headerBg = scrollY.interpolate({
     inputRange: [HERO_HEIGHT - 100, HERO_HEIGHT - 60],
     outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,1)'],
@@ -266,7 +165,7 @@ export default function ProductDetailsPage() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <View className="flex-1 items-center justify-center gap-3 bg-white">
         <ActivityIndicator size="large" color="#e13e00" />
       </View>
     );
@@ -274,63 +173,32 @@ export default function ProductDetailsPage() {
 
   if (!product) {
     return (
-      <View style={styles.centered}>
+      <View className="flex-1 items-center justify-center gap-3 bg-white px-6">
         <Ionicons name="alert-circle-outline" size={48} color="#e13e00" />
-        <Text style={styles.notFoundText}>Product not found</Text>
+        <Text className="text-base font-medium text-gray-900">Product not found</Text>
       </View>
     );
   }
 
   const formattedPrice =
-    product.price != null
-      ? `₱${product.price.toLocaleString('en-PH')}`
-      : 'Price unavailable';
+    product.price != null ? `₱${product.price.toLocaleString('en-PH')}` : 'Price unavailable';
 
   const totalPrice =
-    product.price != null
-      ? `₱${(product.price * quantity).toLocaleString('en-PH')}`
-      : '—';
+    product.price != null ? `₱${(product.price * quantity).toLocaleString('en-PH')}` : '—';
 
   return (
-    <View style={styles.root}>
-      {/* ── Floating header (appears on scroll) ── */}
-      <Animated.View
-        style={[
-          styles.floatingHeader,
-          { paddingTop: insets.top, backgroundColor: headerBg },
-        ]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={20} color="#111827" />
-        </TouchableOpacity>
-        <Animated.Text
-          style={[styles.headerTitle, { opacity: headerTitleOpacity }]}
-          numberOfLines={1}>
-          {product.name}
-        </Animated.Text>
-        <TouchableOpacity style={styles.headerBtn}>
-          <Ionicons name="heart-outline" size={20} color="#111827" />
-        </TouchableOpacity>
-      </Animated.View>
-
+    <View className="flex-1 bg-white">
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}>
-
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}>
         {/* ── Hero Image ── */}
-        <View style={styles.hero}>
-          <Image
-            source={{ uri: product.image.url }}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-          {/* Gradient overlay at bottom of hero */}
+        <View className='' style={styles.hero}>
+          <Image source={{ uri: product.image.url }} style={styles.heroImage} resizeMode="cover" />
           <View style={styles.heroOverlay} />
 
-          {/* Controls pinned over hero (before scroll) */}
           <View style={[styles.heroControls, { top: insets.top + 8 }]}>
             <TouchableOpacity onPress={() => router.back()} style={styles.circleBtn}>
               <Ionicons name="arrow-back" size={20} color="#111827" />
@@ -343,19 +211,12 @@ export default function ProductDetailsPage() {
 
         {/* ── Content Sheet ── */}
         <Animated.View
-          style={[
-            styles.sheet,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: sheetAnim }],
-            },
-          ]}>
-
+          style={[styles.sheet, { opacity: fadeAnim, transform: [{ translateY: sheetAnim }] }]}>
           {/* Drag handle */}
-          <View style={styles.dragHandle} />
+          <View className="mb-5 h-1 w-9 self-center rounded-full bg-gray-200" />
 
           {/* Badges */}
-          <View style={styles.badgeRow}>
+          <View className="mb-3 flex-row flex-wrap gap-1.5">
             <Badge label={product.productType} variant="category" />
             <Badge label={product.category.name} variant="category" />
             {product.subcategory && (
@@ -366,43 +227,48 @@ export default function ProductDetailsPage() {
           </View>
 
           {/* Name + Price */}
-          <View style={styles.nameRow}>
-            <View style={styles.nameBlock}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productInfo} numberOfLines={2}>
+          <View className="mb-2 flex-row items-start justify-between gap-2">
+            <View className="flex-1">
+              <Text className="text-2xl font-semibold leading-tight text-gray-900">
+                {product.name}
+              </Text>
+              <Text className="mt-1 text-sm leading-snug text-gray-400" numberOfLines={2}>
                 {product.info}
               </Text>
             </View>
-            <Text style={styles.productPrice}>{formattedPrice}</Text>
+            <Text className="shrink-0 text-2xl font-semibold text-orange-600">
+              {formattedPrice}
+            </Text>
           </View>
 
           {/* Pax count */}
           {product.paxCount != null && (
-            <View style={styles.paxChip}>
+            <View className="mb-4 flex-row items-center gap-1.5 self-start rounded-xl bg-gray-50 px-3 py-2">
               <Ionicons name="people-outline" size={15} color="#e13e00" />
-              <Text style={styles.paxText}>
-                Good for <Text style={styles.paxCount}>{product.paxCount}</Text> pax
+              <Text className="text-sm font-medium text-gray-700">
+                Good for <Text className="text-orange-600">{product.paxCount}</Text> pax
               </Text>
             </View>
           )}
 
-          <View style={styles.divider} />
+          {/* Divider */}
+          <View className="my-4 h-px bg-gray-100" />
 
           {/* Description */}
-          <Text style={styles.sectionLabel}>Description</Text>
-          <Text style={styles.description}>
+          <Text className="mb-2 text-sm font-semibold text-gray-900">Description</Text>
+          <Text className="text-sm leading-relaxed text-gray-500">
             {product.description || 'No description available.'}
           </Text>
 
           {/* Included Items */}
           {product.includedItems.length > 0 && (
             <>
-              <View style={styles.divider} />
-              <View style={styles.sectionHeader}>
+              <View className="my-4 h-px bg-gray-100" />
+              <View className="mb-2.5 flex-row items-center gap-1.5">
                 <Ionicons name="checkmark-circle-outline" size={16} color="#e13e00" />
-                <Text style={styles.sectionLabel}>What's Included</Text>
+                <Text className="text-sm font-semibold text-gray-900">What's Included</Text>
               </View>
-              <View style={styles.includedList}>
+              <View className="gap-2">
                 {product.includedItems.map((item, idx) => (
                   <IncludedItemCard key={item._id ?? idx} item={item} />
                 ))}
@@ -410,86 +276,35 @@ export default function ProductDetailsPage() {
             </>
           )}
 
-          {/* Spacer for bottom bar */}
-          <View style={{ height: 100 }} />
+          <View className="h-24" />
         </Animated.View>
       </Animated.ScrollView>
 
       {/* ── Bottom CTA ── */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+      <View
+        style={{ paddingBottom: insets.bottom + 12 }}
+        className="absolute bottom-0 left-0 right-0 flex-row items-center gap-3 border-t border-gray-100 bg-white px-5 pt-3">
         <QuantityStepper
           value={quantity}
           onDecrement={() => setQuantity(Math.max(1, quantity - 1))}
           onIncrement={() => setQuantity(quantity + 1)}
         />
-        <TouchableOpacity style={styles.addToCartBtn} activeOpacity={0.85}>
+        <TouchableOpacity
+          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-orange-600"
+          activeOpacity={0.85}>
           <Ionicons name="cart-outline" size={20} color="#fff" />
-          <Text style={styles.addToCartText}>Add to Cart · {totalPrice}</Text>
+          <Text className="text-sm font-semibold text-white">Add to Cart · {totalPrice}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-// ─── tiny useState shim so we avoid importing React explicitly ─────────────────
-import { useState } from 'react';
-import { IncludedItem, Product } from '@/types/products';
-function useStateShim<T>(initial: T): [T, (v: T) => void] {
-  return useState<T>(initial);
-}
-
-// ─── Styles ────────────────────────────────────────────────────────────────────
+// ─── Styles (only for things Tailwind can't do) ───────────────────────────────
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    gap: 12,
-  },
-  notFoundText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-  },
 
-  // Floating header
-  floatingHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
-    marginHorizontal: 8,
-  },
-
-  // Hero
+  // Fixed pixel dimensions for the hero
   hero: {
     height: HERO_HEIGHT,
     width: SCREEN_WIDTH,
@@ -506,7 +321,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 80,
-    // subtle fade from transparent to white at the bottom of the hero
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   heroControls: {
@@ -517,6 +331,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
+  // Platform.select shadow + rgba background can't be done in Tailwind
   circleBtn: {
     width: 42,
     height: 42,
@@ -535,7 +350,7 @@ const styles = StyleSheet.create({
     }),
   },
 
-  // Sheet
+  // Negative marginTop + dynamic border radius stay in StyleSheet
   sheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: SHEET_BORDER_RADIUS,
@@ -544,129 +359,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 20,
     minHeight: 500,
-  },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#e5e7eb',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-
-  // Badges
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 14,
-  },
-
-  // Name / price
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 8,
-  },
-  nameBlock: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#111827',
-    lineHeight: 28,
-  },
-  productInfo: {
-    fontSize: 13,
-    color: '#9ca3af',
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  productPrice: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#e13e00',
-    flexShrink: 0,
-  },
-
-  // Pax
-  paxChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  paxText: {
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  paxCount: {
-    color: '#e13e00',
-  },
-
-  // Section
-  divider: {
-    height: 0.5,
-    backgroundColor: '#f3f4f6',
-    marginVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  description: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 22,
-  },
-  includedList: {
-    gap: 8,
-  },
-
-  // Bottom bar
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 0.5,
-    borderTopColor: '#f3f4f6',
-  },
-  addToCartBtn: {
-    flex: 1,
-    height: 48,
-    backgroundColor: '#e13e00',
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  addToCartText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
   },
 });
