@@ -1,10 +1,15 @@
 import { Category, SubCategory } from "./categories";
 
 export interface IncludedItem {
-  product: string | Product; // string when sending, populated Product when receiving
+  _id?: string;
+  product: {
+    _id: string;
+    name: string;
+    image: { url: string };
+    price?: number | null;
+  };
   quantity: number;
   label: string | null;
-  _price?: number;
 }
 
 // UI-only type — lives inside the modal, never sent to API
