@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import { Product } from "@/types/products";
 import { PaginationMeta } from "@/utils/query-helpers";
@@ -6,6 +6,10 @@ import { PaginationMeta } from "@/utils/query-helpers";
 interface ProductResponse {
   data: Product[];
   pagination: PaginationMeta;
+}
+
+interface SpecificProductResponse {
+  data: Product;
 }
 
 interface ProductParams {
@@ -48,5 +52,13 @@ export const useProductsInfinite = (params?: ProductParams) => {
     initialPageParam: 1,
     staleTime: 30_000,
     enabled,
+  });
+};
+
+export const useProduct = (id: string) => {
+  return useQuery({
+    queryKey: ["products", id], // ['products', '123'] is different from ['products', '456']
+    queryFn: () => apiClient.get<SpecificProductResponse>(`/products/${id}`),
+    enabled: !!id, // Only run query if ID exists
   });
 };
