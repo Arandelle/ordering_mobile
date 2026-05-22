@@ -1,3 +1,4 @@
+import { useCart } from '@/context/CartContext';
 import { Tabs } from 'expo-router';
 import { House, ShoppingCart, Handbag, UserRound, Utensils, Bell } from 'lucide-react-native';
 import { Image, TouchableOpacity } from 'react-native';
@@ -6,6 +7,9 @@ const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
 
 export default function TabLayout() {
+
+  const {totalItems} = useCart()
+
   return (
     <Tabs
       screenOptions={{
@@ -58,7 +62,7 @@ export default function TabLayout() {
         name="cart"
         options={{
           title: 'My Cart',
-          tabBarBadge: 3,
+          tabBarBadge: totalItems,
           tabBarIcon: ({ color, size, focused }) => (
             <ShoppingCart size={size} color={color} strokeWidth={focused ? 2.5 : 1.8} />
           ),
