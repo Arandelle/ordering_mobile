@@ -125,10 +125,7 @@ function QuantityStepper({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailsPage() {
-  const { cartItems, addToCart } = useCart();
-
-  console.log(cartItems);
-
+  const { addToCart } = useCart();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: response, isLoading } = useProduct(id);
   const product = response?.data as Product | undefined;
