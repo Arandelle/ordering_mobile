@@ -11,10 +11,12 @@ import {
   View,
   ActivityIndicator,
   Platform,
+  ToastAndroid,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProduct } from '@/hooks/useProducts';
 import { IncludedItem, Product } from '@/types/products';
+import { useCart } from '@/context/CartContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 420;
@@ -123,6 +125,10 @@ function QuantityStepper({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailsPage() {
+  const { cartItems, addToCart } = useCart();
+
+  console.log(cartItems);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: response, isLoading } = useProduct(id);
   const product = response?.data as Product | undefined;
@@ -132,6 +138,8 @@ export default function ProductDetailsPage() {
   const sheetAnim = useRef(new Animated.Value(40)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [quantity, setQuantity] = useState(1);
+
+  const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -174,6 +182,29 @@ export default function ProductDetailsPage() {
   const totalPrice =
     product.price != null ? `₱${(product.price * quantity).toLocaleString('en-PH')}` : '—';
 
+  const handleAddToCart = () => {
+    addToCart({
+      _id: product._id,
+      name: product.name,
+      price: product.price ?? 0,
+      image: product.image.url,
+      category: {
+        _id: product.category._id,
+        name: product.category.name,
+      },
+      quantity: quantity,
+    });
+
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 1500);
+
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('Added to cart', ToastAndroid.SHORT);
+    }
+  };
+
   return (
     <View className="flex-1 bg-white">
       <Animated.ScrollView
@@ -183,7 +214,7 @@ export default function ProductDetailsPage() {
           useNativeDriver: false,
         })}>
         {/* ── Hero Image ── */}
-        <View className='' style={styles.hero}>
+        <View className="" style={styles.hero}>
           <Image source={{ uri: product.image.url }} style={styles.heroImage} resizeMode="cover" />
           <View style={styles.heroOverlay} />
 
@@ -278,8 +309,10 @@ export default function ProductDetailsPage() {
           onIncrement={() => setQuantity(quantity + 1)}
         />
         <TouchableOpacity
-          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-orange-600"
-          activeOpacity={0.85}>
+          onPress={handleAddToCart}
+          className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl ${isAdded ? 'bg-orange-200' : 'bg-orange-600'}`}
+          activeOpacity={0.85}
+          disabled={isAdded}>
           <Ionicons name="cart-outline" size={20} color="#fff" />
           <Text className="text-sm font-semibold text-white">Add to Cart · {totalPrice}</Text>
         </TouchableOpacity>
@@ -291,7 +324,6 @@ export default function ProductDetailsPage() {
 // ─── Styles (only for things Tailwind can't do) ───────────────────────────────
 
 const styles = StyleSheet.create({
-
   // Fixed pixel dimensions for the hero
   hero: {
     height: HERO_HEIGHT,
