@@ -151,18 +151,6 @@ export default function ProductDetailsPage() {
     }
   }, [product]);
 
-  const headerBg = scrollY.interpolate({
-    inputRange: [HERO_HEIGHT - 100, HERO_HEIGHT - 60],
-    outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,1)'],
-    extrapolate: 'clamp',
-  });
-
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [HERO_HEIGHT - 80, HERO_HEIGHT - 40],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center gap-3 bg-white">
