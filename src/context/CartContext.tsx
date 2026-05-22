@@ -159,7 +159,7 @@ export const CartProvider: React.FC<{
     setCartItems((prev) => {
       const existing = prev.find((c) => c._id === item._id);
       if (existing) {
-        return prev.map((c) => (c._id === item._id ? { ...c, quantity: c.quantity + 1 } : c));
+        return prev.map((c) => (c._id === item._id ? { ...c, quantity: c.quantity + item.quantity } : c));
       }
       return [...prev, { ...item }];
     });
