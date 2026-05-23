@@ -71,7 +71,7 @@ export default function TabLayout() {
           title: 'My Orders',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'bag' : 'bag-outline'}
+              name={focused ? 'bag-handle' : 'bag-handle-outline'}
               size={size}
               color={color}
             />
