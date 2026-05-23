@@ -3,10 +3,19 @@ import { useCategories } from '@/hooks/useCategories';
 import { useBranchProductInfinite, useProductsInfinite } from '@/hooks/useProducts';
 import ProductList from './home/components/ProductList';
 import { useBranchContext } from '@/context/BranchContext';
+import { useSettings } from '@/hooks/useSettings';
+import { getStoreStatus } from '@/services/store-status.service';
 
 // ─── Main Screen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { refetch: refetchCategories } = useCategories();
+
+  // Check operating hours
+  const { data: operatingSched, refetch: refetchSettings } = useSettings();
+  const storeStatus = operatingSched ? getStoreStatus(operatingSched.operatingHours) : null;
+
+  const isStoreClosed = storeStatus ? !storeStatus.isOpen : false;
+  const storeClosedMessage = storeStatus && !storeStatus.isOpen ? storeStatus.message : '';
 
   // Selected branch
   const { selectedBranch } = useBranchContext();
@@ -72,11 +81,11 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      await Promise.all([refetchCategories(), refetch()]);
+      await Promise.all([refetchCategories(), refetch(), refetchSettings()]);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchCategories, refetch]);
+  }, [refetchCategories, refetch, refetchSettings]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
@@ -96,6 +105,8 @@ export default function HomeScreen() {
       activeCategory={activeCategory}
       setActiveCategory={setActiveCategory}
       hasBranch={hasBranch}
+      isStoreClosed={isStoreClosed}
+      storeClosedMessage={storeClosedMessage}
     />
   );
 }
