@@ -43,7 +43,7 @@ export function BranchSelector() {
 
       {/* Bottom sheet modal */}
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 justify-end bg-black/20" onPress={() => setOpen(false)}>
+        <Pressable className="flex-1 justify-end bg-black/60" onPress={() => setOpen(false)}>
           <Pressable className='bg-white rounded-t-3xl px-5 pt-3 elevation-xl' onPress={(e) => e.stopPropagation()}>
             {/* Handle */}
             <View className='w-9 h-px rounded-sm bg-gray-500 self-center mb-4' />
@@ -60,7 +60,7 @@ export function BranchSelector() {
                 const isActive = selectedBranch?._id === item._id;
                 return (
                   <TouchableOpacity
-                    className="flex flex-row items-center gap-3 py-4"
+                    className="flex flex-row items-center gap-3 py-6"
                     activeOpacity={0.7}
                     onPress={() => {
                       setSelectedBranch(item);
