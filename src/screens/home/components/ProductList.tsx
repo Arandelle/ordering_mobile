@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Product } from '@/types/products';
 import Banner from './Banner';
 import Categories from './Categories';
+import { BranchSelector } from './BranchSelector';
 
 type ProductListProps = {
   products: Product[];
@@ -152,6 +153,7 @@ const ProductList = ({
         ListHeaderComponent={
           <>
             <Banner />
+            <BranchSelector />
             <Categories activeCategory={activeCategory} onCategoryPress={setActiveCategory} /> {/** pass the getter and setter category */}
             <Text className="px-4 pb-1 pt-2 text-base font-bold text-gray-900">All Products</Text>
           </>
