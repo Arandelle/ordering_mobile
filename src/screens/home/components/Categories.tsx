@@ -66,7 +66,7 @@ const Categories = ({ activeCategory, onCategoryPress }: CategoriesProps) => {
   }
 
   return (
-    <View className="mt-2 px-4 py-5">
+    <View className="mt-2 px-2 py-5">
       {/* Header row — title + "All" toggle */}
       <View className="mb-3 flex-row items-center justify-between p-2">
         <View className="mb-3 px-2">
