@@ -34,6 +34,8 @@ type ProductListProps = {
   refreshing: boolean;
   activeCategory: string | null;
   setActiveCategory: (name: string | null) => void;
+  isStoreClosed: boolean;
+  storeClosedMessage: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,10 +71,51 @@ function StockBadge({ status, quantity }: { status: string; quantity: number | n
   );
 }
 
+const StoreClosedOverlay = ({ message }: { message: string }) => {
+  // Split message into headline + detail (simple heuristic)
+  const [headline, ...rest] = message.split(". ");
+  const detail = rest.join(". ");
+
+  return (
+    <>
+      {/* Dark overlay */}
+      <View className="absolute inset-0 bg-black/60 z-10 backdrop-blur-[2px]" />
+
+      {/* Content */}
+      <View className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
+        <View className="bg-white/95 rounded-xl shadow-lg px-4 py-3 max-w-[90%]">
+          
+          {/* Headline */}
+          <Text className="text-sm font-bold text-red-600">
+            {headline}
+          </Text>
+
+          {/* Optional detail */}
+          {detail && (
+            <Text className="text-[11px] text-gray-600 mt-1 leading-tight">
+              {detail}
+            </Text>
+          )}
+        </View>
+      </View>
+    </>
+  );
+};
+
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
 const ProductCard = React.memo(
-  ({ item, hasBranch }: { item: BranchProduct; hasBranch: boolean }) => {
+  ({
+    item,
+    hasBranch,
+    isStoreClosed,
+    storeClosedMessage,
+  }: {
+    item: BranchProduct;
+    hasBranch: boolean;
+    isStoreClosed: boolean;
+    storeClosedMessage: string;
+  }) => {
     const router = useRouter();
     const [liked, setLiked] = useState(false);
     const scale = useRef(new Animated.Value(1)).current;
@@ -82,6 +125,8 @@ const ProductCard = React.memo(
     const status = hasBranch ? (item.status ?? '') : '';
     const isOutOfStock =
       hasBranch && (status === STOCK_STATUSES.OUT_OF_STOCK || (quantity ?? 1) <= 0);
+
+    const isBlocked = isOutOfStock || isStoreClosed;
 
     const handleLike = () => {
       setLiked((prev) => !prev);
@@ -99,6 +144,7 @@ const ProductCard = React.memo(
       <TouchableOpacity
         activeOpacity={isOutOfStock ? 1 : 0.93}
         onPress={handlePress}
+        disabled={isBlocked}
         className="rounded-lg bg-white shadow-sm"
         style={{ width: CARD_WIDTH }}>
         {/* Image block */}
@@ -114,6 +160,7 @@ const ProductCard = React.memo(
 
           {/* Stock overlay — only renders when hasBranch */}
           {hasBranch && <StockBadge status={status} quantity={quantity} />}
+          {isStoreClosed && <StoreClosedOverlay message={storeClosedMessage} />}
 
           {/* Heart button */}
           <TouchableOpacity
@@ -136,12 +183,12 @@ const ProductCard = React.memo(
           <Text
             numberOfLines={1}
             className="flex-1 text-sm font-semibold text-slate-900"
-            style={{ letterSpacing: -0.1, opacity: isOutOfStock ? 0.4 : 1 }}>
+            style={{ letterSpacing: -0.1, opacity: isBlocked ? 0.4 : 1 }}>
             {item.name}
           </Text>
           <Text
             className="text-lg font-bold"
-            style={{ color: isOutOfStock ? '#9ca3af' : '#e13e00', letterSpacing: -0.2 }}>
+            style={{ color: isBlocked ? '#9ca3af' : '#e13e00', letterSpacing: -0.2 }}>
             ₱{item.price}
           </Text>
         </View>
@@ -159,6 +206,8 @@ const ProductList = ({
   isLoading,
   isError,
   hasBranch,
+  isStoreClosed,
+  storeClosedMessage,
   refetch,
   onEndReached,
   onRefresh,
@@ -167,8 +216,15 @@ const ProductList = ({
   setActiveCategory,
 }: ProductListProps) => {
   const renderItem = useCallback(
-    ({ item }: { item: BranchProduct }) => <ProductCard item={item} hasBranch={hasBranch} />,
-    [hasBranch]
+    ({ item }: { item: BranchProduct }) => (
+      <ProductCard
+        item={item}
+        hasBranch={hasBranch}
+        isStoreClosed={isStoreClosed}
+        storeClosedMessage={storeClosedMessage}
+      />
+    ),
+    [hasBranch, isStoreClosed, storeClosedMessage]
   );
 
   const keyExtractor = useCallback((item: Product) => item._id, []);
