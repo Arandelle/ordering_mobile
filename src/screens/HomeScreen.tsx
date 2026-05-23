@@ -95,6 +95,7 @@ export default function HomeScreen() {
       refreshing={refreshing}
       activeCategory={activeCategory}
       setActiveCategory={setActiveCategory}
+      hasBranch={hasBranch}
     />
   );
 }
