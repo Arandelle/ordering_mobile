@@ -133,6 +133,7 @@ const ProductList = ({
   activeCategory,
   setActiveCategory,
 }: ProductListProps) => {
+    
   return (
     <>
       <FlatList
