@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
 import { CartItem } from '@/types/menu-types';
+import { Utensils } from 'lucide-react-native';
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
@@ -188,7 +189,7 @@ export default function CartScreen() {
             onPress={() => router.push('/checkout')}
             className="h-14 flex-row items-center justify-center gap-2 rounded-2xl bg-orange-600"
             activeOpacity={0.85}>
-            <Ionicons name="receipt-outline" size={20} color="#fff" />
+            <Utensils size={16} color="#fff" />
             <Text className="text-base font-bold text-white">Place Order</Text>
           </TouchableOpacity>
         </View>
