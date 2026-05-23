@@ -125,7 +125,7 @@ function QuantityStepper({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailsPage() {
-  const { addToCart } = useCart();
+  const { addToCart, totalItems } = useCart();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: response, isLoading } = useProduct(id);
   const product = response?.data as Product | undefined;
@@ -215,13 +215,29 @@ export default function ProductDetailsPage() {
           <Image source={{ uri: product.image.url }} style={styles.heroImage} resizeMode="cover" />
           <View style={styles.heroOverlay} />
 
+          {/** Header */}
           <View style={[styles.heroControls, { top: insets.top + 8 }]}>
             <TouchableOpacity onPress={() => router.back()} style={styles.circleBtn}>
               <Ionicons name="arrow-back" size={20} color="#111827" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.circleBtn}>
-              <Ionicons name="heart-outline" size={20} color="#111827" />
-            </TouchableOpacity>
+
+            <View className="flex flex-row gap-2">
+              <TouchableOpacity style={styles.circleBtn}>
+                <Ionicons name="heart-outline" size={20} color="#111827" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push('/cart')}
+                style={styles.circleBtn}
+                className="relative">
+                <Ionicons name="cart-outline" size={20} color="#111827" />
+                {totalItems > 0 && (
+                  <View className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#e13e00] text-white">
+                    <Text className="text-white">{totalItems}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
