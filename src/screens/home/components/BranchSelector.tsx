@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useBranches } from '@/hooks/useBranches';
 import { useBranchContext } from '@/context/BranchContext';
+import BottomSheet from '@/components/BottomSheet';
 
 export function BranchSelector() {
   const [open, setOpen] = useState(false);
@@ -42,76 +43,66 @@ export function BranchSelector() {
       </TouchableOpacity>
 
       {/* Bottom sheet modal */}
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 justify-end bg-black/60" onPress={() => setOpen(false)}>
-          <Pressable className='bg-white rounded-t-3xl px-5 pt-3 elevation-xl' onPress={(e) => e.stopPropagation()}>
-            {/* Handle */}
-            <View className='w-9 h-px rounded-sm bg-gray-500 self-center mb-4' />
+      <BottomSheet visible={open} onClose={() => setOpen(false)}>
+        <Text className="mb-4 text-lg font-bold text-slate-900">Select a Branch</Text>
+        <FlatList
+          data={branches}
+          keyExtractor={(item) => item._id}
+          ItemSeparatorComponent={() => <View className="h-px bg-gray-200" />}
+          renderItem={({ item }) => {
+            const isActive = selectedBranch?._id === item._id;
+            return (
+              <TouchableOpacity
+                className="flex flex-row items-center gap-3 py-6"
+                activeOpacity={0.7}
+                onPress={() => {
+                  setSelectedBranch(item);
+                  setOpen(false);
+                }}>
+                {/* Icon */}
+                <View
+                  className={`h-9 w-9 items-center justify-center rounded-lg ${isActive ? 'bg-[#e13e00]' : 'bg-[#fff5f2]'}`}>
+                  <Ionicons
+                    name="storefront-outline"
+                    size={16}
+                    color={isActive ? '#fff' : '#e13e00'}
+                  />
+                </View>
 
-            <Text className="mb-4 text-lg font-bold text-slate-900">Select a Branch</Text>
+                {/* Text */}
+                <View className="flex-1">
+                  <Text
+                    className={`text-sm font-semibold ${isActive ? 'text-[#e13e00]' : 'text-gray-900'}`}>
+                    {item.name}
+                  </Text>
+                  <Text className="mt-1 text-xs text-gray-600">{item.address}</Text>
+                </View>
 
-            <FlatList
-              data={branches}
-              keyExtractor={(item) => item._id}
-              ItemSeparatorComponent={() => (
-                <View className="h-px bg-gray-200" />
-              )}
-              renderItem={({ item }) => {
-                const isActive = selectedBranch?._id === item._id;
-                return (
-                  <TouchableOpacity
-                    className="flex flex-row items-center gap-3 py-6"
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setSelectedBranch(item);
-                      setOpen(false);
-                    }}>
-                    {/* Icon */}
-                    <View
-                      className={`h-9 w-9 items-center justify-center rounded-lg ${isActive ? 'bg-[#e13e00]' : 'bg-[#fff5f2]'}`}>
-                      <Ionicons
-                        name="storefront-outline"
-                        size={16}
-                        color={isActive ? '#fff' : '#e13e00'}
-                      />
-                    </View>
-
-                    {/* Text */}
-                    <View className="flex-1">
-                      <Text
-                        className={`text-sm font-semibold ${isActive ? 'text-[#e13e00]' : 'text-gray-900'}`}>
-                        {item.name}
-                      </Text>
-                      <Text className='text-xs text-gray-600 mt-1'>{item.address}</Text>
-                    </View>
-
-                    {/* Check */}
-                    {isActive && <Ionicons name="checkmark-circle" size={20} color="#e13e00" />}
-                  </TouchableOpacity>
-                );
-              }}
-              ListEmptyComponent={
-                isLoading ? (
-                  <View className="items-center py-16">
-                    <ActivityIndicator size="large" color="#e13e00" />
-                  </View>
-                ) : isError ? (
-                  <View className="items-center py-16">
-                    <Text className="mb-3 text-sm text-gray-400">Failed to load branches</Text>
-                    <TouchableOpacity onPress={() => refetch()}>
-                      <Text className="text-xs font-semibold text-[#e13e00]">Try again</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View className="items-center py-10">
-                    <Text className="text-gray-400">No branches found.</Text>
-                  </View>
-                )
-              }
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+                {/* Check */}
+                {isActive && <Ionicons name="checkmark-circle" size={20} color="#e13e00" />}
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            isLoading ? (
+              <View className="items-center py-16">
+                <ActivityIndicator size="large" color="#e13e00" />
+              </View>
+            ) : isError ? (
+              <View className="items-center py-16">
+                <Text className="mb-3 text-sm text-gray-400">Failed to load branches</Text>
+                <TouchableOpacity onPress={() => refetch()}>
+                  <Text className="text-xs font-semibold text-[#e13e00]">Try again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View className="items-center py-10">
+                <Text className="text-gray-400">No branches found.</Text>
+              </View>
+            )
+          }
+        />
+      </BottomSheet>
     </>
   );
 }
