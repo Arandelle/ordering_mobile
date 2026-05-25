@@ -12,8 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useBranches } from '@/hooks/useBranches';
 import { useBranchContext } from '@/context/BranchContext';
 import BottomSheet from '@/components/BottomSheet';
+import { cn } from '@/lib/cn';
 
-export function BranchSelector() {
+export function BranchSelector({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
 
   const { data: branches = [], isLoading, isError, refetch } = useBranches();
@@ -30,7 +31,7 @@ export function BranchSelector() {
       {/* Trigger pill */}
       <TouchableOpacity
         onPress={() => setOpen(true)}
-        className="mt-12 flex flex-col gap-2 px-6"
+        className={cn('mt-12 flex flex-col gap-2 px-6', className)}
         activeOpacity={0.7}>
         <View className="flex flex-row items-center gap-2">
           <Ionicons name="storefront" size={20} color={'#e13e00'} />
