@@ -6,6 +6,7 @@ import { BranchProvider } from '@/context/BranchContext';
 
 const queryClient = new QueryClient();
 
+// Register here all route
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -14,6 +15,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="product/[id]" />
+            <Stack.Screen name="checkout" />
           </Stack>
         </CartProvider>
       </BranchProvider>
