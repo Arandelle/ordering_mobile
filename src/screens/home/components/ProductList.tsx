@@ -18,6 +18,8 @@ import Categories from './Categories';
 import { BranchSelector } from './BranchSelector';
 import { BranchProduct } from '@/hooks/useProducts';
 import { STOCK_STATUSES } from '@/types/inventories';
+import { StockBadge } from './StockBadge';
+import { StoreClosedOverlay } from './StoreClosedOverLay';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,65 +44,6 @@ type ProductListProps = {
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
-
-const getStockLabel = (status: string, quantity: number | null): string => {
-  if (status === STOCK_STATUSES.OUT_OF_STOCK) return 'Out of stock';
-  if (status === STOCK_STATUSES.LOW_STOCK) return `Only ${quantity} left!`;
-  return `${quantity} available`;
-};
-
-// ─── Stock Badge ──────────────────────────────────────────────────────────────
-
-function StockBadge({ status, quantity }: { status: string; quantity: number | null }) {
-  const isOutOfStock = status === STOCK_STATUSES.OUT_OF_STOCK || (quantity ?? 1) <= 0;
-  const isLowStock = !isOutOfStock && status === STOCK_STATUSES.LOW_STOCK;
-
-  if (!isOutOfStock && !isLowStock) return null;
-
-  return (
-    <>
-      {/* Dim overlay for out of stock */}
-      {isOutOfStock && <View className="absolute inset-0 z-10 rounded-t-lg bg-black/50" />}
-
-      {/* Badge pill */}
-      <View
-        className={`elevation absolute left-2 top-2 z-20 rounded-2xl px-3 py-1 shadow-md shadow-black ${isOutOfStock ? 'bg-red-500' : 'bg-amber-500'}`}>
-        <Text className="text-sm font-bold text-white">{getStockLabel(status, quantity)}</Text>
-      </View>
-    </>
-  );
-}
-
-const StoreClosedOverlay = ({ message }: { message: string }) => {
-  // Split message into headline + detail (simple heuristic)
-  const [headline, ...rest] = message.split(". ");
-  const detail = rest.join(". ");
-
-  return (
-    <>
-      {/* Dark overlay */}
-      <View className="absolute inset-0 bg-black/60 z-10 backdrop-blur-[2px]" />
-
-      {/* Content */}
-      <View className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
-        <View className="bg-white/95 rounded-xl shadow-lg px-4 py-3 max-w-[90%]">
-          
-          {/* Headline */}
-          <Text className="text-sm font-bold text-red-600">
-            {headline}
-          </Text>
-
-          {/* Optional detail */}
-          {detail && (
-            <Text className="text-[11px] text-gray-600 mt-1 leading-tight">
-              {detail}
-            </Text>
-          )}
-        </View>
-      </View>
-    </>
-  );
-};
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
@@ -137,14 +80,13 @@ const ProductCard = React.memo(
     };
 
     const handlePress = () => {
-      if (!isOutOfStock) router.push(`/product/${item._id}`);
+      router.push(`/product/${item._id}`);
     };
 
     return (
       <TouchableOpacity
         activeOpacity={isOutOfStock ? 1 : 0.93}
         onPress={handlePress}
-        disabled={isBlocked}
         className="rounded-lg bg-white shadow-sm"
         style={{ width: CARD_WIDTH }}>
         {/* Image block */}
