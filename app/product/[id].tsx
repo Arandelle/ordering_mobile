@@ -16,119 +16,22 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProduct } from '@/hooks/useProducts';
-import { IncludedItem, Product } from '@/types/products';
 import { useCart } from '@/context/CartContext';
 import { SCREEN_HEIGHT } from '@/constant';
+import { Badge } from './components/Badge';
+import { IncludedItemCard } from './components/IncludedItemCard';
+import { Product } from '@/types/products';
+import { QuantityStepper } from './components/QuantityStepper';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HERO_HEIGHT = 420;
 const SHEET_BORDER_RADIUS = 28;
-
-// ─── Badge ────────────────────────────────────────────────────────────────────
-
-const variantMap = {
-  default: {
-    container: 'bg-gray-200 rounded-2xl px-3 py-1',
-    text: 'text-xs font-medium text-gray-600',
-  },
-  category: {
-    container: 'bg-gray-200 rounded-2xl px-3 py-1',
-    text: 'text-xs font-medium text-gray-600',
-  },
-  subcategory: {
-    container: 'bg-amber-200 rounded-2xl px-3 py-1',
-    text: 'text-xs font-medium text-amber-600',
-  },
-  popular: {
-    container: 'bg-orange-200 rounded-2xl px-3 py-1 border border-orange-500',
-    text: 'text-xs font-medium text-orange-600',
-  },
-  signature: {
-    container: 'bg-orange-200 rounded-2xl px-3 py-1 border border-orange-500',
-    text: 'text-xs font-medium text-orange-600',
-  },
-};
-
-function Badge({
-  label,
-  variant = 'default',
-}: {
-  label: string;
-  variant?: keyof typeof variantMap;
-}) {
-  const { container, text } = variantMap[variant];
-  return (
-    <View className={container}>
-      <Text className={text}>{label}</Text>
-    </View>
-  );
-}
-
-// ─── IncludedItemCard ─────────────────────────────────────────────────────────
-
-function IncludedItemCard({ item }: { item: IncludedItem }) {
-  return (
-    <View className="flex-row items-center gap-2 rounded-xl bg-gray-50 p-3">
-      <View className="h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-50">
-        <Ionicons name="checkmark" size={16} color="#e13e00" />
-      </View>
-      <View className="flex-1">
-        <Text className="text-xs font-medium text-gray-900" numberOfLines={1}>
-          {item.product.name}
-        </Text>
-      </View>
-      {item.quantity != null && item.quantity > 0 && (
-        <View className="rounded-2xl bg-orange-50 px-2 py-1">
-          <Text className="text-xs font-medium text-orange-600">x{item.quantity}</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
-// ─── QuantityStepper ──────────────────────────────────────────────────────────
-
-function QuantityStepper({
-  value,
-  onDecrement,
-  onIncrement,
-}: {
-  value: number;
-  onDecrement: () => void;
-  onIncrement: () => void;
-}) {
-  return (
-    <View className="flex-row items-center overflow-hidden rounded-xl border border-gray-200">
-      <TouchableOpacity
-        onPress={onDecrement}
-        className="h-12 w-10 items-center justify-center"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Ionicons name="remove" size={16} color="#111827" />
-      </TouchableOpacity>
-
-      <View className="h-12 w-px bg-gray-200" />
-
-      <View className="h-12 w-10 items-center justify-center">
-        <Text className="text-sm font-medium text-gray-900">{value}</Text>
-      </View>
-
-      <View className="h-12 w-px bg-gray-200" />
-
-      <TouchableOpacity
-        onPress={onIncrement}
-        className="h-12 w-10 items-center justify-center"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Ionicons name="add" size={16} color="#e13e00" />
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailsPage() {
   const { addToCart, totalItems } = useCart();
   const { id } = useLocalSearchParams<{ id: string }>();
+
   const { data: response, isLoading } = useProduct(id);
   const product = response?.data as Product | undefined;
 
@@ -254,16 +157,16 @@ export default function ProductDetailsPage() {
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false,
         })}
-        style={{ transform: [{translateY: panY}], opacity: pageOpacity}}
-        {...panResponder.panHandlers}
-        >
+        style={{ transform: [{ translateY: panY }], opacity: pageOpacity }}
+        {...panResponder.panHandlers}>
         {/* ── Hero Image ── */}
-        <View className="" style={styles.hero}>
-          <Image source={{ uri: product.image.url }} style={styles.heroImage} resizeMode="cover" />
-          <View style={styles.heroOverlay} />
+        <View style={{ height: 420, width: SCREEN_WIDTH }} className="overflow-hidden bg-[#fff3ee]">
+          <Image source={{ uri: product.image.url }} className="h-full w-full" resizeMode="cover" />
 
           {/** Header */}
-          <View style={[styles.heroControls, { top: insets.top + 8 }]}>
+          <View
+            className="absolute left-0 right-0 flex flex-row justify-between py-5"
+            style={{ top: insets.top + 8 }}>
             <TouchableOpacity onPress={() => router.back()} style={styles.circleBtn}>
               <Ionicons name="arrow-back" size={20} color="#111827" />
             </TouchableOpacity>
@@ -384,33 +287,6 @@ export default function ProductDetailsPage() {
 // ─── Styles (only for things Tailwind can't do) ───────────────────────────────
 
 const styles = StyleSheet.create({
-  // Fixed pixel dimensions for the hero
-  hero: {
-    height: HERO_HEIGHT,
-    width: SCREEN_WIDTH,
-    backgroundColor: '#fff3ee',
-    overflow: 'hidden',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  heroControls: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-  },
   // Platform.select shadow + rgba background can't be done in Tailwind
   circleBtn: {
     width: 42,
