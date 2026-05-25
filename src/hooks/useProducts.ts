@@ -95,10 +95,10 @@ export const useBranchProductInfinite = (branchId: string, params?: {
   });
 };
 
-export const useProduct = (id: string) => {
+export const useProduct = (id: string, branchId?: string | undefined) => {
   return useQuery({
-    queryKey: ["products", id], // ['products', '123'] is different from ['products', '456']
-    queryFn: () => apiClient.get<SpecificProductResponse>(`/products/${id}`),
+    queryKey: ["products", id, branchId], // ['products', '123'] is different from ['products', '456']
+    queryFn: () => apiClient.get<SpecificProductResponse>(`/products/${id}${buildQueryString({branchId})}`),
     enabled: !!id, // Only run query if ID exists
   });
 };
