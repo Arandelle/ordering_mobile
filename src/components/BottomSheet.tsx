@@ -1,7 +1,6 @@
+import { SCREEN_HEIGHT } from '@/constant';
 import React, { PropsWithChildren, useEffect, useRef } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, Pressable, View } from 'react-native';
-
-const SCREEN_HEIGHT = Dimensions.get('screen').height;
 
 type BottomSheetProps = PropsWithChildren<{
   visible: boolean;
