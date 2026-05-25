@@ -12,11 +12,13 @@ import {
   ActivityIndicator,
   Platform,
   ToastAndroid,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProduct } from '@/hooks/useProducts';
 import { IncludedItem, Product } from '@/types/products';
 import { useCart } from '@/context/CartContext';
+import { SCREEN_HEIGHT } from '@/constant';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 420;
@@ -134,9 +136,51 @@ export default function ProductDetailsPage() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const sheetAnim = useRef(new Animated.Value(40)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const panY = useRef(new Animated.Value(0)).current;
+  const pageOpacity = useRef(new Animated.Value(1)).current;
+
   const [quantity, setQuantity] = useState(1);
 
   const [isAdded, setIsAdded] = useState(false);
+
+  const closeWithSwipe = () => {
+    Animated.parallel([
+      Animated.timing(panY, {
+        toValue: SCREEN_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pageOpacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => router.back());
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+
+      onPanResponderMove: (_, gesture) => {
+        if (gesture.dy > 0) panY.setValue(gesture.dy); // only drag down
+      },
+
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy > 120 || gesture.vy > 1.2) {
+          closeWithSwipe();
+        } else {
+          // Snap back
+          Animated.spring(panY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     if (product) {
@@ -209,7 +253,10 @@ export default function ProductDetailsPage() {
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false,
-        })}>
+        })}
+        style={{ transform: [{translateY: panY}], opacity: pageOpacity}}
+        {...panResponder.panHandlers}
+        >
         {/* ── Hero Image ── */}
         <View className="" style={styles.hero}>
           <Image source={{ uri: product.image.url }} style={styles.heroImage} resizeMode="cover" />
