@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useCategories } from '@/hooks/useCategories';
 import { useBranchProductInfinite, useProductsInfinite } from '@/hooks/useProducts';
-import ProductList from './home/components/ProductList';
+import ProductList from '@/components/home/ProductList';
 import { useBranchContext } from '@/context/BranchContext';
 import { useSettings } from '@/hooks/useSettings';
 import { getStoreStatus } from '@/services/store-status.service';
