@@ -15,13 +15,20 @@ import {
   PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProduct } from '@/hooks/useProducts';
+import { BranchProduct, useProduct } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
 import { SCREEN_HEIGHT } from '@/constant';
 import { Badge } from './components/Badge';
 import { IncludedItemCard } from './components/IncludedItemCard';
 import { Product } from '@/types/products';
 import { QuantityStepper } from './components/QuantityStepper';
+import { useSettings } from '@/hooks/useSettings';
+import { getStoreStatus } from '@/services/store-status.service';
+import { useBranchContext } from '@/context/BranchContext';
+import { STOCK_STATUSES } from '@/types/inventories';
+import { StockBadge } from '@/screens/home/components/StockBadge';
+import { StoreClosedOverlay } from '@/screens/home/components/StoreClosedOverLay';
+import { BranchSelector } from '@/screens/home/components/BranchSelector';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_BORDER_RADIUS = 28;
@@ -29,11 +36,22 @@ const SHEET_BORDER_RADIUS = 28;
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailsPage() {
-  const { addToCart, totalItems } = useCart();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // Selected branch
+  const { selectedBranch } = useBranchContext();
+  const branchId = selectedBranch?._id;
+  const hasBranch = !!branchId;
 
-  const { data: response, isLoading } = useProduct(id);
-  const product = response?.data as Product | undefined;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: response, isLoading } = useProduct(id, branchId);
+  const product = response?.data as BranchProduct | undefined;
+
+  const { data: operatingSched } = useSettings();
+  const storeStatus = operatingSched ? getStoreStatus(operatingSched.operatingHours) : null;
+
+  const isStoreClosed = storeStatus ? !storeStatus.isOpen : false;
+  const storeClosedMessage = storeStatus && !storeStatus.isOpen ? storeStatus.message : '';
+
+  const { addToCart, totalItems } = useCart();
 
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -126,6 +144,24 @@ export default function ProductDetailsPage() {
   const totalPrice =
     product.price != null ? `₱${(product.price * quantity).toLocaleString('en-PH')}` : '—';
 
+  const productStocks = hasBranch ? (product.quantity ?? 0) : null;
+  const status = hasBranch ? (product.status ?? '') : '';
+
+  const isOutOfStock =
+    hasBranch && (status === STOCK_STATUSES.OUT_OF_STOCK || (productStocks ?? 0) <= 0);
+
+  const isLowStock = hasBranch && status === STOCK_STATUSES.LOW_STOCK;
+
+  const getCtaState = () => {
+    if (!hasBranch) return { label: 'Select a Branch', style: 'bg-gray-900', disabled: true };
+    if (isOutOfStock) return { label: 'Out of Stock', style: 'bg-gray-200', disabled: true };
+    if (isStoreClosed) return { label: 'Store is Closed', style: 'bg-gray-200', disabled: true };
+    return {
+      label: `Add to Cart · ${totalPrice}`,
+      style: isAdded ? 'bg-orange-200' : 'bg-orange-600',
+    };
+  };
+
   const handleAddToCart = () => {
     addToCart({
       _id: product._id,
@@ -159,13 +195,26 @@ export default function ProductDetailsPage() {
         })}
         style={{ transform: [{ translateY: panY }], opacity: pageOpacity }}
         {...panResponder.panHandlers}>
+
+
         {/* ── Hero Image ── */}
         <View style={{ height: 420, width: SCREEN_WIDTH }} className="overflow-hidden bg-[#fff3ee]">
+
+          {/** out/low stock product overlay */}
+          {(isOutOfStock || isLowStock) && (
+            <View className="absolute inset-0 z-10 flex flex-row items-center justify-center bg-black/40">
+              <StockBadge status={status} quantity={productStocks} className="static" />
+            </View>
+          )}
+
+          {/** Store closed overlat message */}
+          {isStoreClosed && <StoreClosedOverlay message={storeClosedMessage} />}
+
           <Image source={{ uri: product.image.url }} className="h-full w-full" resizeMode="cover" />
 
           {/** Header */}
           <View
-            className="absolute left-0 right-0 flex flex-row justify-between py-5"
+            className="absolute left-0 right-0 z-10 flex flex-row justify-between px-5"
             style={{ top: insets.top + 8 }}>
             <TouchableOpacity onPress={() => router.back()} style={styles.circleBtn}>
               <Ionicons name="arrow-back" size={20} color="#111827" />
@@ -196,6 +245,9 @@ export default function ProductDetailsPage() {
           style={[styles.sheet, { opacity: fadeAnim, transform: [{ translateY: sheetAnim }] }]}>
           {/* Drag handle */}
           <View className="mb-5 h-1 w-9 self-center rounded-full bg-gray-200" />
+          
+          {/** Branch selector */}
+          <BranchSelector className="mt-0 px-1 py-4" />
 
           {/* Badges */}
           <View className="mb-3 flex-row flex-wrap gap-1.5">
@@ -271,13 +323,14 @@ export default function ProductDetailsPage() {
           onDecrement={() => setQuantity(Math.max(1, quantity - 1))}
           onIncrement={() => setQuantity(quantity + 1)}
         />
+
         <TouchableOpacity
           onPress={handleAddToCart}
-          className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl ${isAdded ? 'bg-orange-200' : 'bg-orange-600'}`}
+          className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl ${getCtaState().style}`}
           activeOpacity={0.85}
-          disabled={isAdded}>
+          disabled={getCtaState().disabled}>
           <Ionicons name="cart-outline" size={20} color="#fff" />
-          <Text className="text-sm font-semibold text-white">Add to Cart · {totalPrice}</Text>
+          <Text className="text-sm font-semibold text-white">{getCtaState().label}</Text>
         </TouchableOpacity>
       </View>
     </View>
