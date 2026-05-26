@@ -157,7 +157,7 @@ Do not assume payment success from the mobile app alone.
 - Use `useMemo` and `useCallback` only when they solve actual rendering issues.
 - Avoid heavy computation inside render.
 - Optimize images when possible.
-
+- follow the twMerge if needed
 ---
 
 ## Error Handling Rules
