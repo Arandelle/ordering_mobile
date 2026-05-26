@@ -1,17 +1,15 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-
-const BRAND = '#e13e00';
+import { emptyPersonalDetails, useCheckoutDraft } from '@/hooks/useCheckout';
 
 type Field = 'firstName' | 'lastName' | 'email' | 'phone' | 'note';
 
@@ -32,17 +30,20 @@ interface FormErrors {
 
 const PersonalDetails = () => {
   const router = useRouter();
+  const { draft, savePersonalDetails } = useCheckoutDraft();
 
   const [form, setForm] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    note: '',
+    ...emptyPersonalDetails,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [focused, setFocused] = useState<Field | null>(null);
+
+  useEffect(() => {
+    if (draft?.personalDetails) {
+      setForm(draft.personalDetails);
+    }
+  }, [draft?.personalDetails]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -64,8 +65,9 @@ const PersonalDetails = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (validate()) {
+      await savePersonalDetails.mutateAsync(form);
       router.push('/checkout/address');
     }
   };
@@ -77,50 +79,59 @@ const PersonalDetails = () => {
     }
   };
 
-  const inputStyle = (field: Field) => [
-    styles.input,
-    focused === field && styles.inputFocused,
-    errors[field as keyof FormErrors] && styles.inputError,
-  ];
+  const inputClassName = (field: Field) => {
+    const hasError = errors[field as keyof FormErrors];
+    const isFocused = focused === field;
+
+    return [
+      'rounded-[10px] border-[1.5px] px-3.5 py-3 text-sm text-gray-950',
+      isFocused ? 'border-[#e13e00] bg-white' : 'border-[#e8e8e8] bg-[#fafafa]',
+      hasError && 'border-red-600 bg-red-50',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
+        className="flex-1 bg-white"
+        contentContainerClassName="px-5 pt-6"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-
-        {/* Step indicator */}
-        <View style={styles.stepRow}>
-          {['Details', 'Address', 'Payment'].map((step, i) => (
-            <React.Fragment key={step}>
-              <View style={styles.stepItem}>
-                <View style={[styles.stepDot, i === 0 && styles.stepDotActive]}>
-                  <Text style={[styles.stepDotText, i === 0 && styles.stepDotTextActive]}>
+        <View className="mb-7 flex-row items-center">
+          {['Details', 'Address', 'Review'].map((step, i) => (
+            <View key={step} className="flex-1 flex-row items-center">
+              <View className="items-center gap-1">
+                <View
+                  className={`h-7 w-7 items-center justify-center rounded-full ${
+                    i === 0 ? 'bg-[#e13e00]' : 'bg-gray-100'
+                  }`}>
+                  <Text className={`text-xs font-semibold ${i === 0 ? 'text-white' : 'text-gray-400'}`}>
                     {i + 1}
                   </Text>
                 </View>
-                <Text style={[styles.stepLabel, i === 0 && styles.stepLabelActive]}>
+                <Text className={`text-[11px] ${i === 0 ? 'font-semibold text-[#e13e00]' : 'text-gray-400'}`}>
                   {step}
                 </Text>
               </View>
-              {i < 2 && <View style={[styles.stepLine, i === 0 && styles.stepLineActive]} />}
-            </React.Fragment>
+              {i < 2 && (
+                <View className={`mb-3.5 h-[1.5px] flex-1 ${i === 0 ? 'bg-[#e13e00]' : 'bg-gray-100'}`} />
+              )}
+            </View>
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Personal Details</Text>
-        <Text style={styles.sectionSubtitle}>Tell us a bit about yourself</Text>
+        <Text className="mb-1 text-xl font-bold text-gray-950">Personal Details</Text>
+        <Text className="mb-6 text-[13px] text-gray-500">Tell us a bit about yourself</Text>
 
-        {/* First & Last Name row */}
-        <View style={styles.row}>
-          <View style={styles.halfField}>
-            <Text style={styles.label}>First Name</Text>
+        <View className="mb-4 flex-row gap-3">
+          <View className="flex-1">
+            <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">First Name</Text>
             <TextInput
-              style={inputStyle('firstName')}
+              className={inputClassName('firstName')}
               placeholder="Juan"
               placeholderTextColor="#bbb"
               value={form.firstName}
@@ -129,13 +140,13 @@ const PersonalDetails = () => {
               onBlur={() => setFocused(null)}
               autoCapitalize="words"
             />
-            {errors.firstName && <Text style={styles.error}>{errors.firstName}</Text>}
+            {errors.firstName && <Text className="mt-1 text-[11px] text-red-600">{errors.firstName}</Text>}
           </View>
 
-          <View style={styles.halfField}>
-            <Text style={styles.label}>Last Name</Text>
+          <View className="flex-1">
+            <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Last Name</Text>
             <TextInput
-              style={inputStyle('lastName')}
+              className={inputClassName('lastName')}
               placeholder="dela Cruz"
               placeholderTextColor="#bbb"
               value={form.lastName}
@@ -144,15 +155,14 @@ const PersonalDetails = () => {
               onBlur={() => setFocused(null)}
               autoCapitalize="words"
             />
-            {errors.lastName && <Text style={styles.error}>{errors.lastName}</Text>}
+            {errors.lastName && <Text className="mt-1 text-[11px] text-red-600">{errors.lastName}</Text>}
           </View>
         </View>
 
-        {/* Email */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Email Address</Text>
+        <View className="mb-4">
+          <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Email Address</Text>
           <TextInput
-            style={inputStyle('email')}
+            className={inputClassName('email')}
             placeholder="juan@email.com"
             placeholderTextColor="#bbb"
             value={form.email}
@@ -162,14 +172,13 @@ const PersonalDetails = () => {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          {errors.email && <Text style={styles.error}>{errors.email}</Text>}
+          {errors.email && <Text className="mt-1 text-[11px] text-red-600">{errors.email}</Text>}
         </View>
 
-        {/* Phone */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Phone Number</Text>
+        <View className="mb-4">
+          <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Phone Number</Text>
           <TextInput
-            style={inputStyle('phone')}
+            className={inputClassName('phone')}
             placeholder="+63 912 345 6789"
             placeholderTextColor="#bbb"
             value={form.phone}
@@ -178,17 +187,16 @@ const PersonalDetails = () => {
             onBlur={() => setFocused(null)}
             keyboardType="phone-pad"
           />
-          {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
+          {errors.phone && <Text className="mt-1 text-[11px] text-red-600">{errors.phone}</Text>}
         </View>
 
-        {/* Note */}
-        <View style={styles.field}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Order Note</Text>
-            <Text style={styles.optional}>Optional</Text>
+        <View className="mb-4">
+          <View className="mb-1.5 flex-row items-center justify-between">
+            <Text className="text-[13px] font-semibold text-gray-700">Order Note</Text>
+            <Text className="text-[11px] text-gray-400">Optional</Text>
           </View>
           <TextInput
-            style={[inputStyle('note'), styles.textarea]}
+            className={`${inputClassName('note')} h-[88px] pt-3`}
             placeholder="Any special instructions for your order..."
             placeholderTextColor="#bbb"
             value={form.note}
@@ -201,86 +209,22 @@ const PersonalDetails = () => {
           />
         </View>
 
-        {/* Proceed Button */}
-        <TouchableOpacity style={styles.button} onPress={handleProceed} activeOpacity={0.85}>
-          <Text style={styles.buttonText}>Proceed to Address</Text>
+        <TouchableOpacity
+          className={`mt-2 items-center rounded-xl bg-[#e13e00] py-[15px] ${
+            savePersonalDetails.isPending ? 'opacity-[0.65]' : ''
+          }`}
+          onPress={handleProceed}
+          activeOpacity={0.85}
+          disabled={savePersonalDetails.isPending}>
+          <Text className="text-[15px] font-bold text-white">
+            {savePersonalDetails.isPending ? 'Saving...' : 'Proceed to Address'}
+          </Text>
         </TouchableOpacity>
 
-        <View style={{ height: 32 }} />
+        <View className="h-8" />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { paddingHorizontal: 20, paddingTop: 24 },
-
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  stepItem: { alignItems: 'center', gap: 4 },
-  stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepDotActive: { backgroundColor: BRAND },
-  stepDotText: { fontSize: 12, fontWeight: '600', color: '#aaa' },
-  stepDotTextActive: { color: '#fff' },
-  stepLabel: { fontSize: 11, color: '#aaa' },
-  stepLabelActive: { color: BRAND, fontWeight: '600' },
-  stepLine: { flex: 1, height: 1.5, backgroundColor: '#eee', marginBottom: 14 },
-  stepLineActive: { backgroundColor: BRAND },
-
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 4 },
-  sectionSubtitle: { fontSize: 13, color: '#888', marginBottom: 24 },
-
-  row: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  halfField: { flex: 1 },
-  field: { marginBottom: 16 },
-
-  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6 },
-  optional: { fontSize: 11, color: '#aaa' },
-
-  input: {
-    borderWidth: 1.5,
-    borderColor: '#e8e8e8',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: '#111',
-    backgroundColor: '#fafafa',
-  },
-  inputFocused: {
-    borderColor: BRAND,
-    backgroundColor: '#fff',
-  },
-  inputError: {
-    borderColor: '#e53935',
-    backgroundColor: '#fff9f9',
-  },
-  textarea: {
-    height: 88,
-    paddingTop: 12,
-  },
-  error: { fontSize: 11, color: '#e53935', marginTop: 4 },
-
-  button: {
-    backgroundColor: BRAND,
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-});
 
 export default PersonalDetails;
