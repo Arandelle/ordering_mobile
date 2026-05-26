@@ -12,6 +12,7 @@ import React, {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '@/lib/apiClient';
+import { authClient } from '@/lib/auth-client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ export const CartProvider: React.FC<{
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // const { data: session } = authClient.useSession();
+  const { data: session } = authClient.useSession();
 
   // Holds the pending debounce timer for DB sync
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,7 +76,7 @@ export const CartProvider: React.FC<{
   // Tracks whether we're currently authenticated
   // const isAuthenticated = Boolean(session?.user);
 
-  const isAuthenticated = false; // set to session?.user once auth is wired up
+  const isAuthenticated = Boolean(session?.user);
   // ─── Mount: load initial cart ───────────────────────────────────────────────
 
   useEffect(() => {
@@ -88,6 +89,8 @@ export const CartProvider: React.FC<{
           setCartItems(items);
           lastSyncedRef.current = items;
           await AsyncStorage.removeItem(ASYNC_STORAGE_KEY);
+
+          console.log(data)
         } catch (err) {
           console.error('[CartContext] Failed to load cart from DB:', err);
         }
