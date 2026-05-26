@@ -5,11 +5,12 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { emptyPersonalDetails, useCheckoutDraft } from '@/hooks/useCheckout';
+import CheckoutStepper from './CheckoutStepper';
+import CheckoutTextField from './CheckoutTextField';
 
 type Field = 'firstName' | 'lastName' | 'email' | 'phone' | 'note';
 
@@ -37,7 +38,6 @@ const PersonalDetails = () => {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [focused, setFocused] = useState<Field | null>(null);
 
   useEffect(() => {
     if (draft?.personalDetails) {
@@ -79,147 +79,86 @@ const PersonalDetails = () => {
     }
   };
 
-  const inputClassName = (field: Field) => {
-    const hasError = errors[field as keyof FormErrors];
-    const isFocused = focused === field;
-
-    return [
-      'rounded-[10px] border-[1.5px] px-3.5 py-3 text-sm text-gray-950',
-      isFocused ? 'border-[#e13e00] bg-white' : 'border-[#e8e8e8] bg-[#fafafa]',
-      hasError && 'border-red-600 bg-red-50',
-    ]
-      .filter(Boolean)
-      .join(' ');
-  };
-
   return (
     <KeyboardAvoidingView
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
-        className="flex-1 bg-white"
-        contentContainerClassName="px-5 pt-6"
+        className="flex-1 bg-gray-50"
+        contentContainerClassName="px-5 pt-5"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <View className="mb-7 flex-row items-center">
-          {['Details', 'Address', 'Review'].map((step, i) => (
-            <View key={step} className="flex-1 flex-row items-center">
-              <View className="items-center gap-1">
-                <View
-                  className={`h-7 w-7 items-center justify-center rounded-full ${
-                    i === 0 ? 'bg-[#e13e00]' : 'bg-gray-100'
-                  }`}>
-                  <Text className={`text-xs font-semibold ${i === 0 ? 'text-white' : 'text-gray-400'}`}>
-                    {i + 1}
-                  </Text>
-                </View>
-                <Text className={`text-[11px] ${i === 0 ? 'font-semibold text-[#e13e00]' : 'text-gray-400'}`}>
-                  {step}
-                </Text>
-              </View>
-              {i < 2 && (
-                <View className={`mb-3.5 h-[1.5px] flex-1 ${i === 0 ? 'bg-[#e13e00]' : 'bg-gray-100'}`} />
-              )}
-            </View>
-          ))}
-        </View>
+        <CheckoutStepper currentStep={1} />
 
-        <Text className="mb-1 text-xl font-bold text-gray-950">Personal Details</Text>
-        <Text className="mb-6 text-[13px] text-gray-500">Tell us a bit about yourself</Text>
+        <View className="rounded-2xl bg-white p-4 shadow-sm">
+          <Text className="mb-1 text-xl font-bold text-gray-950">Personal Details</Text>
+          <Text className="mb-5 text-[13px] text-gray-500">Tell us a bit about yourself</Text>
 
-        <View className="mb-4 flex-row gap-3">
-          <View className="flex-1">
-            <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">First Name</Text>
-            <TextInput
-              className={inputClassName('firstName')}
+          <View className="flex-row gap-3">
+            <CheckoutTextField
+              fieldClassName="mb-4 flex-1"
+              label="First Name"
               placeholder="Juan"
-              placeholderTextColor="#bbb"
               value={form.firstName}
               onChangeText={v => handleChange('firstName', v)}
-              onFocus={() => setFocused('firstName')}
-              onBlur={() => setFocused(null)}
               autoCapitalize="words"
+              error={errors.firstName}
             />
-            {errors.firstName && <Text className="mt-1 text-[11px] text-red-600">{errors.firstName}</Text>}
-          </View>
 
-          <View className="flex-1">
-            <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Last Name</Text>
-            <TextInput
-              className={inputClassName('lastName')}
+            <CheckoutTextField
+              fieldClassName="mb-4 flex-1"
+              label="Last Name"
               placeholder="dela Cruz"
-              placeholderTextColor="#bbb"
               value={form.lastName}
               onChangeText={v => handleChange('lastName', v)}
-              onFocus={() => setFocused('lastName')}
-              onBlur={() => setFocused(null)}
               autoCapitalize="words"
+              error={errors.lastName}
             />
-            {errors.lastName && <Text className="mt-1 text-[11px] text-red-600">{errors.lastName}</Text>}
           </View>
-        </View>
 
-        <View className="mb-4">
-          <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Email Address</Text>
-          <TextInput
-            className={inputClassName('email')}
+          <CheckoutTextField
+            label="Email Address"
             placeholder="juan@email.com"
-            placeholderTextColor="#bbb"
             value={form.email}
             onChangeText={v => handleChange('email', v)}
-            onFocus={() => setFocused('email')}
-            onBlur={() => setFocused(null)}
             keyboardType="email-address"
             autoCapitalize="none"
+            error={errors.email}
           />
-          {errors.email && <Text className="mt-1 text-[11px] text-red-600">{errors.email}</Text>}
-        </View>
 
-        <View className="mb-4">
-          <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Phone Number</Text>
-          <TextInput
-            className={inputClassName('phone')}
+          <CheckoutTextField
+            label="Phone Number"
             placeholder="+63 912 345 6789"
-            placeholderTextColor="#bbb"
             value={form.phone}
             onChangeText={v => handleChange('phone', v)}
-            onFocus={() => setFocused('phone')}
-            onBlur={() => setFocused(null)}
             keyboardType="phone-pad"
+            error={errors.phone}
           />
-          {errors.phone && <Text className="mt-1 text-[11px] text-red-600">{errors.phone}</Text>}
-        </View>
 
-        <View className="mb-4">
-          <View className="mb-1.5 flex-row items-center justify-between">
-            <Text className="text-[13px] font-semibold text-gray-700">Order Note</Text>
-            <Text className="text-[11px] text-gray-400">Optional</Text>
-          </View>
-          <TextInput
-            className={`${inputClassName('note')} h-[88px] pt-3`}
+          <CheckoutTextField
+            label="Order Note"
+            optional
+            inputClassName="h-[88px] pt-3"
             placeholder="Any special instructions for your order..."
-            placeholderTextColor="#bbb"
             value={form.note}
             onChangeText={v => handleChange('note', v)}
-            onFocus={() => setFocused('note')}
-            onBlur={() => setFocused(null)}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
           />
-        </View>
 
-        <TouchableOpacity
-          className={`mt-2 items-center rounded-xl bg-[#e13e00] py-[15px] ${
-            savePersonalDetails.isPending ? 'opacity-[0.65]' : ''
-          }`}
-          onPress={handleProceed}
-          activeOpacity={0.85}
-          disabled={savePersonalDetails.isPending}>
-          <Text className="text-[15px] font-bold text-white">
-            {savePersonalDetails.isPending ? 'Saving...' : 'Proceed to Address'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className={`mt-2 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
+              savePersonalDetails.isPending ? 'opacity-[0.65]' : ''
+            }`}
+            onPress={handleProceed}
+            activeOpacity={0.85}
+            disabled={savePersonalDetails.isPending}>
+            <Text className="text-[15px] font-bold text-white">
+              {savePersonalDetails.isPending ? 'Saving...' : 'Proceed to Address'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View className="h-8" />
       </ScrollView>

@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import {
   Alert,
@@ -13,6 +14,7 @@ import {
   useCheckoutDraft,
   useSubmitCheckout,
 } from '@/hooks/useCheckout';
+import CheckoutStepper from './CheckoutStepper';
 
 function formatMoney(value: number) {
   return `PHP ${value.toLocaleString('en-PH', {
@@ -22,7 +24,26 @@ function formatMoney(value: number) {
 }
 
 function display(value?: string) {
-  return value?.trim() ? value : 'Not provided';
+  return value?.trim() ? value.trim() : 'Not provided';
+}
+
+function formatAddress(address?: CheckoutAddressDetails) {
+  if (!address) return 'Address not provided';
+
+  const streetAddress = [
+    address.line1,
+    address.line2,
+    address.city,
+    address.province,
+  ]
+    .filter((part) => part?.trim())
+    .join(' ');
+
+  const postalAddress = [address.zipCode, address.country]
+    .filter((part) => part?.trim())
+    .join(' ');
+
+  return [streetAddress, postalAddress].filter(Boolean).join(', ');
 }
 
 function toSubmitAddress(address?: CheckoutAddressDetails): CheckoutSubmitPayload['shippingAddress'] {
@@ -44,15 +65,6 @@ function toSubmitAddress(address?: CheckoutAddressDetails): CheckoutSubmitPayloa
   };
 }
 
-function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row justify-between gap-4 py-[7px]">
-      <Text className="w-[104px] text-[13px] text-gray-500">{label}</Text>
-      <Text className="flex-1 text-right text-[13px] font-semibold text-gray-800">{value}</Text>
-    </View>
-  );
-}
-
 const ReviewOrder = () => {
   const router = useRouter();
   const { draft } = useCheckoutDraft();
@@ -61,6 +73,7 @@ const ReviewOrder = () => {
 
   const personal = draft?.personalDetails;
   const address = draft?.shippingAddress;
+  const fullName = personal ? `${personal.firstName} ${personal.lastName}`.trim() : '';
 
   const handleSubmit = async () => {
     const payload: CheckoutSubmitPayload = {
@@ -75,106 +88,94 @@ const ReviewOrder = () => {
 
   return (
     <ScrollView
-      className="flex-1 bg-white"
-      contentContainerClassName="px-5 pt-6"
+      className="flex-1 bg-gray-50"
+      contentContainerClassName="px-5 pt-5"
       showsVerticalScrollIndicator={false}>
-      <View className="mb-7 flex-row items-center">
-        {['Details', 'Address', 'Review'].map((step, i) => (
-          <View key={step} className="flex-1 flex-row items-center">
-            <View className="items-center gap-1">
-              <View className="h-7 w-7 items-center justify-center rounded-full bg-[#e13e00]">
-                <Text className="text-xs font-semibold text-white">{i + 1}</Text>
-              </View>
-              <Text className="text-[11px] font-semibold text-[#e13e00]">{step}</Text>
-            </View>
-            {i < 2 && <View className="mb-3.5 h-[1.5px] flex-1 bg-[#e13e00]" />}
+      <CheckoutStepper currentStep={3} />
+
+      <Text className="mb-1 text-xl font-bold text-gray-950">Review Order</Text>
+      <Text className="mb-5 text-[13px] text-gray-500">Confirm your details before submitting.</Text>
+
+      <TouchableOpacity
+        className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
+        activeOpacity={0.86}
+        onPress={() => router.push('/checkout')}>
+        <View className="mb-2 flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text className="text-base font-extrabold text-gray-950">
+              {display(fullName)}
+            </Text>
+            <Text className="mt-1 text-sm leading-5 text-gray-600">
+              {display(personal?.email)} - {display(personal?.phone)}
+            </Text>
+            <Text className="mt-2 text-sm leading-5 text-gray-800">
+              {formatAddress(address)}
+            </Text>
           </View>
-        ))}
-      </View>
 
-      <Text className="mb-1 text-xl font-bold text-gray-950">Final Review</Text>
-      <Text className="mb-6 text-[13px] text-gray-500">
-        Check the details before submitting your order
-      </Text>
-
-      <View className="mb-3.5 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <View className="mb-2.5 flex-row items-center justify-between">
-          <Text className="text-[15px] font-bold text-gray-950">Personal Details</Text>
-          <TouchableOpacity onPress={() => router.push('/checkout')}>
-            <Text className="text-[13px] font-bold text-[#e13e00]">Edit</Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center gap-1">
+            <Text className="text-xs font-bold text-[#e13e00]">Edit</Text>
+            <ChevronRight size={16} color="#e13e00" />
+          </View>
         </View>
 
-        <ReviewRow
-          label="Name"
-          value={display(
-            personal ? `${personal.firstName} ${personal.lastName}`.trim() : undefined
-          )}
-        />
-        <ReviewRow label="Email" value={display(personal?.email)} />
-        <ReviewRow label="Phone" value={display(personal?.phone)} />
-        <ReviewRow label="Note" value={display(personal?.note)} />
-      </View>
+        {!!address?.landmark?.trim() && (
+          <Text className="mt-2 text-xs text-gray-500">Landmark: {address.landmark}</Text>
+        )}
+        {!!personal?.note?.trim() && (
+          <Text className="mt-2 text-xs text-gray-500">Note: {personal.note}</Text>
+        )}
+      </TouchableOpacity>
 
-      <View className="mb-3.5 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <View className="mb-2.5 flex-row items-center justify-between">
-          <Text className="text-[15px] font-bold text-gray-950">Shipping Address</Text>
-          <TouchableOpacity onPress={() => router.push('/checkout/address')}>
-            <Text className="text-[13px] font-bold text-[#e13e00]">Edit</Text>
-          </TouchableOpacity>
+      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="text-[15px] font-bold text-gray-950">Items</Text>
+          <Text className="text-xs font-semibold text-gray-500">{totalItems} total</Text>
         </View>
 
-        <ReviewRow label="Line 1" value={display(address?.line1)} />
-        <ReviewRow label="Line 2" value={display(address?.line2)} />
-        <ReviewRow label="City" value={display(address?.city)} />
-        <ReviewRow label="Province" value={display(address?.province)} />
-        <ReviewRow label="ZIP Code" value={display(address?.zipCode)} />
-        <ReviewRow label="Country" value={display(address?.country)} />
-        <ReviewRow label="Landmark" value={display(address?.landmark)} />
-        <ReviewRow
-          label="Coordinates"
-          value={
-            address?.coordinates.lat || address?.coordinates.lng
-              ? `${display(address.coordinates.lat)}, ${display(address.coordinates.lng)}`
-              : 'Not provided'
-          }
-        />
-      </View>
-
-      <View className="mb-3.5 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <Text className="text-[15px] font-bold text-gray-950">Items Summary</Text>
-
-        <View className="mt-2.5 gap-3">
+        <View className="gap-3">
           {cartItems.map((item) => (
-            <View key={String(item._id)} className="flex-row justify-between gap-3">
+            <View key={String(item._id)} className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-sm font-bold text-gray-950" numberOfLines={2}>
                   {item.name}
                 </Text>
-                <Text className="mt-0.5 text-xs text-gray-500">
+                <Text className="mt-1 text-xs text-gray-500">
                   {item.quantity} x {formatMoney(item.price)}
                 </Text>
               </View>
-              <Text className="text-sm font-bold text-gray-950">
+              <Text className="text-sm font-extrabold text-gray-950">
                 {formatMoney(item.price * item.quantity)}
               </Text>
             </View>
           ))}
         </View>
+      </View>
 
-        <View className="my-3.5 h-px bg-gray-100" />
+      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        <Text className="mb-3 text-[15px] font-bold text-gray-950">Order total</Text>
 
-        <ReviewRow label="Items" value={String(totalItems)} />
-        <ReviewRow label="Vatable Sales" value={formatMoney(vatableSales)} />
-        <ReviewRow label="VAT (12%)" value={formatMoney(vatAmount)} />
-        <View className="flex-row items-center justify-between pt-2">
+        <View className="gap-2">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm text-gray-500">Vatable sales</Text>
+            <Text className="text-sm font-semibold text-gray-800">{formatMoney(vatableSales)}</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm text-gray-500">VAT 12%</Text>
+            <Text className="text-sm font-semibold text-gray-800">{formatMoney(vatAmount)}</Text>
+          </View>
+        </View>
+
+        <View className="my-3 h-px bg-gray-100" />
+
+        <View className="flex-row items-center justify-between">
           <Text className="text-base font-extrabold text-gray-950">Total</Text>
-          <Text className="text-lg font-extrabold text-[#e13e00]">{formatMoney(totalPrice)}</Text>
+          <Text className="text-xl font-extrabold text-[#e13e00]">{formatMoney(totalPrice)}</Text>
         </View>
       </View>
 
       <TouchableOpacity
-        className={`mt-1 items-center rounded-xl bg-[#e13e00] py-[15px] ${
+        className={`items-center rounded-2xl bg-[#e13e00] py-[15px] ${
           submitCheckout.isPending || cartItems.length === 0 ? 'opacity-[0.65]' : ''
         }`}
         onPress={handleSubmit}
