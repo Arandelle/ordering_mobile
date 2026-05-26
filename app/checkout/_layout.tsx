@@ -11,6 +11,7 @@ export default function CheckoutLayout() {
       }}>
       <Stack.Screen name="index" options={{ title: 'Personal Details' }} />
       <Stack.Screen name="address" options={{ title: 'Address Details' }} />
+      <Stack.Screen name="review" options={{ title: 'Review Order' }} />
     </Stack>
   );
 }
