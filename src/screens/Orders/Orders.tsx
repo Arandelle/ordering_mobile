@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -15,8 +16,9 @@ import { ClipboardList, CreditCard, Eye, MessageSquare, Search, XCircle } from '
 import { authClient } from '@/lib/auth-client';
 import { ORDER_STATUSES, getActionConfig, getPriority } from '@/types/order-constant';
 import { OrderType } from '@/types/orders.type';
-import { useOrders } from '@/hooks/useOrders';
+import { useCancelOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderState } from './hooks/useOrderState';
+import { CancelOrderModal } from './components/CancelOrderModal';
 
 const BRAND = '#e13e00';
 
@@ -87,7 +89,7 @@ function ActionButton({
   );
 }
 
-function OrderCard({ order }: { order: OrderType }) {
+function OrderCard({ order, onCancelPress }: { order: OrderType; onCancelPress: (order: OrderType) => void }) {
   const state = useOrderState(order);
   const statusClasses = getStatusClasses(order.status);
   const referenceNumber = order.paymentInfo?.referenceNumber ?? order._id;
@@ -144,7 +146,7 @@ function OrderCard({ order }: { order: OrderType }) {
             label={cancelConfig?.label ?? 'Cancel'}
             variant="danger"
             icon={<XCircle size={16} color="white" />}
-            onPress={() => showActionMessage('Cancel order')}
+            onPress={() => onCancelPress(order)}
           />
         )}
 
@@ -170,7 +172,7 @@ function OrderCard({ order }: { order: OrderType }) {
           label="View Details"
           variant="outline"
           icon={<Eye size={16} color="#374151" />}
-          onPress={() => showActionMessage('View details')}
+          onPress={() => router.push(`/orders/${order._id}`)}
         />
       </View>
     </View>
@@ -195,11 +197,22 @@ function EmptyOrders({ isGuestSearch }: { isGuestSearch: boolean }) {
   );
 }
 
+function getErrorMessage(error: unknown) {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+  }
+
+  return 'Unable to cancel order. Please try again.';
+}
+
 export default function Orders() {
   const { data: session, isPending: isSessionPending } = authClient.useSession();
   const [referenceNumber, setReferenceNumber] = useState('');
   const [submittedReference, setSubmittedReference] = useState('');
+  const [orderToCancel, setOrderToCancel] = useState<OrderType | null>(null);
   const isAuthenticated = Boolean(session?.user);
+  const cancelOrder = useCancelOrder();
 
   const customerOrders = useOrders({
     userType: 'customer',
@@ -232,6 +245,17 @@ export default function Orders() {
     void activeQuery.fetchNextPage();
   };
 
+  const handleConfirmCancel = async () => {
+    if (!orderToCancel) return;
+
+    try {
+      await cancelOrder.mutateAsync(orderToCancel._id);
+      setOrderToCancel(null);
+    } catch (error) {
+      Alert.alert('Cancel failed', getErrorMessage(error));
+    }
+  };
+
   if (isSessionPending) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
@@ -247,7 +271,7 @@ export default function Orders() {
       <FlatList
         data={orders}
         keyExtractor={(order) => order._id}
-        renderItem={({ item }) => <OrderCard order={item} />}
+        renderItem={({ item }) => <OrderCard order={item} onCancelPress={setOrderToCancel} />}
         contentContainerClassName="px-5 pb-8 pt-6"
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
@@ -329,6 +353,14 @@ export default function Orders() {
             </View>
           ) : null
         }
+      />
+
+      <CancelOrderModal
+        visible={Boolean(orderToCancel)}
+        referenceNumber={orderToCancel?.paymentInfo.referenceNumber ?? orderToCancel?._id}
+        isCancelling={cancelOrder.isPending}
+        onCancel={() => setOrderToCancel(null)}
+        onConfirm={handleConfirmCancel}
       />
     </KeyboardAvoidingView>
   );
