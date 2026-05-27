@@ -213,15 +213,23 @@ export default function Orders() {
 
   const activeQuery = isAuthenticated ? customerOrders : guestOrders;
   const orders = useMemo(() => {
-    return [...(activeQuery.data?.data ?? [])].sort(
+    const loadedOrders = activeQuery.data?.pages.flatMap((page) => page.data) ?? [];
+
+    return [...loadedOrders].sort(
       (first, second) =>
         getPriority(first.status) - getPriority(second.status) ||
         new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
     );
-  }, [activeQuery.data?.data]);
+  }, [activeQuery.data?.pages]);
 
   const handleSearch = () => {
     setSubmittedReference(referenceNumber.trim());
+  };
+
+  const handleLoadMore = () => {
+    if (!activeQuery.hasNextPage || activeQuery.isFetchingNextPage) return;
+
+    void activeQuery.fetchNextPage();
   };
 
   if (isSessionPending) {
@@ -231,8 +239,6 @@ export default function Orders() {
       </View>
     );
   }
-
-  console.log(orders)
 
   return (
     <KeyboardAvoidingView
@@ -244,6 +250,8 @@ export default function Orders() {
         renderItem={({ item }) => <OrderCard order={item} />}
         contentContainerClassName="px-5 pb-8 pt-6"
         showsVerticalScrollIndicator={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.4}
         refreshControl={
           isAuthenticated || submittedReference ? (
             <RefreshControl
@@ -313,6 +321,13 @@ export default function Orders() {
           ) : !isAuthenticated && !submittedReference ? null : (
             <EmptyOrders isGuestSearch={!isAuthenticated} />
           )
+        }
+        ListFooterComponent={
+          activeQuery.isFetchingNextPage ? (
+            <View className="items-center py-5">
+              <ActivityIndicator color={BRAND} />
+            </View>
+          ) : null
         }
       />
     </KeyboardAvoidingView>
