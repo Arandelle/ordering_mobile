@@ -112,7 +112,8 @@ export interface OrdersApiResponse {
     limit: number;
     total: number;
     totalPages: number;
-    hasMore: boolean;
+    hasNextPage: boolean;
+    hasPrevPage: boolean
   };
   filters: {
     status: string | null;
