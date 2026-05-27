@@ -80,10 +80,11 @@ function ActionButton({
         : 'border-gray-200 bg-white';
 
   const textClassName = variant === 'outline' ? 'text-gray-800' : 'text-white';
+  const disabledClassName = disabled ? 'opacity-[0.55]' : '';
 
   return (
     <TouchableOpacity
-      className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-3 ${className}`}
+      className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-3 ${className} ${disabledClassName}`}
       activeOpacity={0.85}
       disabled={disabled}
       onPress={onPress}>
@@ -98,11 +99,13 @@ function OrderCard({
   onCancelPress,
   onPayNowPress,
   payingOrderId,
+  checkingPaymentOrderId,
 }: {
   order: OrderType;
   onCancelPress: (order: OrderType) => void;
   onPayNowPress: (order: OrderType) => void;
   payingOrderId: string | null;
+  checkingPaymentOrderId: string | null;
 }) {
   const state = useOrderState(order);
   const statusClasses = getStatusClasses(order.status);
@@ -115,6 +118,8 @@ function OrderCard({
   const hiddenItemCount = Math.max(order.items.length - 2, 0);
 
   const isPaying = payingOrderId === order._id;
+  const isCheckingPayment = checkingPaymentOrderId === order._id;
+  const disableActions = isPaying || isCheckingPayment;
 
   return (
     <View className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -153,21 +158,31 @@ function OrderCard({
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
+        {isCheckingPayment && (
+          <View className="w-full rounded-2xl bg-amber-50 px-4 py-3">
+            <Text className="text-sm font-bold text-amber-800">Checking payment status</Text>
+            <Text className="mt-1 text-xs leading-4 text-amber-700">
+              Maya is processing your payment. This can take a few moments.
+            </Text>
+          </View>
+        )}
+
         {state?.canCancel && (
           <ActionButton
             label={cancelConfig?.label ?? 'Cancel'}
             variant="danger"
             icon={<XCircle size={16} color="white" />}
+            disabled={disableActions}
             onPress={() => onCancelPress(order)}
           />
         )}
 
         {state?.needPayment && (
           <ActionButton
-            label={isPaying ? 'Opening...' : 'Pay Now'}
+            label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
             variant="primary"
             icon={<CreditCard size={16} color="white" />}
-            disabled={isPaying}
+            disabled={disableActions}
             onPress={() => onPayNowPress(order)}
           />
         )}
@@ -177,6 +192,7 @@ function OrderCard({
             label="Review"
             variant="outline"
             icon={<MessageSquare size={16} color="#374151" />}
+            disabled={disableActions}
             onPress={() => router.push(`/orders/${order._id}/review`)}
           />
         )}
@@ -185,6 +201,7 @@ function OrderCard({
           label="View Details"
           variant="outline"
           icon={<Eye size={16} color="#374151" />}
+          disabled={disableActions}
           onPress={() => router.push(`/orders/${order._id}`)}
         />
       </View>
@@ -225,6 +242,7 @@ export default function Orders() {
   const [submittedReference, setSubmittedReference] = useState('');
   const [orderToCancel, setOrderToCancel] = useState<OrderType | null>(null);
   const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [checkingPaymentOrderId, setCheckingPaymentOrderId] = useState<string | null>(null);
   const isAuthenticated = Boolean(session?.user);
   const cancelOrder = useCancelOrder();
   const createMayaCheckout = useCreateMayaCheckout();
@@ -277,9 +295,14 @@ export default function Orders() {
       }
 
       await WebBrowser.openBrowserAsync(response.redirectUrl);
-      void activeQuery.refetch();
+      setCheckingPaymentOrderId(order._id);
+      await activeQuery.refetch();
+      setTimeout(() => {
+        setCheckingPaymentOrderId((current) => (current === order._id ? null : current));
+      }, 8000);
     } catch (error) {
       Alert.alert('Payment failed', getErrorMessage(error));
+      setCheckingPaymentOrderId(null);
     } finally {
       setPayingOrderId(null);
     }
@@ -306,6 +329,7 @@ export default function Orders() {
             onCancelPress={setOrderToCancel}
             onPayNowPress={handlePayNow}
             payingOrderId={payingOrderId}
+            checkingPaymentOrderId={checkingPaymentOrderId}
           />
         )}
         contentContainerClassName="px-5 pb-8 pt-6"
