@@ -1,5 +1,6 @@
-import { ChevronRight } from 'lucide-react-native';
+import { Banknote, ChevronRight, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import {
   Alert,
   ScrollView,
@@ -7,13 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useBranchContext } from '@/context/BranchContext';
 import { useCart } from '@/context/CartContext';
 import {
   CheckoutAddressDetails,
-  CheckoutSubmitPayload,
+  CheckoutPaymentMethod,
   useCheckoutDraft,
   useSubmitCheckout,
 } from '@/hooks/useCheckout';
+import { CreateOrderPayload } from '@/types/orders.type';
 import CheckoutStepper from './CheckoutStepper';
 
 function formatMoney(value: number) {
@@ -46,9 +49,7 @@ function formatAddress(address?: CheckoutAddressDetails) {
   return [streetAddress, postalAddress].filter(Boolean).join(', ');
 }
 
-function toSubmitAddress(address?: CheckoutAddressDetails): CheckoutSubmitPayload['shippingAddress'] {
-  if (!address) return undefined;
-
+function toSubmitAddress(address: CheckoutAddressDetails): CreateOrderPayload['shippingAddress'] {
   const lat = Number(address.coordinates.lat);
   const lng = Number(address.coordinates.lng);
   const hasCoordinates = !Number.isNaN(lat) && !Number.isNaN(lng);
@@ -59,31 +60,123 @@ function toSubmitAddress(address?: CheckoutAddressDetails): CheckoutSubmitPayloa
     city: address.city,
     province: address.province,
     zipCode: address.zipCode,
-    country: address.country || 'Philippines',
+    country: 'Philippines',
     landmark: address.landmark,
     ...(hasCoordinates ? { coordinates: { lat, lng } } : {}),
   };
 }
 
+function getCheckoutErrorMessage(error: unknown) {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+  }
+
+  return 'Unable to submit order. Please try again.';
+}
+
+function PaymentOption({
+  method,
+  selected,
+  onPress,
+}: {
+  method: CheckoutPaymentMethod;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const isCod = method === 'cod';
+  const Icon = isCod ? Banknote : CreditCard;
+
+  return (
+    <TouchableOpacity
+      className={`flex-1 rounded-2xl border p-4 ${
+        selected ? 'border-[#e13e00] bg-orange-50' : 'border-gray-200 bg-white'
+      }`}
+      activeOpacity={0.86}
+      onPress={onPress}>
+      <View className="mb-3 h-10 w-10 items-center justify-center rounded-full bg-white">
+        <Icon size={20} color={selected ? '#e13e00' : '#4b5563'} />
+      </View>
+      <Text className="text-sm font-extrabold text-gray-950">
+        {isCod ? 'Cash on Delivery' : 'Maya'}
+      </Text>
+      <Text className="mt-1 text-xs leading-4 text-gray-500">
+        {isCod ? 'Pay when your order arrives.' : 'Pay online through Maya checkout.'}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 const ReviewOrder = () => {
   const router = useRouter();
-  const { draft } = useCheckoutDraft();
-  const submitCheckout = useSubmitCheckout();
-  const { cartItems, totalItems, vatableSales, vatAmount, totalPrice } = useCart();
+  const { draft, savePaymentMethod, clearCheckoutDraft } = useCheckoutDraft();
+  const paymentMethod = draft?.paymentMethod ?? 'cod';
+  const submitCheckout = useSubmitCheckout(paymentMethod);
+  const { selectedBranch } = useBranchContext();
+  const { cartItems, totalItems, vatableSales, vatAmount, totalPrice, clearCart } = useCart();
 
   const personal = draft?.personalDetails;
   const address = draft?.shippingAddress;
   const fullName = personal ? `${personal.firstName} ${personal.lastName}`.trim() : '';
 
   const handleSubmit = async () => {
-    const payload: CheckoutSubmitPayload = {
-      personalDetails: personal,
+    if (!selectedBranch?._id) {
+      Alert.alert('Branch required', 'Please select a branch before checkout.');
+      return;
+    }
+
+    if (!personal || !address) {
+      Alert.alert('Missing details', 'Please complete your personal and address details.');
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      Alert.alert('Empty cart', 'Please add items before checkout.');
+      return;
+    }
+
+    const payload: CreateOrderPayload = {
+      branchId: selectedBranch._id,
+      firstName: personal.firstName.trim(),
+      lastName: personal.lastName.trim(),
+      customerEmail: personal.email.trim(),
+      customerPhone: personal.phone.trim(),
+      notes: personal.note.trim() || undefined,
+      paymentMethod,
+      items: cartItems.map((item) => ({
+        _id: String(item._id),
+        quantity: item.quantity,
+      })),
       shippingAddress: toSubmitAddress(address),
-      items: cartItems,
     };
 
-    await submitCheckout.mutateAsync(payload);
-    Alert.alert('Checkout payload ready', 'API submission is currently a placeholder.');
+    try {
+      const response = await submitCheckout.mutateAsync(payload);
+
+      if (paymentMethod === 'maya') {
+        if (!response.redirectUrl) {
+          Alert.alert('Payment link missing', 'Order was created but no Maya payment link was returned.');
+          return;
+        }
+
+        await clearCart();
+        await clearCheckoutDraft.mutateAsync();
+        await WebBrowser.openBrowserAsync(response.redirectUrl);
+        router.replace('/orders');
+        return;
+      }
+
+      await clearCart();
+      await clearCheckoutDraft.mutateAsync();
+      Alert.alert('Order placed', `Reference number: ${response.referenceNumber}`, [
+        {
+          text: 'View orders',
+          onPress: () => router.replace('/orders'),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Checkout failed', getCheckoutErrorMessage(error));
+    }
   };
 
   return (
@@ -153,6 +246,23 @@ const ReviewOrder = () => {
       </View>
 
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        <Text className="mb-3 text-[15px] font-bold text-gray-950">Payment method</Text>
+
+        <View className="flex-row gap-3">
+          <PaymentOption
+            method="cod"
+            selected={paymentMethod === 'cod'}
+            onPress={() => savePaymentMethod.mutate('cod')}
+          />
+          <PaymentOption
+            method="maya"
+            selected={paymentMethod === 'maya'}
+            onPress={() => savePaymentMethod.mutate('maya')}
+          />
+        </View>
+      </View>
+
+      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <Text className="mb-3 text-[15px] font-bold text-gray-950">Order total</Text>
 
         <View className="gap-2">
@@ -182,7 +292,11 @@ const ReviewOrder = () => {
         activeOpacity={0.85}
         disabled={submitCheckout.isPending || cartItems.length === 0}>
         <Text className="text-[15px] font-bold text-white">
-          {submitCheckout.isPending ? 'Submitting...' : 'Submit Order'}
+          {submitCheckout.isPending
+            ? 'Submitting...'
+            : paymentMethod === 'maya'
+              ? 'Proceed to Maya'
+              : 'Place COD Order'}
         </Text>
       </TouchableOpacity>
 
