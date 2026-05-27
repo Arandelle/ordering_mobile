@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { authClient } from '@/lib/auth-client';
+import { BranchSelector } from '@/components/home/BranchSelector';
 import { emptyPersonalDetails, useCheckoutDraft } from '@/hooks/useCheckout';
 import CheckoutStepper from './CheckoutStepper';
 import CheckoutTextField from './CheckoutTextField';
@@ -32,6 +34,7 @@ interface FormErrors {
 const PersonalDetails = () => {
   const router = useRouter();
   const { draft, savePersonalDetails } = useCheckoutDraft();
+  const { data: session } = authClient.useSession();
 
   const [form, setForm] = useState<FormData>({
     ...emptyPersonalDetails,
@@ -42,8 +45,34 @@ const PersonalDetails = () => {
   useEffect(() => {
     if (draft?.personalDetails) {
       setForm(draft.personalDetails);
+      return;
     }
-  }, [draft?.personalDetails]);
+
+    const user = session?.user as Record<string, unknown> | undefined;
+    if (!user) return;
+
+    const name = typeof user.name === 'string' ? user.name.trim() : '';
+    const [fallbackFirstName = '', ...fallbackLastNameParts] = name.split(' ').filter(Boolean);
+
+    setForm((current) => ({
+      ...current,
+      firstName:
+        typeof user.firstName === 'string'
+          ? user.firstName
+          : current.firstName || fallbackFirstName,
+      lastName:
+        typeof user.lastName === 'string'
+          ? user.lastName
+          : current.lastName || fallbackLastNameParts.join(' '),
+      email: typeof user.email === 'string' ? user.email : current.email,
+      phone:
+        typeof user.phone === 'string'
+          ? user.phone
+          : typeof user.phoneNumber === 'string'
+            ? user.phoneNumber
+            : current.phone,
+    }));
+  }, [draft?.personalDetails, session?.user]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -89,6 +118,11 @@ const PersonalDetails = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <CheckoutStepper currentStep={1} />
+
+        <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+          <Text className="mb-3 text-[15px] font-bold text-gray-950">Pickup branch</Text>
+          <BranchSelector className="mt-0 px-0" />
+        </View>
 
         <View className="rounded-2xl bg-white p-4 shadow-sm">
           <Text className="mb-1 text-xl font-bold text-gray-950">Personal Details</Text>
