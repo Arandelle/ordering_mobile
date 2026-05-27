@@ -1,6 +1,17 @@
-import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
-import { getCustomerOrders, getGuestOrder } from '@/services/orders.service';
-import { OrdersApiResponse } from '@/types/orders.type';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
+import {
+  cancelCustomerOrder,
+  getCustomerOrder,
+  getCustomerOrders,
+  getGuestOrder,
+} from '@/services/orders.service';
+import { OrderType, OrdersApiResponse } from '@/types/orders.type';
 
 const ORDERS_PAGE_SIZE = 20;
 
@@ -43,5 +54,29 @@ export function useOrders(params: UseOrdersParams) {
         ? enabled
         : enabled && params.referenceNumber.trim().length > 0,
     staleTime: 30_000,
+  });
+}
+
+export function useOrder(id?: string) {
+  return useQuery<OrderType | null, Error>({
+    queryKey: ['order-detail', id],
+    queryFn: () => getCustomerOrder(id ?? ''),
+    enabled: Boolean(id),
+    staleTime: 30_000,
+  });
+}
+
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation<OrderType | null, Error, string>({
+    mutationFn: cancelCustomerOrder,
+    onSuccess: (order, orderId) => {
+      if (order) {
+        queryClient.setQueryData(['order-detail', orderId], order);
+      }
+      void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+      void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
+    },
   });
 }
