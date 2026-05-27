@@ -7,12 +7,13 @@ import {
 } from '@tanstack/react-query';
 import {
   cancelCustomerOrder,
+  createMayaCheckoutForOrder,
   getCustomerOrder,
   getCustomerOrders,
   getGuestOrder,
   submitOrderReview,
 } from '@/services/orders.service';
-import { OrderType, OrdersApiResponse } from '@/types/orders.type';
+import { CreateOrderResponse, OrderType, OrdersApiResponse } from '@/types/orders.type';
 import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
 
 const ORDERS_PAGE_SIZE = 20;
@@ -93,6 +94,18 @@ export function useSubmitReview(orderId?: string) {
         void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
       }
       void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+    },
+  });
+}
+
+export function useCreateMayaCheckout() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CreateOrderResponse, Error, string>({
+    mutationFn: createMayaCheckoutForOrder,
+    onSuccess: (_response, orderId) => {
+      void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+      void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
     },
   });
 }
