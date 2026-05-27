@@ -143,7 +143,7 @@ export interface CreateOrderPayload {
     quantity: number;
   }[];
 
-  paymentMethod: string,
+  paymentMethod: "cod" | "maya",
 
   shippingAddress: {
     line1: string;
@@ -169,7 +169,7 @@ export interface CreateOrderPayload {
 
 export interface CreateOrderResponse {
   orderId: string;
-  redirectUrl: string;
+  redirectUrl?: string;
   referenceNumber: string;
   status: OrderStatus;
 }
