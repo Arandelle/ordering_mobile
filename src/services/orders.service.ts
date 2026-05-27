@@ -7,12 +7,18 @@ type OrdersResponseLike =
   | OrderType[]
   | OrderType;
 
+type OrdersQueryParams = {
+  page?: number;
+  limit?: number;
+};
+
 const emptyPagination: OrdersApiResponse['pagination'] = {
   page: 1,
   limit: 0,
   total: 0,
   totalPages: 0,
-  hasMore: false,
+  hasNextPage: false,
+  hasPrevPage: false,
 };
 
 const emptyFilters: OrdersApiResponse['filters'] = {
@@ -23,6 +29,18 @@ const emptyFilters: OrdersApiResponse['filters'] = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function buildQueryString(params: OrdersQueryParams & { ref?: string }) {
+  const filtered = Object.entries(params).filter(
+    ([, value]) => value !== undefined && value !== null && value !== '',
+  );
+
+  if (!filtered.length) return '';
+
+  return `?${new URLSearchParams(
+    filtered.map(([key, value]) => [key, String(value)]),
+  ).toString()}`;
 }
 
 function normalizeOrdersResponse(response: OrdersResponseLike): OrdersApiResponse {
@@ -60,13 +78,22 @@ function normalizeOrdersResponse(response: OrdersResponseLike): OrdersApiRespons
   };
 }
 
-export async function getCustomerOrders(): Promise<OrdersApiResponse> {
-  const response = await apiClient.get<OrdersResponseLike>('/customer/orders/');
+export async function getCustomerOrders(params: OrdersQueryParams = {}): Promise<OrdersApiResponse> {
+  const response = await apiClient.get<OrdersResponseLike>(
+    `/customer/orders/${buildQueryString(params)}`,
+  );
   return normalizeOrdersResponse(response);
 }
 
-export async function getGuestOrder(referenceNumber: string): Promise<OrdersApiResponse> {
-  const query = new URLSearchParams({ ref: referenceNumber.trim() }).toString();
-  const response = await apiClient.get<OrdersResponseLike>(`/customer/orders/guest?${query}`);
+export async function getGuestOrder(
+  referenceNumber: string,
+  params: OrdersQueryParams = {},
+): Promise<OrdersApiResponse> {
+  const response = await apiClient.get<OrdersResponseLike>(
+    `/customer/orders/guest${buildQueryString({
+      ref: referenceNumber.trim(),
+      ...params,
+    })}`,
+  );
   return normalizeOrdersResponse(response);
 }
