@@ -192,7 +192,7 @@ export const CartProvider: React.FC<{
       lastSyncedRef.current = cartItems; // ensure guard doesn't skip it
       await syncToDb([]);
     } else {
-      localStorage.removeItem(ASYNC_STORAGE_KEY);
+      await AsyncStorage.removeItem(ASYNC_STORAGE_KEY);
     }
   }, [syncToDb, cartItems, isAuthenticated]);
 
