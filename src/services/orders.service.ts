@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/apiClient';
 import { OrderType, OrdersApiResponse } from '@/types/orders.type';
+import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
 
 type OrdersResponseLike =
   | OrdersApiResponse
@@ -106,6 +107,16 @@ export async function getCustomerOrder(id: string): Promise<OrderType | null> {
 export async function cancelCustomerOrder(id: string): Promise<OrderType | null> {
   const response = await apiClient.patch<OrdersResponseLike>(`/customer/orders/${id}/cancel`);
   return normalizeOrderResponse(response);
+}
+
+export async function submitOrderReview(
+  orderId: string,
+  payload: SubmitReviewPayload,
+): Promise<SubmitReviewResponse> {
+  return apiClient.post<SubmitReviewResponse, SubmitReviewPayload>(
+    `/customer/orders/${orderId}/review`,
+    payload,
+  );
 }
 
 export async function getGuestOrder(
