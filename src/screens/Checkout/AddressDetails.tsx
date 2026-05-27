@@ -12,7 +12,9 @@ import {
   CheckoutAddressDetails,
   emptyAddressDetails,
   useCheckoutDraft,
+  useMyAddress,
 } from '@/hooks/useCheckout';
+import { authClient } from '@/lib/auth-client';
 import CheckoutStepper from './CheckoutStepper';
 import CheckoutTextField from './CheckoutTextField';
 
@@ -30,6 +32,8 @@ interface FormErrors {
 const AddressDetails = () => {
   const router = useRouter();
   const { draft, saveAddressDetails } = useCheckoutDraft();
+  const { data: session } = authClient.useSession();
+  const { data: savedAddress } = useMyAddress(Boolean(session?.user));
 
   const [form, setForm] = useState<CheckoutAddressDetails>({
     ...emptyAddressDetails,
@@ -39,8 +43,13 @@ const AddressDetails = () => {
   useEffect(() => {
     if (draft?.shippingAddress) {
       setForm(draft.shippingAddress);
+      return;
     }
-  }, [draft?.shippingAddress]);
+
+    if (savedAddress) {
+      setForm(savedAddress);
+    }
+  }, [draft?.shippingAddress, savedAddress]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
