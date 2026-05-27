@@ -2,12 +2,21 @@ import { useCart } from '@/context/CartContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Text, TouchableOpacity } from 'react-native';
+import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
 
 const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
 
 export default function TabLayout() {
   const { cartItems, totalItems, clearCart } = useCart();
+
+  const { data: orderSummary } = useCustomerOrderSummary();
+
+  const activeOrdersCount =
+    (orderSummary?.pending ?? 0) +
+    (orderSummary?.preparing ?? 0) +
+    (orderSummary?.dispatched ?? 0) +
+    (orderSummary?.completed ?? 0);
 
   return (
     <Tabs
@@ -42,25 +51,17 @@ export default function TabLayout() {
           headerTitle: () => (
             <Image
               source={require('../../assets/images/harrison_logo_landscape.png')}
-              className='w-36 h-full'
+              className="h-full w-36"
               resizeMode="contain"
             />
           ),
           headerRight: () => (
             <TouchableOpacity style={{ marginRight: 16 }}>
-              <Ionicons
-                name="notifications-outline"
-                size={20}
-                color="#e13e00"
-              />
+              <Ionicons name="notifications-outline" size={20} color="#e13e00" />
             </TouchableOpacity>
           ),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={size}
-              color={color}
-            />
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -69,6 +70,7 @@ export default function TabLayout() {
         name="orders"
         options={{
           title: 'My Orders',
+          tabBarBadge: activeOrdersCount,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'bag-handle' : 'bag-handle-outline'}
@@ -86,9 +88,7 @@ export default function TabLayout() {
           tabBarBadge: totalItems > 0 ? totalItems : undefined,
           headerRight: () =>
             cartItems.length > 0 ? (
-              <TouchableOpacity
-                onPress={() => clearCart()}
-                style={{ marginRight: 16 }}>
+              <TouchableOpacity onPress={() => clearCart()} style={{ marginRight: 16 }}>
                 <Text
                   style={{
                     color: '#e13e00',
@@ -100,11 +100,7 @@ export default function TabLayout() {
               </TouchableOpacity>
             ) : null,
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'cart' : 'cart-outline'}
-              size={size}
-              color={color}
-            />
+            <Ionicons name={focused ? 'cart' : 'cart-outline'} size={size} color={color} />
           ),
         })}
       />
@@ -114,11 +110,7 @@ export default function TabLayout() {
         options={{
           title: 'My Profile',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={size}
-              color={color}
-            />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
         }}
       />
