@@ -1,7 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/apiClient';
+import { CreateOrderPayload, CreateOrderResponse } from '@/types/orders.type';
 
 const CHECKOUT_DRAFT_KEY = 'checkout_draft';
+
+export type CheckoutPaymentMethod = CreateOrderPayload['paymentMethod'];
 
 export interface CheckoutPersonalDetails {
   firstName: string;
@@ -28,17 +32,7 @@ export interface CheckoutAddressDetails {
 export interface CheckoutDraft {
   personalDetails?: CheckoutPersonalDetails;
   shippingAddress?: CheckoutAddressDetails;
-}
-
-export interface CheckoutSubmitPayload {
-  personalDetails?: CheckoutPersonalDetails;
-  shippingAddress?: Omit<CheckoutAddressDetails, 'coordinates'> & {
-    coordinates?: {
-      lat: number;
-      lng: number;
-    };
-  };
-  items: unknown[];
+  paymentMethod?: CheckoutPaymentMethod;
 }
 
 export const emptyPersonalDetails: CheckoutPersonalDetails = {
@@ -99,6 +93,14 @@ export function useCheckoutDraft() {
     onSuccess: (draft) => queryClient.setQueryData(['checkout-draft'], draft),
   });
 
+  const savePaymentMethod = useMutation({
+    mutationFn: async (paymentMethod: CheckoutPaymentMethod) => {
+      const currentDraft = await getCheckoutDraft();
+      return setCheckoutDraft({ ...currentDraft, paymentMethod });
+    },
+    onSuccess: (draft) => queryClient.setQueryData(['checkout-draft'], draft),
+  });
+
   const clearCheckoutDraft = useMutation({
     mutationFn: async () => {
       await AsyncStorage.removeItem(CHECKOUT_DRAFT_KEY);
@@ -112,17 +114,16 @@ export function useCheckoutDraft() {
     isLoading: draftQuery.isLoading,
     savePersonalDetails,
     saveAddressDetails,
+    savePaymentMethod,
     clearCheckoutDraft,
   };
 }
 
-export function useSubmitCheckout() {
+export function useSubmitCheckout(paymentMethod: CheckoutPaymentMethod) {
   return useMutation({
-    mutationFn: async (payload: CheckoutSubmitPayload) => {
-      // TODO: replace this placeholder with the real checkout API call.
-      // Example: return apiClient.post('/customer/orders', payload);
-      console.log('[Checkout] Submit payload:', payload);
-      return payload;
-    },
+    mutationFn: async (payload: CreateOrderPayload) =>
+      paymentMethod === 'cod'
+        ? apiClient.post<CreateOrderResponse, CreateOrderPayload>('/customer/cod-checkout', payload)
+        : apiClient.post<CreateOrderResponse, CreateOrderPayload>('/paymaya/checkout', payload),
   });
 }
