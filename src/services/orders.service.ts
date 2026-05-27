@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/apiClient';
-import { OrderType, OrdersApiResponse } from '@/types/orders.type';
+import { CreateOrderResponse, OrderType, OrdersApiResponse } from '@/types/orders.type';
 import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
 
 type OrdersResponseLike =
@@ -117,6 +117,10 @@ export async function submitOrderReview(
     `/customer/orders/${orderId}/review`,
     payload,
   );
+}
+
+export async function createMayaCheckoutForOrder(orderId: string): Promise<CreateOrderResponse> {
+  return apiClient.post<CreateOrderResponse>(`/paymaya/checkout/${orderId}`);
 }
 
 export async function getGuestOrder(
