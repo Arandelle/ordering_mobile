@@ -78,11 +78,34 @@ function normalizeOrdersResponse(response: OrdersResponseLike): OrdersApiRespons
   };
 }
 
+function normalizeOrderResponse(response: OrdersResponseLike): OrderType | null {
+  if (isRecord(response) && Array.isArray(response.data)) {
+    return response.data[0] ?? null;
+  }
+
+  if (Array.isArray(response)) {
+    return response[0] ?? null;
+  }
+
+  const order = isRecord(response) && isRecord(response.data) ? response.data : response;
+  return isRecord(order) ? (order as unknown as OrderType) : null;
+}
+
 export async function getCustomerOrders(params: OrdersQueryParams = {}): Promise<OrdersApiResponse> {
   const response = await apiClient.get<OrdersResponseLike>(
     `/customer/orders/${buildQueryString(params)}`,
   );
   return normalizeOrdersResponse(response);
+}
+
+export async function getCustomerOrder(id: string): Promise<OrderType | null> {
+  const response = await apiClient.get<OrdersResponseLike>(`/customer/orders/${id}`);
+  return normalizeOrderResponse(response);
+}
+
+export async function cancelCustomerOrder(id: string): Promise<OrderType | null> {
+  const response = await apiClient.patch<OrdersResponseLike>(`/customer/orders/${id}/cancel`);
+  return normalizeOrderResponse(response);
 }
 
 export async function getGuestOrder(
