@@ -94,6 +94,7 @@ export function useSubmitReview(orderId?: string) {
         void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
       }
       void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+      void queryClient.invalidateQueries({ queryKey: ['order-summary'] });
     },
   });
 }

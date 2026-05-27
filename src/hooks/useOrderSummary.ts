@@ -16,7 +16,7 @@ export const useCustomerOrderSummary = () => {
   const {data: session} = authClient.useSession();
 
   return useQuery<OrderSummary, Error>({
-    queryKey: ["orders", "summary"],
+    queryKey: ["order-summary"],
     queryFn: () => apiClient.get("/orders/summary"),
     staleTime: 30_000,
     enabled: !!session?.user,
