@@ -9,6 +9,7 @@ export default function OrderDetailsLayout() {
         headerTintColor: '#111827',
       }}>
       <Stack.Screen name="[id]" options={{ title: 'Order Details' }} />
+      <Stack.Screen name="[id]/review" options={{ title: 'Review Order' }} />
     </Stack>
   );
 }
