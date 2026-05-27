@@ -137,20 +137,6 @@ export default function OrderDetails() {
         className="flex-1"
         contentContainerClassName="px-5 pb-8 pt-6"
         showsVerticalScrollIndicator={false}>
-        <View className="mb-5 flex-row items-center gap-3">
-          <TouchableOpacity
-            className="h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm"
-            activeOpacity={0.85}
-            onPress={() => router.back()}>
-            <ArrowLeft size={20} color="#111827" />
-          </TouchableOpacity>
-
-          <View className="flex-1">
-            <Text className="text-2xl font-extrabold text-gray-950">Order Details</Text>
-            <Text className="mt-1 text-sm text-gray-500">{referenceNumber}</Text>
-          </View>
-        </View>
-
         <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">

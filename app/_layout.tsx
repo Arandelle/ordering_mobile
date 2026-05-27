@@ -15,7 +15,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="product/[id]" />
-            <Stack.Screen name="orders/[id]" />
+            <Stack.Screen name="orders" />
             <Stack.Screen name="checkout" />
             <Stack.Screen name="auth" />
           </Stack>
