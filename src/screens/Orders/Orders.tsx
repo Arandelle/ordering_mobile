@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { ClipboardList, CreditCard, Eye, MessageSquare, Search, XCircle } from 'lucide-react-native';
 import { authClient } from '@/lib/auth-client';
-import { ORDER_STATUSES, getActionConfig, getPriority } from '@/types/order-constant';
+import { ORDER_STATUSES, getActionConfig } from '@/types/order-constant';
 import { OrderType } from '@/types/orders.type';
 import { useCancelOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderState } from './hooks/useOrderState';
@@ -226,13 +226,7 @@ export default function Orders() {
 
   const activeQuery = isAuthenticated ? customerOrders : guestOrders;
   const orders = useMemo(() => {
-    const loadedOrders = activeQuery.data?.pages.flatMap((page) => page.data) ?? [];
-
-    return [...loadedOrders].sort(
-      (first, second) =>
-        getPriority(first.status) - getPriority(second.status) ||
-        new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
-    );
+    return activeQuery.data?.pages.flatMap((page) => page.data) ?? [];
   }, [activeQuery.data?.pages]);
 
   const handleSearch = () => {
