@@ -12,12 +12,12 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Product } from '@/types/products';
+import { Product } from '@/types/products.type';
 import Banner from './Banner';
 import Categories from './Categories';
 import { BranchSelector } from './BranchSelector';
 import { BranchProduct } from '@/hooks/useProducts';
-import { STOCK_STATUSES } from '@/types/inventories';
+import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from './StockBadge';
 import { StoreClosedOverlay } from './StoreClosedOverLay';
 

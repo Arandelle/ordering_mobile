@@ -24,7 +24,7 @@ import { QuantityStepper } from '../../src/components/products/QuantityStepper';
 import { useSettings } from '@/hooks/useSettings';
 import { getStoreStatus } from '@/services/store-status.service';
 import { useBranchContext } from '@/context/BranchContext';
-import { STOCK_STATUSES } from '@/types/inventories';
+import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from '@/components/home/StockBadge';
 import { StoreClosedOverlay } from '@/components/home/StoreClosedOverLay';
 import { BranchSelector } from '@/components/home/BranchSelector';

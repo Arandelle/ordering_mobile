@@ -1,7 +1,7 @@
 // ─── Stock Badge ──────────────────────────────────────────────────────────────
 
 import { cn } from '@/lib/cn';
-import { STOCK_STATUSES } from '@/types/inventories';
+import { STOCK_STATUSES } from '@/types/inventories.type';
 import { Text, View } from 'react-native';
 
 const getStockLabel = (status: string, quantity: number | null): string => {

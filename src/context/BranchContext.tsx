@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { Branch } from '@/types/branch';
+import { Branch } from '@/types/branch.type';
 import { useBranches } from '@/hooks/useBranches';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

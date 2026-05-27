@@ -1,6 +1,6 @@
 // hooks/useBranch.ts
 import { apiClient } from '@/lib/apiClient';
-import { Branch, BranchFormData } from '@/types/branch';
+import { Branch, BranchFormData } from '@/types/branch.type';
 import { useQuery } from '@tanstack/react-query';
 
 /**

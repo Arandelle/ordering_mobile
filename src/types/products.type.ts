@@ -1,4 +1,4 @@
-import { Category, SubCategory } from "./categories";
+import { Category, SubCategory } from "./categories.type";
 
 export interface IncludedItem {
   _id?: string;

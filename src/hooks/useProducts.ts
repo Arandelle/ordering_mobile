@@ -1,8 +1,8 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import { Product } from "@/types/products";
+import { Product } from "@/types/products.type";
 import { PaginationMeta } from "@/utils/query-helpers";
-import { StockStatus } from "@/types/inventories";
+import { StockStatus } from "@/types/inventories.type";
 
 interface ProductResponse {
   data: Product[];

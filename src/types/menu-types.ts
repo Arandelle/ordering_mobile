@@ -1,6 +1,6 @@
 // types.ts - TypeScript interfaces for Harrison House Menu
 
-import { Category } from "./categories";
+import { Category } from "./categories.type";
 
 /**
  * Base menu item interface
