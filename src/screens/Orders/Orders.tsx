@@ -31,13 +31,14 @@ function formatMoney(value: number | undefined) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-PH', {
+  return new Date(value).toLocaleString('en-US', {
+    timeZone: 'Asia/Manila',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    hour: 'numeric',
+    hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value));
+  });
 }
 
 function getStatusClasses(status: OrderType['status']) {
