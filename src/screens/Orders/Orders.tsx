@@ -164,7 +164,7 @@ function OrderCard({ order, onCancelPress }: { order: OrderType; onCancelPress: 
             label="Review"
             variant="outline"
             icon={<MessageSquare size={16} color="#374151" />}
-            onPress={() => showActionMessage('Review order')}
+            onPress={() => router.push(`/orders/${order._id}/review`)}
           />
         )}
 
