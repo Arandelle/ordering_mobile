@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useBranchContext } from '@/context/BranchContext';
 import { useCart } from '@/context/CartContext';
+import { BranchSelector } from '@/components/home/BranchSelector';
 import {
   CheckoutAddressDetails,
   CheckoutPaymentMethod,
@@ -17,6 +18,7 @@ import {
   useSubmitCheckout,
 } from '@/hooks/useCheckout';
 import { CreateOrderPayload } from '@/types/orders.type';
+import { QuantityStepper } from '@/components/products/QuantityStepper';
 import CheckoutStepper from './CheckoutStepper';
 
 function formatMoney(value: number) {
@@ -113,7 +115,16 @@ const ReviewOrder = () => {
   const paymentMethod = draft?.paymentMethod ?? 'cod';
   const submitCheckout = useSubmitCheckout(paymentMethod);
   const { selectedBranch } = useBranchContext();
-  const { cartItems, totalItems, vatableSales, vatAmount, totalPrice, clearCart } = useCart();
+  const {
+    cartItems,
+    totalItems,
+    vatableSales,
+    vatAmount,
+    totalPrice,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+  } = useCart();
 
   const personal = draft?.personalDetails;
   const address = draft?.shippingAddress;
@@ -189,6 +200,14 @@ const ReviewOrder = () => {
       <Text className="mb-1 text-xl font-bold text-gray-950">Review Order</Text>
       <Text className="mb-5 text-[13px] text-gray-500">Confirm your details before submitting.</Text>
 
+      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        <Text className="mb-3 text-[15px] font-bold text-gray-950">Pickup branch</Text>
+        <BranchSelector className="mt-0 px-0" />
+        {!!selectedBranch?.address && (
+          <Text className="mt-2 text-xs leading-4 text-gray-500">{selectedBranch.address}</Text>
+        )}
+      </View>
+
       <TouchableOpacity
         className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
         activeOpacity={0.86}
@@ -236,10 +255,23 @@ const ReviewOrder = () => {
                 <Text className="mt-1 text-xs text-gray-500">
                   {item.quantity} x {formatMoney(item.price)}
                 </Text>
+                <TouchableOpacity
+                  className="mt-2 self-start"
+                  activeOpacity={0.8}
+                  onPress={() => removeFromCart(item._id)}>
+                  <Text className="text-xs font-bold text-red-600">Remove</Text>
+                </TouchableOpacity>
               </View>
-              <Text className="text-sm font-extrabold text-gray-950">
-                {formatMoney(item.price * item.quantity)}
-              </Text>
+              <View className="items-end gap-2">
+                <QuantityStepper
+                  value={item.quantity}
+                  onDecrement={() => updateQuantity(item._id, item.quantity - 1)}
+                  onIncrement={() => updateQuantity(item._id, item.quantity + 1)}
+                />
+                <Text className="text-sm font-extrabold text-gray-950">
+                  {formatMoney(item.price * item.quantity)}
+                </Text>
+              </View>
             </View>
           ))}
         </View>
