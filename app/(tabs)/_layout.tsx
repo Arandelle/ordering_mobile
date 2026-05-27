@@ -70,7 +70,7 @@ export default function TabLayout() {
         name="orders"
         options={{
           title: 'My Orders',
-          tabBarBadge: activeOrdersCount,
+          tabBarBadge: activeOrdersCount >  0 ? activeOrdersCount : undefined,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'bag-handle' : 'bag-handle-outline'}
