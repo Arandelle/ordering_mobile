@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +17,7 @@ import { ClipboardList, CreditCard, Eye, MessageSquare, Search, XCircle } from '
 import { authClient } from '@/lib/auth-client';
 import { ORDER_STATUSES, getActionConfig } from '@/types/order-constant';
 import { OrderType } from '@/types/orders.type';
-import { useCancelOrder, useOrders } from '@/hooks/useOrders';
+import { useCancelOrder, useCreateMayaCheckout, useOrders } from '@/hooks/useOrders';
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
 
@@ -63,11 +64,13 @@ function ActionButton({
   icon,
   variant,
   onPress,
+  disabled = false,
 }: {
   label: string;
   icon: ReactNode;
   variant: 'primary' | 'danger' | 'outline';
   onPress: () => void;
+  disabled?: boolean;
 }) {
   const className =
     variant === 'primary'
@@ -82,6 +85,7 @@ function ActionButton({
     <TouchableOpacity
       className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-3 ${className}`}
       activeOpacity={0.85}
+      disabled={disabled}
       onPress={onPress}>
       {icon}
       <Text className={`text-center text-[13px] font-bold ${textClassName}`}>{label}</Text>
@@ -89,7 +93,17 @@ function ActionButton({
   );
 }
 
-function OrderCard({ order, onCancelPress }: { order: OrderType; onCancelPress: (order: OrderType) => void }) {
+function OrderCard({
+  order,
+  onCancelPress,
+  onPayNowPress,
+  payingOrderId,
+}: {
+  order: OrderType;
+  onCancelPress: (order: OrderType) => void;
+  onPayNowPress: (order: OrderType) => void;
+  payingOrderId: string | null;
+}) {
   const state = useOrderState(order);
   const statusClasses = getStatusClasses(order.status);
   const referenceNumber = order.paymentInfo?.referenceNumber ?? order._id;
@@ -100,9 +114,7 @@ function OrderCard({ order, onCancelPress }: { order: OrderType; onCancelPress: 
     .join(', ');
   const hiddenItemCount = Math.max(order.items.length - 2, 0);
 
-  const showActionMessage = (action: string) => {
-    Alert.alert(action, 'This action will be connected after the order mutation or route is ready.');
-  };
+  const isPaying = payingOrderId === order._id;
 
   return (
     <View className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -152,10 +164,11 @@ function OrderCard({ order, onCancelPress }: { order: OrderType; onCancelPress: 
 
         {state?.needPayment && (
           <ActionButton
-            label="Pay Now"
+            label={isPaying ? 'Opening...' : 'Pay Now'}
             variant="primary"
             icon={<CreditCard size={16} color="white" />}
-            onPress={() => showActionMessage('Pay now')}
+            disabled={isPaying}
+            onPress={() => onPayNowPress(order)}
           />
         )}
 
@@ -211,8 +224,10 @@ export default function Orders() {
   const [referenceNumber, setReferenceNumber] = useState('');
   const [submittedReference, setSubmittedReference] = useState('');
   const [orderToCancel, setOrderToCancel] = useState<OrderType | null>(null);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
   const isAuthenticated = Boolean(session?.user);
   const cancelOrder = useCancelOrder();
+  const createMayaCheckout = useCreateMayaCheckout();
 
   const customerOrders = useOrders({
     userType: 'customer',
@@ -250,6 +265,26 @@ export default function Orders() {
     }
   };
 
+  const handlePayNow = async (order: OrderType) => {
+    setPayingOrderId(order._id);
+
+    try {
+      const response = await createMayaCheckout.mutateAsync(order._id);
+
+      if (!response.redirectUrl) {
+        Alert.alert('Payment link missing', 'No Maya payment link was returned for this order.');
+        return;
+      }
+
+      await WebBrowser.openBrowserAsync(response.redirectUrl);
+      void activeQuery.refetch();
+    } catch (error) {
+      Alert.alert('Payment failed', getErrorMessage(error));
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
   if (isSessionPending) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
@@ -265,7 +300,14 @@ export default function Orders() {
       <FlatList
         data={orders}
         keyExtractor={(order) => order._id}
-        renderItem={({ item }) => <OrderCard order={item} onCancelPress={setOrderToCancel} />}
+        renderItem={({ item }) => (
+          <OrderCard
+            order={item}
+            onCancelPress={setOrderToCancel}
+            onPayNowPress={handlePayNow}
+            payingOrderId={payingOrderId}
+          />
+        )}
         contentContainerClassName="px-5 pb-8 pt-6"
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
