@@ -10,8 +10,10 @@ import {
   getCustomerOrder,
   getCustomerOrders,
   getGuestOrder,
+  submitOrderReview,
 } from '@/services/orders.service';
 import { OrderType, OrdersApiResponse } from '@/types/orders.type';
+import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
 
 const ORDERS_PAGE_SIZE = 20;
 
@@ -77,6 +79,20 @@ export function useCancelOrder() {
       }
       void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
       void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
+    },
+  });
+}
+
+export function useSubmitReview(orderId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<SubmitReviewResponse, Error, SubmitReviewPayload>({
+    mutationFn: (payload) => submitOrderReview(orderId ?? '', payload),
+    onSuccess: () => {
+      if (orderId) {
+        void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
+      }
+      void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
     },
   });
 }
