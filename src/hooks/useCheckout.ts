@@ -35,6 +35,29 @@ export interface CheckoutDraft {
   paymentMethod?: CheckoutPaymentMethod;
 }
 
+type AddressApiShape = Partial<{
+  line1: string;
+  line2: string;
+  city: string;
+  province: string;
+  zipCode: string;
+  postalCode: string;
+  country: string;
+  landmark: string;
+  coordinates:
+    | {
+        lat?: number | string;
+        lng?: number | string;
+      }
+    | [number, number];
+}>;
+
+type AddressResponse =
+  | AddressApiShape
+  | { data?: AddressApiShape | null }
+  | { shippingAddress?: AddressApiShape | null }
+  | null;
+
 export const emptyPersonalDetails: CheckoutPersonalDetails = {
   firstName: '',
   lastName: '',
@@ -66,6 +89,58 @@ async function getCheckoutDraft(): Promise<CheckoutDraft> {
 async function setCheckoutDraft(nextDraft: CheckoutDraft): Promise<CheckoutDraft> {
   await AsyncStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(nextDraft));
   return nextDraft;
+}
+
+function isAddressEnvelope(response: AddressResponse): response is { data?: AddressApiShape | null } {
+  return Boolean(response && typeof response === 'object' && 'data' in response);
+}
+
+function isShippingAddressEnvelope(
+  response: AddressResponse,
+): response is { shippingAddress?: AddressApiShape | null } {
+  return Boolean(response && typeof response === 'object' && 'shippingAddress' in response);
+}
+
+function normalizeAddressResponse(response: AddressResponse): CheckoutAddressDetails | null {
+  if (!response) return null;
+
+  const address = isAddressEnvelope(response)
+    ? response.data
+    : isShippingAddressEnvelope(response)
+      ? response.shippingAddress
+      : response;
+  if (!address) return null;
+
+  const coordinates = address.coordinates;
+  const lat = Array.isArray(coordinates) ? coordinates[1] : coordinates?.lat;
+  const lng = Array.isArray(coordinates) ? coordinates[0] : coordinates?.lng;
+
+  return {
+    line1: address.line1 ?? '',
+    line2: address.line2 ?? '',
+    city: address.city ?? '',
+    province: address.province ?? '',
+    zipCode: address.zipCode ?? address.postalCode ?? '',
+    country: address.country ?? 'Philippines',
+    landmark: address.landmark ?? '',
+    coordinates: {
+      lat: lat === undefined || lat === null ? '' : String(lat),
+      lng: lng === undefined || lng === null ? '' : String(lng),
+    },
+  };
+}
+
+export function useMyAddress(enabled = true) {
+  return useQuery({
+    queryKey: ['user_address'],
+    queryFn: async () => {
+      const response = await apiClient.get<AddressResponse>('/customer/address');
+      return normalizeAddressResponse(response);
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+    enabled,
+  });
 }
 
 export function useCheckoutDraft() {
