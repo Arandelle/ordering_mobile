@@ -1,62 +1,16 @@
 import { useState, type ReactNode } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { ArrowLeft, ClipboardList, XCircle } from 'lucide-react-native';
-import { ORDER_STATUSES } from '@/types/order-constant';
-import { OrderType } from '@/types/orders.type';
+import { ClipboardList, XCircle } from 'lucide-react-native';
 import { useCancelOrder, useOrder } from '@/hooks/useOrders';
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
+import { formatDate } from '@/helper/formateDate';
+import { getErrorMessage } from './helper/getErrorMessage';
+import { getStatusClasses } from './helper/getStatusClasses';
+import { formatMoney } from './helper/formatMoney';
 
 const BRAND = '#e13e00';
-
-function formatMoney(value: number | undefined) {
-  return `PHP ${(value ?? 0).toLocaleString('en-PH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function formatDate(value?: string | Date) {
-  if (!value) return 'Not available';
-
-  return new Date(value).toLocaleString('en-US', {
-    timeZone: 'Asia/Manila',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getStatusClasses(status: OrderType['status']) {
-  switch (status) {
-    case ORDER_STATUSES.PENDING:
-      return { container: 'bg-amber-50', text: 'text-amber-700' };
-    case ORDER_STATUSES.PREPARING:
-      return { container: 'bg-orange-50', text: 'text-orange-700' };
-    case ORDER_STATUSES.READY:
-      return { container: 'bg-emerald-50', text: 'text-emerald-700' };
-    case ORDER_STATUSES.COMPLETED:
-      return { container: 'bg-green-50', text: 'text-green-700' };
-    case ORDER_STATUSES.CANCELLED:
-    case ORDER_STATUSES.FAILED:
-    case ORDER_STATUSES.EXPIRED:
-      return { container: 'bg-red-50', text: 'text-red-700' };
-    default:
-      return { container: 'bg-gray-100', text: 'text-gray-700' };
-  }
-}
-
-function getErrorMessage(error: unknown) {
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string') return message;
-  }
-
-  return 'Unable to cancel order. Please try again.';
-}
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -77,7 +31,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function OrderDetails() {
-  const router = useRouter();
+
   const { id } = useLocalSearchParams<{ id?: string }>();
   const orderId = Array.isArray(id) ? id[0] : id;
   const { data: order, isLoading, isError, error, refetch, isRefetching } = useOrder(orderId);
