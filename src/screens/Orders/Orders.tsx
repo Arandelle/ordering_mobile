@@ -17,6 +17,7 @@ import { ClipboardList, CreditCard, Eye, MessageSquare, Search, XCircle } from '
 import { authClient } from '@/lib/auth-client';
 import { ORDER_STATUSES, getActionConfig } from '@/types/order-constant';
 import { OrderType } from '@/types/orders.type';
+import { PAYMENT_STATUSES } from '@/types/payment.type';
 import { useCancelOrder, useCreateMayaCheckout, useOrders } from '@/hooks/useOrders';
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
@@ -27,6 +28,55 @@ import { formatMoney } from './helper/formatMoney';
 
 const BRAND = '#e13e00';
 
+const ACTION_BUTTON_STYLES = {
+  primary: {
+    container: 'border-[#e13e00] bg-[#e13e00]',
+    text: 'text-white',
+    icon: 'white',
+  },
+  danger: {
+    container: 'border-red-600 bg-red-600',
+    text: 'text-white',
+    icon: 'white',
+  },
+  review: {
+    container: 'border-emerald-600 bg-emerald-600',
+    text: 'text-white',
+    icon: 'white',
+  },
+  outline: {
+    container: 'border-gray-200 bg-white',
+    text: 'text-gray-800',
+    icon: '#374151',
+  },
+} as const;
+
+function formatDisplayLabel(value?: string | null) {
+  if (!value) return 'Pending';
+
+  return value
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function getOrderStatusLabel(order: OrderType) {
+  const statusLabel = formatDisplayLabel(order.status);
+  const isPaid = order.paymentInfo?.paymentStatus === PAYMENT_STATUSES.PAYMENT_SUCCESS;
+
+  return isPaid ? `Paid - ${statusLabel}` : statusLabel;
+}
+
+function getPaymentStatusLabel(paymentStatus?: string | null) {
+  if (paymentStatus === PAYMENT_STATUSES.PAYMENT_SUCCESS) return 'Paid';
+  if (paymentStatus === PAYMENT_STATUSES.PAYMENT_FAILED) return 'Failed';
+  if (paymentStatus === PAYMENT_STATUSES.PAYMENT_EXPIRED) return 'Expired';
+
+  return formatDisplayLabel(paymentStatus);
+}
+
 function ActionButton({
   label,
   icon,
@@ -36,28 +86,21 @@ function ActionButton({
 }: {
   label: string;
   icon: ReactNode;
-  variant: 'primary' | 'danger' | 'outline';
+  variant: keyof typeof ACTION_BUTTON_STYLES;
   onPress: () => void;
   disabled?: boolean;
 }) {
-  const className =
-    variant === 'primary'
-      ? 'border-[#e13e00] bg-[#e13e00]'
-      : variant === 'danger'
-        ? 'border-red-600 bg-red-600'
-        : 'border-gray-200 bg-white';
-
-  const textClassName = variant === 'outline' ? 'text-gray-800' : 'text-white';
+  const style = ACTION_BUTTON_STYLES[variant];
   const disabledClassName = disabled ? 'opacity-[0.55]' : '';
 
   return (
     <TouchableOpacity
-      className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-3 ${className} ${disabledClassName}`}
+      className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-3 ${style.container} ${disabledClassName}`}
       activeOpacity={0.85}
       disabled={disabled}
       onPress={onPress}>
       {icon}
-      <Text className={`text-center text-[13px] font-bold ${textClassName}`}>{label}</Text>
+      <Text className={`text-center text-[13px] font-bold ${style.text}`}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -77,6 +120,8 @@ function OrderCard({
 }) {
   const state = useOrderState(order);
   const statusClasses = getStatusClasses(order.status);
+  const orderStatusLabel = getOrderStatusLabel(order);
+  const paymentStatusLabel = getPaymentStatusLabel(order.paymentInfo?.paymentStatus);
   const referenceNumber = order.paymentInfo?.referenceNumber ?? order._id;
   const cancelConfig = getActionConfig(order.status, ORDER_STATUSES.CANCELLED);
   const itemPreview = order.items
@@ -99,7 +144,7 @@ function OrderCard({
         </View>
 
         <View className={`rounded-full px-3 py-1 ${statusClasses.container}`}>
-          <Text className={`text-xs font-extrabold capitalize ${statusClasses.text}`}>{order.status}</Text>
+          <Text className={`text-xs font-extrabold ${statusClasses.text}`}>{orderStatusLabel}</Text>
         </View>
       </View>
 
@@ -121,7 +166,7 @@ function OrderCard({
           </Text>
         </View>
         <Text className="text-xs font-semibold text-gray-500">
-          Payment: {order.paymentInfo.paymentStatus}
+          Payment: {paymentStatusLabel}
         </Text>
       </View>
 
@@ -157,9 +202,9 @@ function OrderCard({
 
         {state?.needsReview && (
           <ActionButton
-            label="Review"
-            variant="outline"
-            icon={<MessageSquare size={16} color="#374151" />}
+            label={order.isReviewed ? 'Reviewed' : 'Review Order'}
+            variant="review"
+            icon={<MessageSquare size={16} color={ACTION_BUTTON_STYLES.review.icon} />}
             disabled={disableActions}
             onPress={() => router.push(`/review/${order._id}`)}
           />
@@ -168,7 +213,7 @@ function OrderCard({
         <ActionButton
           label="View Details"
           variant="outline"
-          icon={<Eye size={16} color="#374151" />}
+          icon={<Eye size={16} color={ACTION_BUTTON_STYLES.outline.icon} />}
           disabled={disableActions}
           onPress={() => router.push(`/orders/${order._id}`)}
         />

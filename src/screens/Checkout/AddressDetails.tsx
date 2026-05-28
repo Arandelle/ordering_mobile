@@ -12,8 +12,8 @@ import {
   CheckoutAddressDetails,
   emptyAddressDetails,
   useCheckoutDraft,
-  useMyAddress,
 } from '@/hooks/useCheckout';
+import { useMyAddress } from '@/hooks/useAddress';
 import { authClient } from '@/lib/auth-client';
 import CheckoutStepper from './CheckoutStepper';
 import CheckoutTextField from './CheckoutTextField';

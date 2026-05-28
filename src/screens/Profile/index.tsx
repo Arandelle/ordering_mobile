@@ -14,10 +14,9 @@ import { router } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  emptyAddressDetails,
-  useMyAddress,
-  useUpdateMyAddress,
+  emptyAddressDetails
 } from '@/hooks/useCheckout';
+import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
 import { AddressDetails } from './AddressDetails';
 import { ProfileDetails } from './ProfileDetails';
