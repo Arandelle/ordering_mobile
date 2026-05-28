@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
-  Pressable,
   Text,
   TouchableOpacity,
   View,
@@ -22,9 +20,8 @@ export function BranchSelector({ className }: { className?: string }) {
   const {
     selectedBranch,
     setSelectedBranch,
-    userLocation: userMarker,
-    setUserLocation,
   } = useBranchContext();
+  const hasSelectedBranch = Boolean(selectedBranch);
 
   return (
     <>
@@ -34,12 +31,21 @@ export function BranchSelector({ className }: { className?: string }) {
         className={cn('mt-12 flex flex-col gap-2 px-6', className)}
         activeOpacity={0.7}>
         <View className="flex flex-row items-center gap-2">
-          <Ionicons name="storefront" size={20} color={'#e13e00'} />
-          <Text className="text-xl font-semibold tracking-widest" numberOfLines={1}>
+          <Ionicons name="storefront" size={20} color={hasSelectedBranch ? '#e13e00' : '#9ca3af'} />
+          <Text
+            className={`text-xl font-semibold tracking-widest ${
+              hasSelectedBranch ? 'text-gray-950' : 'text-gray-400'
+            }`}
+            numberOfLines={1}>
             {selectedBranch ? selectedBranch.name : 'Select Branch'}
           </Text>
-          <Ionicons name={open ? 'chevron-up' : 'chevron-forward'} />
+          <Ionicons name={open ? 'chevron-up' : 'chevron-forward'} color="#6b7280" />
         </View>
+        {!hasSelectedBranch && (
+          <Text className="text-xs font-semibold text-[#e13e00]">
+            Choose a branch before ordering.
+          </Text>
+        )}
         <View className="h-px w-14 bg-[#e13e00]" />
       </TouchableOpacity>
 
