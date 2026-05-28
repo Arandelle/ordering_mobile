@@ -11,9 +11,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ToastAndroid,
   View,
 } from 'react-native';
-import { ClipboardList, CreditCard, Eye, MessageSquare, Search, XCircle } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
+
 import { authClient } from '@/lib/auth-client';
 import { ORDER_STATUSES, getActionConfig } from '@/types/order-constant';
 import { OrderType } from '@/types/orders.type';
@@ -21,10 +23,12 @@ import { PAYMENT_STATUSES } from '@/types/payment.type';
 import { useCancelOrder, useCreateMayaCheckout, useOrders } from '@/hooks/useOrders';
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
-import { formatDate } from '@/helper/formateDate';
 import { getErrorMessage } from './helper/getErrorMessage';
 import { getStatusClasses } from './helper/getStatusClasses';
 import { formatMoney } from './helper/formatMoney';
+import { useCart } from '@/context/CartContext';
+import { CartItem } from '@/types/menu-types';
+import { OrderItemImage } from './components/OrderItemImage';
 
 const BRAND = '#e13e00';
 
@@ -35,19 +39,19 @@ const ACTION_BUTTON_STYLES = {
     icon: 'white',
   },
   danger: {
-    container: 'border-red-600 bg-red-600',
-    text: 'text-white',
-    icon: 'white',
+    container: 'border-red-200 bg-white',
+    text: 'text-red-700',
+    icon: '#b91c1c',
   },
-  review: {
-    container: 'border-emerald-600 bg-emerald-600',
-    text: 'text-white',
-    icon: 'white',
-  },
-  outline: {
+  secondary: {
     container: 'border-gray-200 bg-white',
-    text: 'text-gray-800',
+    text: 'text-gray-700',
     icon: '#374151',
+  },
+  muted: {
+    container: 'border-gray-200 bg-gray-50',
+    text: 'text-gray-400',
+    icon: '#9ca3af',
   },
 } as const;
 
@@ -69,23 +73,52 @@ function getOrderStatusLabel(order: OrderType) {
   return isPaid ? `Paid - ${statusLabel}` : statusLabel;
 }
 
-function getPaymentStatusLabel(paymentStatus?: string | null) {
-  if (paymentStatus === PAYMENT_STATUSES.PAYMENT_SUCCESS) return 'Paid';
-  if (paymentStatus === PAYMENT_STATUSES.PAYMENT_FAILED) return 'Failed';
-  if (paymentStatus === PAYMENT_STATUSES.PAYMENT_EXPIRED) return 'Expired';
+function toCartItem(item: OrderType['items'][number]): CartItem {
+  return {
+    _id: item.productId,
+    name: item.name,
+    price: item.price,
+    description: item.description,
+    image: item.image ?? '',
+    quantity: item.quantity,
+  };
+}
 
-  return formatDisplayLabel(paymentStatus);
+function OrderItemRow({ item }: { item: OrderType['items'][number] }) {
+  return (
+    <View className="flex-row gap-3 rounded-xl p-2">
+      <View className="h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+        <OrderItemImage image={item.image} name={item.name} />
+      </View>
+
+      <View className="min-w-0 flex-1 flex-row justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-sm font-bold leading-5 text-gray-900" numberOfLines={2}>
+            {item.name}
+          </Text>
+          {!!item.description && (
+            <Text className="mt-0.5 text-xs leading-4 text-gray-500" numberOfLines={1}>
+              {item.description}
+            </Text>
+          )}
+        </View>
+
+        <View className="items-end">
+          <Text className="text-sm font-extrabold text-gray-950">{formatMoney(item.price)}</Text>
+          <Text className="mt-1 text-xs font-semibold text-gray-500">x{item.quantity}</Text>
+        </View>
+      </View>
+    </View>
+  );
 }
 
 function ActionButton({
   label,
-  icon,
   variant,
   onPress,
   disabled = false,
 }: {
-  label: string;
-  icon: ReactNode;
+  label?: string | ReactNode;
   variant: keyof typeof ACTION_BUTTON_STYLES;
   onPress: () => void;
   disabled?: boolean;
@@ -95,12 +128,11 @@ function ActionButton({
 
   return (
     <TouchableOpacity
-      className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-3 ${style.container} ${disabledClassName}`}
+      className={`min-h-9 flex-row items-center justify-center gap-1.5 rounded-3xl border px-3 ${style.container} ${disabledClassName}`}
       activeOpacity={0.85}
       disabled={disabled}
       onPress={onPress}>
-      {icon}
-      <Text className={`text-center text-[13px] font-bold ${style.text}`}>{label}</Text>
+      {label && <Text className={`text-center text-sm font-bold ${style.text}`}>{label}</Text>}
     </TouchableOpacity>
   );
 }
@@ -109,70 +141,83 @@ function OrderCard({
   order,
   onCancelPress,
   onPayNowPress,
+  onAddToCartPress,
   payingOrderId,
   checkingPaymentOrderId,
 }: {
   order: OrderType;
   onCancelPress: (order: OrderType) => void;
   onPayNowPress: (order: OrderType) => void;
+  onAddToCartPress: (order: OrderType) => void;
   payingOrderId: string | null;
   checkingPaymentOrderId: string | null;
 }) {
+  const [showAllItems, setShowAllItems] = useState(false);
   const state = useOrderState(order);
   const statusClasses = getStatusClasses(order.status);
   const orderStatusLabel = getOrderStatusLabel(order);
-  const paymentStatusLabel = getPaymentStatusLabel(order.paymentInfo?.paymentStatus);
-  const referenceNumber = order.paymentInfo?.referenceNumber ?? order._id;
   const cancelConfig = getActionConfig(order.status, ORDER_STATUSES.CANCELLED);
-  const itemPreview = order.items
-    .slice(0, 2)
-    .map((item) => `${item.quantity}x ${item.name}`)
-    .join(', ');
-  const hiddenItemCount = Math.max(order.items.length - 2, 0);
+  const visibleItems = showAllItems ? order.items : order.items.slice(0, 1);
+  const hiddenItemCount = Math.max(order.items.length - visibleItems.length, 0);
 
   const isPaying = payingOrderId === order._id;
   const isCheckingPayment = checkingPaymentOrderId === order._id;
   const disableActions = isPaying || isCheckingPayment;
+  const cardStateClass = state?.isCancelled ? 'opacity-70' : '';
 
   return (
-    <View className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="text-xs font-semibold uppercase text-gray-400">Reference</Text>
-          <Text className="mt-1 text-base font-extrabold text-gray-950">{referenceNumber}</Text>
-          <Text className="mt-1 text-xs text-gray-500">{formatDate(order.createdAt)}</Text>
+    <TouchableOpacity
+      className={`mb-2 overflow-hidden bg-white ${cardStateClass}`}
+      activeOpacity={0.88}
+      onPress={() => router.push(`/orders/${order._id}`)}>
+      <View className="p-4">
+        <View className="mb-3 flex-row items-start justify-end gap-3">
+          <View className={`rounded-full px-2.5 py-0.5 ${statusClasses.container}`}>
+            <Text className={`text-[11px] font-bold ${statusClasses.text}`}>
+              {orderStatusLabel}
+            </Text>
+          </View>
         </View>
 
-        <View className={`rounded-full px-3 py-1 ${statusClasses.container}`}>
-          <Text className={`text-xs font-extrabold ${statusClasses.text}`}>{orderStatusLabel}</Text>
+        <View className="gap-2">
+          {visibleItems.length > 0 ? (
+            visibleItems.map((item) => <OrderItemRow key={item.productId} item={item} />)
+          ) : (
+            <View className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
+              <Text className="text-center text-sm font-semibold text-gray-500">
+                No items listed
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View className="flex-row items-center justify-between">
+          <TouchableOpacity
+            className={`mt-2 flex-row items-center justify-start gap-1 rounded-xl px-2 py-1 ${order.items.length > 1 ? 'opacity-100' : 'opacity-0'}`}
+            activeOpacity={0.85}
+            onPress={() => setShowAllItems((current) => !current)}>
+            <Text className="text-sm font-bold text-gray-500">
+              {showAllItems ? 'Show less' : `View more (${hiddenItemCount})`}
+            </Text>
+            {showAllItems ? (
+              <Ionicons name='chevron-up-outline' size={14} className="text-gray-500" />
+            ) : (
+              <Ionicons name='chevron-down-outline' size={14} className="text-gray-500" />
+            )}
+          </TouchableOpacity>
+
+          <View className="flex-row items-center gap-1">
+            <Text className="text-sm text-gray-400">Total: </Text>
+            <Text className="text-sm font-semibold text-gray-950">
+              {formatMoney(order.total.totalAmount)}
+            </Text>
+          </View>
         </View>
       </View>
 
-      <View className="my-4 h-px bg-gray-100" />
-
-      <Text className="text-sm font-semibold text-gray-900">
-        {itemPreview || 'No items listed'}
-        {hiddenItemCount > 0 ? `, +${hiddenItemCount} more` : ''}
-      </Text>
-      <Text className="mt-1 text-xs text-gray-500">
-        {order.branchSnapshot?.name ?? 'Branch pending'} - {order.paymentInfo.paymentMethod?.toUpperCase()}
-      </Text>
-
-      <View className="mt-4 flex-row items-end justify-between">
-        <View>
-          <Text className="text-xs font-semibold uppercase text-gray-400">Total</Text>
-          <Text className="mt-1 text-lg font-extrabold text-gray-950">
-            {formatMoney(order.total.totalAmount)}
-          </Text>
-        </View>
-        <Text className="text-xs font-semibold text-gray-500">
-          Payment: {paymentStatusLabel}
-        </Text>
-      </View>
-
-      <View className="mt-4 flex-row flex-wrap gap-2">
+      <View className="px-4 py-3">
         {isCheckingPayment && (
-          <View className="w-full rounded-2xl bg-amber-50 px-4 py-3">
+          <View className="mb-3 rounded-2xl bg-amber-50 px-4 py-3">
             <Text className="text-sm font-bold text-amber-800">Checking payment status</Text>
             <Text className="mt-1 text-xs leading-4 text-amber-700">
               Maya is processing your payment. This can take a few moments.
@@ -180,45 +225,61 @@ function OrderCard({
           </View>
         )}
 
-        {state?.canCancel && (
-          <ActionButton
-            label={cancelConfig?.label ?? 'Cancel'}
-            variant="danger"
-            icon={<XCircle size={16} color="white" />}
-            disabled={disableActions}
-            onPress={() => onCancelPress(order)}
-          />
-        )}
+        <View className="flex-row flex-wrap justify-end gap-2">
+          {state?.needPayment && (
+            <ActionButton
+              label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
+              variant="primary"
+              disabled={disableActions}
+              onPress={() => onPayNowPress(order)}
+            />
+          )}
 
-        {state?.needPayment && (
-          <ActionButton
-            label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
-            variant="primary"
-            icon={<CreditCard size={16} color="white" />}
-            disabled={disableActions}
-            onPress={() => onPayNowPress(order)}
-          />
-        )}
+          {state?.canCancel && (
+            <ActionButton
+              label={cancelConfig?.label ?? 'Cancel'}
+              variant="danger"
+              disabled={disableActions}
+              onPress={() => onCancelPress(order)}
+            />
+          )}
 
-        {state?.needsReview && (
-          <ActionButton
-            label={order.isReviewed ? 'Reviewed' : 'Review Order'}
-            variant="review"
-            icon={<MessageSquare size={16} color={ACTION_BUTTON_STYLES.review.icon} />}
-            disabled={disableActions}
-            onPress={() => router.push(`/review/${order._id}`)}
-          />
-        )}
+          {state?.needsReview && (
+            <ActionButton
+              label="Write Review"
+              variant="primary"
+              disabled={disableActions}
+              onPress={() => router.push(`/review/${order._id}`)}
+            />
+          )}
 
-        <ActionButton
-          label="View Details"
-          variant="outline"
-          icon={<Eye size={16} color={ACTION_BUTTON_STYLES.outline.icon} />}
-          disabled={disableActions}
-          onPress={() => router.push(`/orders/${order._id}`)}
-        />
+          {state?.isCompleted && (
+            <>
+              {!state?.needsReview && (
+                <ActionButton
+                  label="View Review"
+                  variant="muted"
+                  disabled
+                  onPress={() => undefined}
+                />
+              )}
+              <ActionButton
+                label={
+                  <Ionicons
+                    name="cart-outline"
+                    size={14}
+                    color={ACTION_BUTTON_STYLES.secondary.icon}
+                  />
+                }
+                variant="secondary"
+                disabled={disableActions}
+                onPress={() => onAddToCartPress(order)}
+              />
+            </>
+          )}
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -226,7 +287,7 @@ function EmptyOrders({ isGuestSearch }: { isGuestSearch: boolean }) {
   return (
     <View className="items-center rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-10">
       <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-orange-50">
-        <ClipboardList size={24} color={BRAND} />
+        <Ionicons name='clipboard-outline' size={24} color={BRAND} />
       </View>
       <Text className="text-center text-lg font-extrabold text-gray-950">
         {isGuestSearch ? 'No order found' : 'No orders yet'}
@@ -250,6 +311,7 @@ export default function Orders() {
   const isAuthenticated = Boolean(session?.user);
   const cancelOrder = useCancelOrder();
   const createMayaCheckout = useCreateMayaCheckout();
+  const { addToCart } = useCart();
 
   const customerOrders = useOrders({
     userType: 'customer',
@@ -312,6 +374,31 @@ export default function Orders() {
     }
   };
 
+  const addOrderItemsToCart = (order: OrderType) => {
+    if (order.items.length === 0) {
+      Alert.alert('No items', 'This order has no items to add.');
+      return false;
+    }
+
+    order.items.forEach((item) => {
+      addToCart(toCartItem(item));
+    });
+
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('Added order items to cart', ToastAndroid.SHORT);
+    }
+
+    return true;
+  };
+
+  const handleAddToCart = (order: OrderType) => {
+    const added = addOrderItemsToCart(order);
+
+    if (added && Platform.OS !== 'android') {
+      Alert.alert('Added to cart', 'Order items were added to your cart.');
+    }
+  };
+
   if (isSessionPending) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
@@ -332,11 +419,12 @@ export default function Orders() {
             order={item}
             onCancelPress={setOrderToCancel}
             onPayNowPress={handlePayNow}
+            onAddToCartPress={handleAddToCart}
             payingOrderId={payingOrderId}
             checkingPaymentOrderId={checkingPaymentOrderId}
           />
         )}
-        contentContainerClassName="px-5 pb-8 pt-6"
+        contentContainerClassName=""
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.4}
@@ -352,7 +440,7 @@ export default function Orders() {
           ) : undefined
         }
         ListHeaderComponent={
-          <View className="mb-5">
+          <View className="p-5">
             <Text className="text-2xl font-extrabold text-gray-950">Orders</Text>
             <Text className="mt-1 text-sm leading-5 text-gray-500">
               {isAuthenticated
@@ -366,7 +454,7 @@ export default function Orders() {
                   Order reference number
                 </Text>
                 <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                  <Search size={17} color="#9ca3af" />
+                  <Ionicons name="search-outline" size={17} color="#9ca3af" />
                   <TextInput
                     className="min-h-12 flex-1 px-3 text-sm text-gray-950"
                     placeholder="Example: ORD-123456"
