@@ -1,3 +1,3 @@
-import OrderReview from '@/screens/Orders/OrderReview';
+import OrderReview from '@/screens/review/index';
 
 export default OrderReview;

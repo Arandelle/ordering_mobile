@@ -1,3 +1,3 @@
-import OrderDetails from '@/screens/Orders/OrderDetails';
+import OrderDetails from '@/screens/orders/OrderDetails';
 
 export default OrderDetails;
