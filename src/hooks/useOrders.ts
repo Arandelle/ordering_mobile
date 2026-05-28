@@ -13,10 +13,27 @@ import {
   getGuestOrder,
   submitOrderReview,
 } from '@/services/orders.service';
+import { ORDER_STATUSES, OrderStatus } from '@/types/order-constant';
 import { CreateOrderResponse, OrderType, OrdersApiResponse } from '@/types/orders.type';
 import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
 
 const ORDERS_PAGE_SIZE = 20;
+const ACTIVE_ORDER_REFETCH_INTERVAL_MS = 10_000;
+const ORDERS_REFETCH_INTERVAL_MS = 15_000;
+
+const ACTIVE_ORDER_STATUSES = new Set<OrderStatus>([
+  ORDER_STATUSES.PENDING,
+  ORDER_STATUSES.PREPARING,
+  ORDER_STATUSES.READY,
+]);
+
+function hasActiveOrders(response?: OrdersApiResponse) {
+  return response?.data.some((order) => ACTIVE_ORDER_STATUSES.has(order.status)) ?? false;
+}
+
+function isActiveOrder(order?: OrderType | null) {
+  return order ? ACTIVE_ORDER_STATUSES.has(order.status) : false;
+}
 
 type UseOrdersParams =
   | {
@@ -56,7 +73,12 @@ export function useOrders(params: UseOrdersParams) {
       params.userType === 'customer'
         ? enabled
         : enabled && params.referenceNumber.trim().length > 0,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) =>
+      query.state.data?.pages.some(hasActiveOrders) ? ORDERS_REFETCH_INTERVAL_MS : false,
   });
 }
 
@@ -65,7 +87,12 @@ export function useOrder(id?: string) {
     queryKey: ['order-detail', id],
     queryFn: () => getCustomerOrder(id ?? ''),
     enabled: Boolean(id),
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) =>
+      isActiveOrder(query.state.data) ? ACTIVE_ORDER_REFETCH_INTERVAL_MS : false,
   });
 }
 
