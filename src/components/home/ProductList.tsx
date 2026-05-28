@@ -1,14 +1,17 @@
-import { Heart } from 'lucide-react-native';
+import { Heart, ShoppingCart } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Alert,
   Dimensions,
   FlatList,
   Image,
+  Platform,
   RefreshControl,
   Text,
   TouchableOpacity,
+  ToastAndroid,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,6 +23,7 @@ import { BranchProduct } from '@/hooks/useProducts';
 import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from './StockBadge';
 import { StoreClosedOverlay } from './StoreClosedOverLay';
+import { useCart } from '@/context/CartContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +64,9 @@ const ProductCard = React.memo(
     storeClosedMessage: string;
   }) => {
     const router = useRouter();
+    const { addToCart } = useCart();
     const [liked, setLiked] = useState(false);
+    const [isAdded, setIsAdded] = useState(false);
     const scale = useRef(new Animated.Value(1)).current;
 
     // Stock info — only relevant when a branch is selected
@@ -81,6 +87,34 @@ const ProductCard = React.memo(
 
     const handlePress = () => {
       router.push(`/product/${item._id}`);
+    };
+
+    const handleQuickAdd = () => {
+      if (!hasBranch) {
+        Alert.alert('Select a branch', 'Please choose a branch before adding items to your cart.');
+        return;
+      }
+
+      if (isBlocked) return;
+
+      addToCart({
+        _id: item._id,
+        name: item.name,
+        price: item.price ?? 0,
+        image: item.image.url,
+        category: {
+          _id: item.category._id,
+          name: item.category.name,
+        },
+        quantity: 1,
+      });
+
+      setIsAdded(true);
+      setTimeout(() => setIsAdded(false), 1200);
+
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Added to cart', ToastAndroid.SHORT);
+      }
     };
 
     return (
@@ -106,7 +140,10 @@ const ProductCard = React.memo(
 
           {/* Heart button */}
           <TouchableOpacity
-            onPress={handleLike}
+            onPress={(event) => {
+              event.stopPropagation();
+              handleLike();
+            }}
             activeOpacity={0.8}
             style={{ zIndex: 30 }}
             className="elevation absolute right-3 top-3 h-8 w-8 items-center justify-center rounded-full bg-gray-200 shadow-md">
@@ -121,10 +158,10 @@ const ProductCard = React.memo(
         </View>
 
         {/* Info row */}
-        <View className="flex flex-row items-center justify-between gap-2 px-3 pb-4 pt-3">
+        <View className="px-3 pb-4 pt-3">
           <Text
             numberOfLines={1}
-            className="flex-1 text-sm font-semibold text-slate-900"
+            className="text-sm font-semibold text-slate-900"
             style={{ letterSpacing: -0.1, opacity: isBlocked ? 0.4 : 1 }}>
             {item.name}
           </Text>
@@ -133,6 +170,20 @@ const ProductCard = React.memo(
             style={{ color: isBlocked ? '#9ca3af' : '#e13e00', letterSpacing: -0.2 }}>
             ₱{item.price}
           </Text>
+
+          <TouchableOpacity
+            onPress={(event) => {
+              event.stopPropagation();
+              handleQuickAdd();
+            }}
+            activeOpacity={0.85}
+            disabled={isBlocked}
+            style={{ zIndex: 30 }}
+            className={`absolute bottom-3 right-3 h-8 w-8 items-center justify-center rounded-full shadow-md ${
+              isAdded ? 'bg-orange-200' : !hasBranch || isBlocked ? 'bg-gray-200' : 'bg-[#e13e00]'
+            }`}>
+            <ShoppingCart size={16} color={!hasBranch || isBlocked ? '#9ca3af' : '#fff'} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
