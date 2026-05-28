@@ -23,10 +23,6 @@ export interface CheckoutAddressDetails {
   zipCode: string;
   country: string;
   landmark: string;
-  coordinates: {
-    lat: string;
-    lng: string;
-  };
 }
 
 export interface CheckoutDraft {
@@ -74,10 +70,6 @@ export const emptyAddressDetails: CheckoutAddressDetails = {
   zipCode: '',
   country: 'Philippines',
   landmark: '',
-  coordinates: {
-    lat: '',
-    lng: '',
-  },
 };
 
 async function getCheckoutDraft(): Promise<CheckoutDraft> {
@@ -123,10 +115,20 @@ function normalizeAddressResponse(response: AddressResponse): CheckoutAddressDet
     zipCode: address.zipCode ?? address.postalCode ?? '',
     country: address.country ?? 'Philippines',
     landmark: address.landmark ?? '',
-    coordinates: {
-      lat: lat === undefined || lat === null ? '' : String(lat),
-      lng: lng === undefined || lng === null ? '' : String(lng),
-    },
+  };
+}
+
+function toAddressPayload(address: CheckoutAddressDetails) {
+
+  return {
+    line1: address.line1.trim(),
+    line2: address.line2.trim(),
+    city: address.city.trim(),
+    province: address.province.trim(),
+    zipCode: address.zipCode.trim(),
+    postalCode: address.zipCode.trim(),
+    country: address.country.trim(),
+    landmark: address.landmark.trim(),
   };
 }
 
@@ -140,6 +142,25 @@ export function useMyAddress(enabled = true) {
     retry: false,
     staleTime: 1000 * 60 * 5,
     enabled,
+  });
+}
+
+export function useUpdateMyAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (address: CheckoutAddressDetails) => {
+      const response = await apiClient.put<AddressResponse>(
+        '/customer/address',
+        { address: toAddressPayload(address) },
+      );
+
+      return normalizeAddressResponse(response) ?? address;
+    },
+    onSuccess: (address) => {
+      queryClient.setQueryData(['user_address'], address);
+      queryClient.invalidateQueries({ queryKey: ['user_address'] });
+    },
   });
 }
 
