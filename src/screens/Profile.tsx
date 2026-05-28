@@ -622,12 +622,12 @@ const Profile = () => {
                     <View className="flex-1">
                       <FieldLabel label="Country" />
                       <TextInput
-                        className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+                        className="min-h-12 rounded-2xl border border-gray-200 bg-gray-200 px-3.5 text-sm text-gray-500"
                         placeholder="Philippines"
                         placeholderTextColor="#b9b9b9"
                         value={addressForm.country}
-                        onChangeText={(value) => handleAddressChange('country', value)}
                         autoCapitalize="words"
+                        editable={false}
                       />
                       {!!addressErrors.country && (
                         <Text className="mt-1 text-[11px] text-red-600">
