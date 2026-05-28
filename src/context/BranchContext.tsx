@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Branch } from '@/types/branch.type';
 import { useBranches } from '@/hooks/useBranches';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authClient } from '@/lib/auth-client';
 
 // Types
 type BranchContextType = {
@@ -46,6 +47,9 @@ export const BranchProvider = ({ children }: { children: ReactNode }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userLocation, setUserLocationState] = useState<[number, number] | null>(loadLocation);
   const { data: branches = [] } = useBranches();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const authKey = session?.user?.id ?? 'guest';
+  const previousAuthKeyRef = useRef<string | null>(null);
 
   // Load persisted values from AsyncStorage on mount
   useEffect(() => {
@@ -72,7 +76,7 @@ export const BranchProvider = ({ children }: { children: ReactNode }) => {
   // Always resolve against fresh API data — never stale
   const selectedBranch = branches.find((b) => b._id === selectedId) ?? null;
 
-  const setSelectedBranch = async (branch: Branch | null) => {
+  const setSelectedBranch = useCallback(async (branch: Branch | null) => {
     setSelectedId(branch?._id ?? null);
 
     try {
@@ -84,9 +88,23 @@ export const BranchProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('[BranchContext] Failed to save selected branch:', err);
     }
-  };
+  }, []);
 
-  const setUserLocation = async (location: [number, number] | null) => {
+  useEffect(() => {
+    if (isSessionPending) return;
+
+    if (previousAuthKeyRef.current === null) {
+      previousAuthKeyRef.current = authKey;
+      return;
+    }
+
+    if (previousAuthKeyRef.current === authKey) return;
+
+    previousAuthKeyRef.current = authKey;
+    void setSelectedBranch(null);
+  }, [authKey, isSessionPending, setSelectedBranch]);
+
+  const setUserLocation = useCallback(async (location: [number, number] | null) => {
     setUserLocationState(location);
     try {
       if (location) {
@@ -97,7 +115,7 @@ export const BranchProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('[BranchContext] Failed to save user location:', err);
     }
-  };
+  }, []);
 
   return (
     <BranchContext.Provider
