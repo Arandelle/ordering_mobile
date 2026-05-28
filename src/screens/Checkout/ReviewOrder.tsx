@@ -52,9 +52,6 @@ function formatAddress(address?: CheckoutAddressDetails) {
 }
 
 function toSubmitAddress(address: CheckoutAddressDetails): CreateOrderPayload['shippingAddress'] {
-  const lat = Number(address.coordinates.lat);
-  const lng = Number(address.coordinates.lng);
-  const hasCoordinates = !Number.isNaN(lat) && !Number.isNaN(lng);
 
   return {
     line1: address.line1,
@@ -64,7 +61,6 @@ function toSubmitAddress(address: CheckoutAddressDetails): CreateOrderPayload['s
     zipCode: address.zipCode,
     country: 'Philippines',
     landmark: address.landmark,
-    ...(hasCoordinates ? { coordinates: { lat, lng } } : {}),
   };
 }
 

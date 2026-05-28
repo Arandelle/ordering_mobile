@@ -59,26 +59,12 @@ const AddressDetails = () => {
     if (!form.province.trim()) newErrors.province = 'Province is required';
     if (!form.country.trim()) newErrors.country = 'Country is required';
 
-    if (form.coordinates.lat.trim() && Number.isNaN(Number(form.coordinates.lat))) {
-      newErrors.lat = 'Latitude must be a number';
-    }
-    if (form.coordinates.lng.trim() && Number.isNaN(Number(form.coordinates.lng))) {
-      newErrors.lng = 'Longitude must be a number';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (field: Field, value: string) => {
-    if (field === 'lat' || field === 'lng') {
-      setForm((prev) => ({
-        ...prev,
-        coordinates: { ...prev.coordinates, [field]: value },
-      }));
-    } else {
-      setForm((prev) => ({ ...prev, [field]: value }));
-    }
+    setForm((prev) => ({ ...prev, [field]: value }));
 
     if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -101,12 +87,13 @@ const AddressDetails = () => {
         contentContainerClassName="px-5 pt-5"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-          
         <CheckoutStepper currentStep={2} />
 
         <View className="rounded-2xl bg-white p-4 shadow-sm">
           <Text className="mb-1 text-xl font-bold text-gray-950">Address Details</Text>
-          <Text className="mb-5 text-[13px] text-gray-500">Where should we deliver your order?</Text>
+          <Text className="mb-5 text-[13px] text-gray-500">
+            Where should we deliver your order?
+          </Text>
 
           <CheckoutTextField
             label="Address Line 1"
@@ -178,30 +165,6 @@ const AddressDetails = () => {
             onChangeText={(v) => handleChange('landmark', v)}
             autoCapitalize="sentences"
           />
-
-          <View className="flex-row gap-3">
-            <CheckoutTextField
-              fieldClassName="mb-4 flex-1"
-              label="Latitude"
-              optional
-              placeholder="14.5995"
-              value={form.coordinates.lat}
-              onChangeText={(v) => handleChange('lat', v)}
-              keyboardType="decimal-pad"
-              error={errors.lat}
-            />
-
-            <CheckoutTextField
-              fieldClassName="mb-4 flex-1"
-              label="Longitude"
-              optional
-              placeholder="120.9842"
-              value={form.coordinates.lng}
-              onChangeText={(v) => handleChange('lng', v)}
-              keyboardType="decimal-pad"
-              error={errors.lng}
-            />
-          </View>
 
           <TouchableOpacity
             className={`mt-2 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
