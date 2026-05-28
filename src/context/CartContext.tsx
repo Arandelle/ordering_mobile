@@ -101,9 +101,13 @@ export const CartProvider: React.FC<{
           if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) setCartItems(parsed);
+          } else {
+            setCartItems([]);
           }
+          lastSyncedRef.current = [];
         } catch (err) {
           console.error('[CartContext] Failed to load guest cart:', err);
+          setCartItems([]);
         }
       }
       setIsHydrated(true);
