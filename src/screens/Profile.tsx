@@ -14,6 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Camera, Chrome, LockKeyhole, LogOut, Mail, Phone, Save } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   CheckoutAddressDetails,
   emptyAddressDetails,
@@ -138,6 +139,7 @@ function SectionHeader({
 }
 
 const Profile = () => {
+  const queryClient = useQueryClient();
   const { data: session, isPending, refetch } = authClient.useSession();
   const user = session?.user as ProfileUser | undefined;
   const { data: savedAddress, isLoading: isAddressLoading } = useMyAddress(Boolean(user));
@@ -206,6 +208,8 @@ const Profile = () => {
 
     if (authError) {
       setError(getAuthErrorMessage(authError, 'Unable to sign in'));
+    } else {
+      router.replace('/');
     }
   };
 
@@ -231,6 +235,10 @@ const Profile = () => {
   const handleSignOut = async () => {
     setLoadingAction('sign-out');
     await authClient.signOut();
+    queryClient.removeQueries({ queryKey: ['order-summary'] });
+    queryClient.removeQueries({ queryKey: ['orders-infinite'] });
+    queryClient.removeQueries({ queryKey: ['order-detail'] });
+    queryClient.removeQueries({ queryKey: ['user_address'] });
     setLoadingAction(null);
   };
 
