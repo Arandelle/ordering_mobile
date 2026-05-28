@@ -16,6 +16,7 @@ export interface OrderItem {
   image?: string;
   category?: string;   // ObjectId as string
   quantity: number;
+  info?: string
   // no _id — your schema has _id: false
 }
 
