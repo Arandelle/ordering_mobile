@@ -161,7 +161,7 @@ function OrderCard({
             variant="outline"
             icon={<MessageSquare size={16} color="#374151" />}
             disabled={disableActions}
-            onPress={() => router.push(`/orders/${order._id}/review`)}
+            onPress={() => router.push(`/review/${order._id}`)}
           />
         )}
 
