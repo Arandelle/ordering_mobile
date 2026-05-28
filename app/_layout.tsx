@@ -18,7 +18,7 @@ export default function RootLayout() {
             <Stack.Screen name="orders" />
             <Stack.Screen name="checkout" />
             <Stack.Screen name="auth" />
-            <Stack.Screen name='review/[id]'/>
+            <Stack.Screen name='review'/>
           </Stack>
         </CartProvider>
       </BranchProvider>
