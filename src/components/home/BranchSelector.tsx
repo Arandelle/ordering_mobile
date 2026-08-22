@@ -82,7 +82,7 @@ export function BranchSelector({ className }: { className?: string }) {
                     className={`text-sm font-semibold ${isActive ? 'text-[#e13e00]' : 'text-gray-900'}`}>
                     {item.name}
                   </Text>
-                  <Text className="mt-1 text-xs text-gray-600">{item.address}</Text>
+                  <Text className="mt-1 text-xs text-gray-600">{item.address.city}, {item.address.province}</Text>
                 </View>
 
                 {/* Check */}
