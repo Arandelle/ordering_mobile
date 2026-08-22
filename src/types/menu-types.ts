@@ -1,6 +1,7 @@
 // types.ts - TypeScript interfaces for Harrison House Menu
 
 import { Category } from "./categories.type";
+import { IncludedItem } from "./products.type";
 
 /**
  * Base menu item interface
@@ -20,10 +21,24 @@ export interface MenuItem {
 }
 
 /**
+ * Selected modifier item within a cart item
+ */
+export interface SelectedModifierItem {
+  modifierGroupName: string;
+  selectedItems: {
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
+}
+
+/**
  * Cart item extends MenuItem with quantity
  */
 export interface CartItem extends MenuItem {
   quantity: number;
+  selectedModifiers?: SelectedModifierItem[];
+  includedItems?: IncludedItem[];
 }
 
 
