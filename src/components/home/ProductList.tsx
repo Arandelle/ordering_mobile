@@ -1,17 +1,14 @@
-import { Heart, ShoppingCart, Plus } from 'lucide-react-native';
+import { Heart } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Alert,
   Dimensions,
   FlatList,
   Image,
-  Platform,
   RefreshControl,
   Text,
   TouchableOpacity,
-  ToastAndroid,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -23,7 +20,6 @@ import { BranchProduct } from '@/hooks/useProducts';
 import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from './StockBadge';
 import { StoreClosedOverlay } from './StoreClosedOverLay';
-import { useCart } from '@/context/CartContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,16 +60,13 @@ const ProductCard = React.memo(
     storeClosedMessage: string;
   }) => {
     const router = useRouter();
-    const { addToCart } = useCart();
     const [liked, setLiked] = useState(false);
-    const [isAdded, setIsAdded] = useState(false);
     const scale = useRef(new Animated.Value(1)).current;
 
-    // Stock info — only relevant when a branch is selected
+    // Stock info — only checked when a branch is selected
     const quantity = hasBranch ? (item.quantity ?? 0) : null;
     const status = hasBranch ? (item.status ?? '') : '';
-    const isOutOfStock =
-      hasBranch && (status === STOCK_STATUSES.OUT_OF_STOCK || (quantity ?? 1) <= 0);
+    const isOutOfStock = hasBranch && (status === STOCK_STATUSES.OUT_OF_STOCK || (quantity ?? 0) <= 0);
 
     const isBlocked = isOutOfStock || isStoreClosed;
 
@@ -87,43 +80,6 @@ const ProductCard = React.memo(
 
     const handlePress = () => {
       router.push(`/product/${item._id}`);
-    };
-
-    const hasModifiers =
-      Array.isArray(item.modifierGroups) && item.modifierGroups.length > 0;
-
-    const handleQuickAdd = () => {
-      if (!hasBranch) {
-        Alert.alert('Select a branch', 'Please choose a branch before adding items to your cart.');
-        return;
-      }
-
-      if (isBlocked) return;
-
-      // If product has modifiers, navigate to detail page for customization
-      if (hasModifiers) {
-        router.push(`/product/${item._id}`);
-        return;
-      }
-
-      addToCart({
-        _id: item._id,
-        name: item.name,
-        price: item.price ?? 0,
-        image: item.image.url,
-        category: {
-          _id: item.category._id,
-          name: item.category.name,
-        },
-        quantity: 1,
-      });
-
-      setIsAdded(true);
-      setTimeout(() => setIsAdded(false), 1200);
-
-      if (Platform.OS === 'android') {
-        ToastAndroid.show('Added to cart', ToastAndroid.SHORT);
-      }
     };
 
     return (
@@ -143,7 +99,7 @@ const ProductCard = React.memo(
             resizeMode="cover"
           />
 
-          {/* Stock overlay — only renders when hasBranch */}
+          {/* Stock overlay — only when branch is selected */}
           {hasBranch && <StockBadge status={status} quantity={quantity} />}
           {isStoreClosed && <StoreClosedOverlay message={storeClosedMessage} />}
 
@@ -179,24 +135,6 @@ const ProductCard = React.memo(
             style={{ color: isBlocked ? '#9ca3af' : '#e13e00', letterSpacing: -0.2 }}>
             ₱{item.price}
           </Text>
-
-          <TouchableOpacity
-            onPress={(event) => {
-              event.stopPropagation();
-              handleQuickAdd();
-            }}
-            activeOpacity={0.85}
-            disabled={isBlocked}
-            style={{ zIndex: 30 }}
-            className={`absolute bottom-3 right-3 h-8 w-8 items-center justify-center rounded-full shadow-md ${
-              isAdded ? 'bg-orange-200' : !hasBranch || isBlocked ? 'bg-gray-200' : 'bg-[#e13e00]'
-            }`}>
-            {hasModifiers ? (
-              <Plus size={16} color={!hasBranch || isBlocked ? '#9ca3af' : '#fff'} />
-            ) : (
-              <ShoppingCart size={16} color={!hasBranch || isBlocked ? '#9ca3af' : '#fff'} />
-            )}
-          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );

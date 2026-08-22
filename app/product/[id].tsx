@@ -447,7 +447,6 @@ export default function ProductDetailsPage() {
   };
 
   const getCtaState = () => {
-    if (!hasBranch) return { label: 'Select a Branch', style: 'bg-gray-900', disabled: true };
     if (isOutOfStock) return { label: 'Out of Stock', style: 'bg-gray-200', disabled: true };
     if (isStoreClosed) return { label: 'Store is Closed', style: 'bg-gray-200', disabled: true };
 
