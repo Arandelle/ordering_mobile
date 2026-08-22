@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Animated,
   Dimensions,
@@ -28,9 +28,213 @@ import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from '@/components/home/StockBadge';
 import { StoreClosedOverlay } from '@/components/home/StoreClosedOverLay';
 import { BranchSelector } from '@/components/home/BranchSelector';
+import { ModifierGroup, ModifierItem, IncludedItem } from '@/types/products.type';
+import { SelectedModifierItem } from '@/types/menu-types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_BORDER_RADIUS = 28;
+
+// ─── Modifier Selection Section ───────────────────────────────────────────────
+
+interface ModifierSelectionState {
+  [groupId: string]: {
+    selected: Map<string, { item: ModifierItem; qty: number }>; // itemId -> {item, qty}
+  };
+}
+
+function ModifierSection({
+  groups,
+  selection,
+  onToggle,
+  onQtyChange,
+}: {
+  groups: ModifierGroup[];
+  selection: ModifierSelectionState;
+  onToggle: (groupId: string, itemId: string) => void;
+  onQtyChange: (groupId: string, itemId: string, qty: number) => void;
+}) {
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(groups.filter((g) => g.isMain || g.required).map((g) => g._id || g.name))
+  );
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
+  const getProductImage = (item: ModifierItem): string => {
+    if (typeof item.product === 'object' && item.product !== null && 'image' in item.product) {
+      return (item.product as any).image?.url || '';
+    }
+    return '';
+  };
+
+  const getProductPrice = (item: ModifierItem): number => {
+    if (item.price != null) return item.price;
+    if (typeof item.product === 'object' && item.product !== null && 'price' in item.product) {
+      return (item.product as any).price ?? 0;
+    }
+    return 0;
+  };
+
+  const getProductName = (item: ModifierItem): string => {
+    if (item.label) return item.label;
+    if (typeof item.product === 'object' && item.product !== null && 'name' in item.product) {
+      return (item.product as any).name || '';
+    }
+    if (typeof item.product === 'string') return item.product;
+    return '';
+  };
+
+  return (
+    <View className="mt-4">
+      <Text className="mb-2 text-sm font-semibold text-gray-900">Customize Your Order</Text>
+      {groups.map((group) => {
+        const groupId = group._id || group.name;
+        const isExpanded = expandedGroups.has(groupId);
+        const groupSelection = selection[groupId]?.selected || new Map();
+        const isRequired = group.required === true;
+        const selectedCount = groupSelection.size;
+        const minSelect = isRequired ? (group.minSelect ?? 1) : 0;
+        const remaining = isRequired ? Math.max(0, minSelect - selectedCount) : 0;
+
+        return (
+          <View key={groupId} className="mb-3 rounded-xl border border-gray-100 bg-gray-50">
+            {/* Group header */}
+            <TouchableOpacity
+              onPress={() => toggleGroup(groupId)}
+              className="flex-row items-center justify-between px-4 py-3">
+              <View className="flex-1">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-sm font-semibold text-gray-900">{group.name}</Text>
+                  {isRequired && remaining > 0 && (
+                    <View className="rounded-full bg-orange-100 px-2 py-0.5">
+                      <Text className="text-xs font-semibold text-orange-600">
+                        {remaining} more required
+                      </Text>
+                    </View>
+                  )}
+                  {isRequired && remaining === 0 && selectedCount > 0 && (
+                    <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
+                  )}
+                </View>
+                <Text className="text-xs text-gray-400">
+                  {isRequired
+                    ? `Select ${minSelect}–${group.maxSelect}`
+                    : `Up to ${group.maxSelect}`}
+                </Text>
+              </View>
+              <Ionicons
+                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="#6b7280"
+              />
+            </TouchableOpacity>
+
+            {/* Group items */}
+            {isExpanded && (
+              <View className="border-t border-gray-100 px-4 pb-3 pt-2">
+                {group.items.map((item, idx) => {
+                  const productId = typeof item.product === 'object' && item.product !== null
+                    ? (item.product as any)._id
+                    : item.product;
+                  const itemId = String(productId ?? idx);
+                  const isSelected = groupSelection.has(itemId);
+                  const selectedEntry = groupSelection.get(itemId);
+                  const itemPrice = getProductPrice(item);
+                  const itemName = getProductName(item);
+                  const itemImage = getProductImage(item);
+
+                  return (
+                    <View key={idx} className="mb-2 last:mb-0">
+                      <TouchableOpacity
+                        onPress={() => onToggle(groupId, itemId)}
+                        className={`flex-row items-center gap-3 rounded-lg px-3 py-2.5 ${
+                          isSelected ? 'bg-orange-50' : 'bg-white'
+                        }`}>
+                        {/* Checkbox */}
+                        <View
+                          className={`h-5 w-5 items-center justify-center rounded border ${
+                            isSelected
+                              ? 'border-orange-500 bg-orange-500'
+                              : 'border-gray-300 bg-white'
+                          }`}>
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                          )}
+                        </View>
+
+                        {/* Image (small) */}
+                        {itemImage ? (
+                          <Image
+                            source={{ uri: itemImage }}
+                            className="h-10 w-10 rounded-lg"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="h-10 w-10 rounded-lg bg-gray-100" />
+                        )}
+
+                        {/* Name + price */}
+                        <View className="flex-1">
+                          <Text
+                            className="text-sm font-medium text-gray-900"
+                            numberOfLines={1}>
+                            {itemName}
+                          </Text>
+                          {itemPrice > 0 && (
+                            <Text className="text-xs text-orange-600">
+                              +₱{itemPrice.toLocaleString('en-PH')}
+                            </Text>
+                          )}
+                        </View>
+
+                        {/* Qty controls (only when selected and maxQty > 1) */}
+                        {isSelected && group.maxQty > 1 && (
+                          <View className="flex-row items-center gap-2">
+                            <TouchableOpacity
+                              onPress={() =>
+                                onQtyChange(
+                                  groupId,
+                                  itemId,
+                                  Math.max(1, (selectedEntry?.qty ?? 1) - 1)
+                                )
+                              }
+                              className="h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white">
+                              <Ionicons name="remove" size={14} color="#111827" />
+                            </TouchableOpacity>
+                            <Text className="w-4 text-center text-sm font-semibold">
+                              {selectedEntry?.qty ?? 1}
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                onQtyChange(
+                                  groupId,
+                                  itemId,
+                                  Math.min(group.maxQty, (selectedEntry?.qty ?? 1) + 1)
+                                )
+                              }
+                              className="h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white">
+                              <Ionicons name="add" size={14} color="#e13e00" />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -61,8 +265,244 @@ export default function ProductDetailsPage() {
   const pageOpacity = useRef(new Animated.Value(1)).current;
 
   const [quantity, setQuantity] = useState(1);
-
   const [isAdded, setIsAdded] = useState(false);
+
+  // ─── Modifier state ─────────────────────────────────────────────────────────
+
+  const hasModifiers =
+    product && Array.isArray(product.modifierGroups) && product.modifierGroups.length > 0;
+
+  // Build stable initial selection state from product modifier groups
+  const initialModifierSelection = useMemo<ModifierSelectionState>(() => {
+    const initial: ModifierSelectionState = {};
+    if (product?.modifierGroups) {
+      for (const g of product.modifierGroups) {
+        const gid = g._id || g.name;
+        initial[gid] = { selected: new Map() };
+      }
+    }
+    return initial;
+  }, [product?.modifierGroups]);
+
+  const [modifierSelection, setModifierSelection] = useState<ModifierSelectionState>(initialModifierSelection);
+
+  // Re-initialize when product changes (e.g. branch switch loads different product data)
+  useEffect(() => {
+    setModifierSelection(initialModifierSelection);
+  }, [initialModifierSelection]);
+
+  const handleModifierToggle = useCallback(
+    (groupId: string, itemId: string) => {
+      setModifierSelection((prev) => {
+        const group = prev[groupId];
+        if (!group) return prev;
+
+        const modGroup = product?.modifierGroups?.find(
+          (g) => (g._id || g.name) === groupId
+        );
+
+        const newSelected = new Map(group.selected);
+        if (newSelected.has(itemId)) {
+          // Prevent deselecting if it would drop below minSelect on a required group
+          if (modGroup && modGroup.required && modGroup.minSelect > 0 && newSelected.size <= modGroup.minSelect) {
+            if (Platform.OS === 'android') {
+              ToastAndroid.show(
+                `At least ${modGroup.minSelect} item(s) required for "${modGroup.name}"`,
+                ToastAndroid.SHORT
+              );
+            }
+            return prev;
+          }
+          newSelected.delete(itemId);
+        } else {
+          // Find the modifier item and add it
+          const modItem = modGroup?.items.find((mi) => {
+            const miProductId = typeof mi.product === 'object' && mi.product !== null
+              ? (mi.product as any)._id
+              : mi.product;
+            return String(miProductId ?? '') === itemId;
+          });
+          if (modItem) {
+            // Prevent selecting more than maxSelect
+            if (modGroup && modGroup.maxSelect > 0 && newSelected.size >= modGroup.maxSelect) {
+              if (Platform.OS === 'android') {
+                ToastAndroid.show(
+                  `Maximum ${modGroup.maxSelect} item(s) allowed for "${modGroup.name}"`,
+                  ToastAndroid.SHORT
+                );
+              }
+              return prev;
+            }
+            newSelected.set(itemId, { item: modItem, qty: 1 });
+          }
+        }
+
+        return { ...prev, [groupId]: { selected: newSelected } };
+      });
+    },
+    [product]
+  );
+
+  const handleModifierQtyChange = useCallback(
+    (groupId: string, itemId: string, qty: number) => {
+      setModifierSelection((prev) => {
+        const group = prev[groupId];
+        if (!group) return prev;
+
+        const newSelected = new Map(group.selected);
+        const entry = newSelected.get(itemId);
+        if (entry) {
+          newSelected.set(itemId, { ...entry, qty });
+        }
+
+        return { ...prev, [groupId]: { selected: newSelected } };
+      });
+    },
+    []
+  );
+
+  // Compute modifier total
+  const modifierTotal = useMemo(() => {
+    let total = 0;
+    for (const group of Object.values(modifierSelection)) {
+      for (const { item, qty } of group.selected.values()) {
+        const price =
+          item.price ??
+          (typeof item.product === 'object' && item.product !== null && 'price' in item.product
+            ? (item.product as any).price ?? 0
+            : 0);
+        total += price * qty;
+      }
+    }
+    return total;
+  }, [modifierSelection]);
+
+  const unitPrice = (product?.price ?? 0) + modifierTotal;
+  const totalPrice = unitPrice * quantity;
+
+  const formattedPrice =
+    product?.price != null ? `₱${product.price.toLocaleString('en-PH')}` : 'Price unavailable';
+
+  const productStocks = hasBranch && product ? (product.quantity ?? 0) : null;
+  const status = hasBranch && product ? (product.status ?? '') : '';
+
+  const isOutOfStock =
+    hasBranch && (status === STOCK_STATUSES.OUT_OF_STOCK || (productStocks ?? 0) <= 0);
+
+  const isLowStock = hasBranch && status === STOCK_STATUSES.LOW_STOCK;
+
+  // Validate modifier selection
+  const getModifierValidationState = (): { valid: boolean; message?: string } => {
+    if (!hasModifiers || !product?.modifierGroups) return { valid: true };
+
+    for (const group of product.modifierGroups) {
+      if (!group.required) continue;
+
+      const gid = group._id || group.name;
+      const sel = modifierSelection[gid]?.selected;
+      const count = sel ? sel.size : 0;
+      const minSelect = group.minSelect ?? 1;
+
+      if (count < minSelect) {
+        return {
+          valid: false,
+          message: `Complete Selection`,
+        };
+      }
+    }
+    return { valid: true };
+  };
+
+  // Build selected modifiers for cart
+  const buildSelectedModifiers = (): SelectedModifierItem[] => {
+    if (!product?.modifierGroups) return [];
+
+    const result: SelectedModifierItem[] = [];
+    for (const group of product.modifierGroups) {
+      const gid = group._id || group.name;
+      const sel = modifierSelection[gid]?.selected;
+      if (!sel || sel.size === 0) continue;
+
+      const selectedItems: SelectedModifierItem['selectedItems'][number][] = [];
+      for (const { item, qty } of sel.values()) {
+        const name =
+          item.label ??
+          (typeof item.product === 'object' && item.product !== null && 'name' in item.product
+            ? (item.product as any).name
+            : String(item.product));
+        const price =
+          item.price ??
+          (typeof item.product === 'object' && item.product !== null && 'price' in item.product
+            ? (item.product as any).price ?? 0
+            : 0);
+        selectedItems.push({ name: name || '', price, quantity: qty });
+      }
+
+      result.push({
+        modifierGroupName: group.name,
+        selectedItems,
+      });
+    }
+    return result;
+  };
+
+  const getCtaState = () => {
+    if (!hasBranch) return { label: 'Select a Branch', style: 'bg-gray-900', disabled: true };
+    if (isOutOfStock) return { label: 'Out of Stock', style: 'bg-gray-200', disabled: true };
+    if (isStoreClosed) return { label: 'Store is Closed', style: 'bg-gray-200', disabled: true };
+
+    const validation = getModifierValidationState();
+    if (!validation.valid) {
+      return {
+        label: validation.message || 'Complete selection',
+        style: 'bg-gray-400',
+        disabled: true,
+      };
+    }
+
+    const priceStr = totalPrice.toLocaleString('en-PH');
+    return {
+      label: `Add to Cart · ₱${priceStr}`,
+      style: isAdded ? 'bg-orange-200' : 'bg-orange-600',
+    };
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const validation = getModifierValidationState();
+    if (!validation.valid) {
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(validation.message || 'Please complete your selection', ToastAndroid.SHORT);
+      }
+      return;
+    }
+
+    const selectedModifiers = buildSelectedModifiers();
+
+    addToCart({
+      _id: product._id,
+      name: product.name,
+      price: unitPrice,
+      image: product.image.url,
+      category: {
+        _id: product.category._id,
+        name: product.category.name,
+      },
+      quantity: quantity,
+      selectedModifiers: selectedModifiers.length > 0 ? selectedModifiers : undefined,
+      includedItems: product.includedItems && product.includedItems.length > 0 ? product.includedItems : undefined,
+    });
+
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 1500);
+
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('Added to cart', ToastAndroid.SHORT);
+    }
+  };
 
   const closeWithSwipe = () => {
     Animated.parallel([
@@ -137,53 +577,6 @@ export default function ProductDetailsPage() {
     );
   }
 
-  const formattedPrice =
-    product.price != null ? `₱${product.price.toLocaleString('en-PH')}` : 'Price unavailable';
-
-  const totalPrice =
-    product.price != null ? `₱${(product.price * quantity).toLocaleString('en-PH')}` : '—';
-
-  const productStocks = hasBranch ? (product.quantity ?? 0) : null;
-  const status = hasBranch ? (product.status ?? '') : '';
-
-  const isOutOfStock =
-    hasBranch && (status === STOCK_STATUSES.OUT_OF_STOCK || (productStocks ?? 0) <= 0);
-
-  const isLowStock = hasBranch && status === STOCK_STATUSES.LOW_STOCK;
-
-  const getCtaState = () => {
-    if (!hasBranch) return { label: 'Select a Branch', style: 'bg-gray-900', disabled: true };
-    if (isOutOfStock) return { label: 'Out of Stock', style: 'bg-gray-200', disabled: true };
-    if (isStoreClosed) return { label: 'Store is Closed', style: 'bg-gray-200', disabled: true };
-    return {
-      label: `Add to Cart · ${totalPrice}`,
-      style: isAdded ? 'bg-orange-200' : 'bg-orange-600',
-    };
-  };
-
-  const handleAddToCart = () => {
-    addToCart({
-      _id: product._id,
-      name: product.name,
-      price: product.price ?? 0,
-      image: product.image.url,
-      category: {
-        _id: product.category._id,
-        name: product.category.name,
-      },
-      quantity: quantity,
-    });
-
-    setIsAdded(true);
-    setTimeout(() => {
-      setIsAdded(false);
-    }, 1500);
-
-    if (Platform.OS === 'android') {
-      ToastAndroid.show('Added to cart', ToastAndroid.SHORT);
-    }
-  };
-
   return (
     <View className="flex-1 bg-white">
       <Animated.ScrollView
@@ -244,7 +637,7 @@ export default function ProductDetailsPage() {
           style={[styles.sheet, { opacity: fadeAnim, transform: [{ translateY: sheetAnim }] }]}>
           {/* Drag handle */}
           <View className="mb-5 h-1 w-9 self-center rounded-full bg-gray-200" />
-          
+
           {/** Branch selector */}
           <BranchSelector className="mt-0 px-1 py-4" />
 
@@ -294,7 +687,7 @@ export default function ProductDetailsPage() {
           </Text>
 
           {/* Included Items */}
-          {product.includedItems.length > 0 && (
+          {product.includedItems && product.includedItems.length > 0 && (
             <>
               <View className="my-4 h-px bg-gray-100" />
               <View className="mb-2.5 flex-row items-center gap-1.5">
@@ -302,11 +695,21 @@ export default function ProductDetailsPage() {
                 <Text className="text-sm font-semibold text-gray-900">What's Included</Text>
               </View>
               <View className="gap-2">
-                {product.includedItems.map((item, idx) => (
+                {product.includedItems.map((item: IncludedItem, idx: number) => (
                   <IncludedItemCard key={item._id ?? idx} item={item} />
                 ))}
               </View>
             </>
+          )}
+
+          {/* Modifier Selection */}
+          {hasModifiers && product.modifierGroups && (
+            <ModifierSection
+              groups={product.modifierGroups}
+              selection={modifierSelection}
+              onToggle={handleModifierToggle}
+              onQtyChange={handleModifierQtyChange}
+            />
           )}
 
           <View className="h-24" />
@@ -315,7 +718,7 @@ export default function ProductDetailsPage() {
 
       {/* ── Bottom CTA ── */}
       <View
-        style={{ paddingBottom: insets.bottom + 12 }}
+        style={{ paddingBottom: Math.max(insets.bottom, 48) + 12 }}
         className="absolute bottom-0 left-0 right-0 flex-row items-center gap-3 border-t border-gray-100 bg-white px-5 pt-3">
         <QuantityStepper
           value={quantity}

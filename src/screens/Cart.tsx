@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import {
   FlatList,
   Image,
@@ -11,7 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
-import { CartItem } from '@/types/menu-types';
+import { CartItem, SelectedModifierItem } from '@/types/menu-types';
+import { IncludedItem } from '@/types/products.type';
 import { Utensils } from 'lucide-react-native';
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -33,6 +35,115 @@ function EmptyCart() {
         className="mt-2 rounded-2xl bg-orange-600 px-6 py-3">
         <Text className="text-sm font-semibold text-white">Browse Menu</Text>
       </TouchableOpacity>
+    </View>
+  );
+}
+
+// ─── Modifier Details ─────────────────────────────────────────────────────────
+
+function ModifierDetails({ modifiers }: { modifiers: SelectedModifierItem[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!modifiers || modifiers.length === 0) return null;
+
+  const totalModifierPrice = modifiers.reduce((sum, group) => {
+    return sum + group.selectedItems.reduce((gSum, item) => gSum + item.price * item.quantity, 0);
+  }, 0);
+
+  return (
+    <View className="mt-2 rounded-lg border border-orange-100 bg-orange-50/50">
+      <TouchableOpacity
+        onPress={() => setExpanded(!expanded)}
+        className="flex-row items-center justify-between px-3 py-2">
+        <View className="flex-row items-center gap-1.5">
+          <Ionicons name="layers-outline" size={14} color="#e13e00" />
+          <Text className="text-xs font-medium text-orange-700">
+            Customizations ({modifiers.length})
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-1">
+          {totalModifierPrice > 0 && (
+            <Text className="text-xs text-orange-600">+₱{totalModifierPrice.toLocaleString('en-PH')}</Text>
+          )}
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={14}
+            color="#e13e00"
+          />
+        </View>
+      </TouchableOpacity>
+
+      {expanded && (
+        <View className="border-t border-orange-100 px-3 pb-2 pt-1">
+          {modifiers.map((group, idx) => (
+            <View key={idx} className={idx > 0 ? 'mt-2 pt-2 border-t border-orange-100' : ''}>
+              <Text className="mb-1 text-xs font-semibold text-gray-700">{group.modifierGroupName}</Text>
+              {group.selectedItems.map((item, iIdx) => (
+                <View key={iIdx} className="flex-row justify-between py-0.5">
+                  <Text className="text-xs text-gray-600">
+                    {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
+                  </Text>
+                  {item.price > 0 && (
+                    <Text className="text-xs text-gray-500">
+                      ₱{(item.price * item.quantity).toLocaleString('en-PH')}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── Included Items Details ───────────────────────────────────────────────────
+
+function IncludedItemsDetails({ items }: { items: IncludedItem[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <View className="mt-2 rounded-lg border border-green-100 bg-green-50/50">
+      <TouchableOpacity
+        onPress={() => setExpanded(!expanded)}
+        className="flex-row items-center justify-between px-3 py-2">
+        <View className="flex-row items-center gap-1.5">
+          <Ionicons name="gift-outline" size={14} color="#16a34a" />
+          <Text className="text-xs font-medium text-green-700">
+            What's Included ({items.length})
+          </Text>
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={14}
+          color="#16a34a"
+        />
+      </TouchableOpacity>
+
+      {expanded && (
+        <View className="border-t border-green-100 px-3 pb-2 pt-1">
+          {items.map((item, idx) => {
+            const productName = typeof item.product === 'object' && item.product !== null
+              ? item.product.name
+              : String(item.product);
+            const qty = item.quantity ?? 1;
+
+            return (
+              <View
+                key={item._id ?? idx}
+                className="flex-row items-center justify-between py-1">
+                <Text className="text-xs text-gray-700">
+                  {productName}{qty > 1 ? ` ×${qty}` : ''}
+                </Text>
+                <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
+              </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -69,6 +180,16 @@ function CartItemCard({ item }: { item: CartItem }) {
 
         {/* Unit price */}
         <Text className="text-xs text-gray-400">{unitPrice} each</Text>
+
+        {/* Modifier details */}
+        {item.selectedModifiers && item.selectedModifiers.length > 0 && (
+          <ModifierDetails modifiers={item.selectedModifiers} />
+        )}
+
+        {/* Included items */}
+        {item.includedItems && item.includedItems.length > 0 && (
+          <IncludedItemsDetails items={item.includedItems} />
+        )}
 
         {/* Bottom row: stepper + subtotal */}
         <View className="mt-1 flex-row items-center justify-between">
@@ -172,7 +293,7 @@ export default function CartScreen() {
         <FlatList
           data={cartItems}
           keyExtractor={(item) => String(item._id)}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 100 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: Math.max(insets.bottom, 48) + 100 }}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={<OrderSummary />}
           ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
@@ -183,7 +304,7 @@ export default function CartScreen() {
       {/* ── Place Order CTA ── */}
       {!isEmpty && (
         <View
-          style={{ paddingBottom: insets.bottom + 12 }}
+          style={{ paddingBottom: Math.max(insets.bottom, 48) + 12 }}
           className="absolute bottom-0 left-0 right-0 border-t border-gray-100 bg-white px-5 pt-3">
           <TouchableOpacity
             onPress={() => router.push('/checkout')}

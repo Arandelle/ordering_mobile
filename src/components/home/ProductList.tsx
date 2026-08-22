@@ -1,4 +1,4 @@
-import { Heart, ShoppingCart } from 'lucide-react-native';
+import { Heart, ShoppingCart, Plus } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -89,6 +89,9 @@ const ProductCard = React.memo(
       router.push(`/product/${item._id}`);
     };
 
+    const hasModifiers =
+      Array.isArray(item.modifierGroups) && item.modifierGroups.length > 0;
+
     const handleQuickAdd = () => {
       if (!hasBranch) {
         Alert.alert('Select a branch', 'Please choose a branch before adding items to your cart.');
@@ -96,6 +99,12 @@ const ProductCard = React.memo(
       }
 
       if (isBlocked) return;
+
+      // If product has modifiers, navigate to detail page for customization
+      if (hasModifiers) {
+        router.push(`/product/${item._id}`);
+        return;
+      }
 
       addToCart({
         _id: item._id,
@@ -182,7 +191,11 @@ const ProductCard = React.memo(
             className={`absolute bottom-3 right-3 h-8 w-8 items-center justify-center rounded-full shadow-md ${
               isAdded ? 'bg-orange-200' : !hasBranch || isBlocked ? 'bg-gray-200' : 'bg-[#e13e00]'
             }`}>
-            <ShoppingCart size={16} color={!hasBranch || isBlocked ? '#9ca3af' : '#fff'} />
+            {hasModifiers ? (
+              <Plus size={16} color={!hasBranch || isBlocked ? '#9ca3af' : '#fff'} />
+            ) : (
+              <ShoppingCart size={16} color={!hasBranch || isBlocked ? '#9ca3af' : '#fff'} />
+            )}
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

@@ -2,6 +2,7 @@ import { useCart } from '@/context/CartContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Text, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
 
 const ACTIVE_COLOR = '#e13e00';
@@ -9,6 +10,7 @@ const INACTIVE_COLOR = '#888';
 
 export default function TabLayout() {
   const { cartItems, totalItems, clearCart } = useCart();
+  const insets = useSafeAreaInsets();
 
   const { data: orderSummary } = useCustomerOrderSummary();
 
@@ -29,9 +31,8 @@ export default function TabLayout() {
           marginBottom: 2,
         },
         tabBarStyle: {
-          height: 62,
+          paddingBottom: 8 + Math.max(insets.bottom, 8),
           paddingTop: 6,
-          paddingBottom: 8,
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#f0f0f0',
