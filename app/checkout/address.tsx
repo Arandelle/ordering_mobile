@@ -1,3 +1,3 @@
-import AddressDetails from '@/screens/checkout/AddressDetails';
+import AddressDetails from '../../src/screens/checkout/AddressDetails';
 
 export default AddressDetails;

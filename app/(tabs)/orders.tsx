@@ -1,2 +1,2 @@
-import Orders from '@/screens/orders/Orders';
+import Orders from '../../src/screens/orders/Orders';
 export default Orders;
