@@ -5,7 +5,7 @@
     "scheme": "harrison",
     "version": "1.0.0",
     "web": {
-      "favicon": "./assets/images/harrison_logo.png",
+      "favicon": "./assets/images/harrison_square.jpg",
       "bundler": "metro"
     },
     "experiments": {
@@ -17,7 +17,7 @@
       "expo-web-browser"
     ],
     "orientation": "portrait",
-    "icon": "./assets/images/harrison_logo.png",
+    "icon": "./assets/images/harrison_square.jpg",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
