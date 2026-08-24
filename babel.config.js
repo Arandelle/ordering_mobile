@@ -7,13 +7,14 @@ module.exports = function (api) {
     ],
     plugins: [
       [
-        "module-resolver", {
-          root: ['./src'],
+        "module-resolver",
+        {
+          root: ["./src"],
           alias: {
-            "@" : "./src"
-          }
-        }
-      ]
-    ]
+            "@": "./src",
+          },
+        },
+      ],
+    ],
   };
 };
