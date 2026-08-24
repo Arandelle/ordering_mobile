@@ -2,7 +2,7 @@
   "expo": {
     "name": "Harrison - House of Inasal & BBQ",
     "slug": "harrison-inasal",
-    "scheme" : "harrison",
+    "scheme": "harrison",
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/images/harrison_logo.png",
@@ -32,6 +32,13 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "package": "com.harrisoninasal.harrisoninasal"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7d12b52b-83f9-4fcc-86f4-606c5b416ae8"
       }
     }
   }
