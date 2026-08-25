@@ -1,13 +1,7 @@
 import { Banknote, ChevronRight, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import {
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useBranchContext } from '@/context/BranchContext';
 import { useCart } from '@/context/CartContext';
 import { BranchSelector } from '@/components/home/BranchSelector';
@@ -35,24 +29,16 @@ function display(value?: string) {
 function formatAddress(address?: CheckoutAddressDetails) {
   if (!address) return 'Address not provided';
 
-  const streetAddress = [
-    address.line1,
-    address.line2,
-    address.city,
-    address.province,
-  ]
+  const streetAddress = [address.line1, address.line2, address.city, address.province]
     .filter((part) => part?.trim())
     .join(' ');
 
-  const postalAddress = [address.zipCode, address.country]
-    .filter((part) => part?.trim())
-    .join(' ');
+  const postalAddress = [address.zipCode, address.country].filter((part) => part?.trim()).join(' ');
 
   return [streetAddress, postalAddress].filter(Boolean).join(', ');
 }
 
 function toSubmitAddress(address: CheckoutAddressDetails): CreateOrderPayload['shippingAddress'] {
-
   return {
     line1: address.line1,
     line2: address.line2,
@@ -162,7 +148,10 @@ const ReviewOrder = () => {
 
       if (paymentMethod === 'maya') {
         if (!response.redirectUrl) {
-          Alert.alert('Payment link missing', 'Order was created but no Maya payment link was returned.');
+          Alert.alert(
+            'Payment link missing',
+            'Order was created but no Maya payment link was returned.'
+          );
           return;
         }
 
@@ -194,13 +183,17 @@ const ReviewOrder = () => {
       <CheckoutStepper currentStep={3} />
 
       <Text className="mb-1 text-xl font-bold text-gray-950">Review Order</Text>
-      <Text className="mb-5 text-[13px] text-gray-500">Confirm your details before submitting.</Text>
+      <Text className="mb-5 text-[13px] text-gray-500">
+        Confirm your details before submitting.
+      </Text>
 
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <Text className="mb-3 text-[15px] font-bold text-gray-950">Pickup branch</Text>
         <BranchSelector className="mt-0 px-0" />
         {!!selectedBranch?.address && (
-          <Text className="mt-2 text-xs leading-4 text-gray-500">{selectedBranch.address}</Text>
+          <Text className="mt-2 text-xs leading-4 text-gray-500">
+            {selectedBranch.address?.city} {selectedBranch.address?.province}
+          </Text>
         )}
       </View>
 
@@ -210,15 +203,11 @@ const ReviewOrder = () => {
         onPress={() => router.push('/checkout')}>
         <View className="mb-2 flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-base font-extrabold text-gray-950">
-              {display(fullName)}
-            </Text>
+            <Text className="text-base font-extrabold text-gray-950">{display(fullName)}</Text>
             <Text className="mt-1 text-sm leading-5 text-gray-600">
               {display(personal?.email)} - {display(personal?.phone)}
             </Text>
-            <Text className="mt-2 text-sm leading-5 text-gray-800">
-              {formatAddress(address)}
-            </Text>
+            <Text className="mt-2 text-sm leading-5 text-gray-800">{formatAddress(address)}</Text>
           </View>
 
           <View className="flex-row items-center gap-1">

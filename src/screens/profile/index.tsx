@@ -111,6 +111,8 @@ export default function Profile() {
       return;
     }
 
+    queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+    queryClient.invalidateQueries({ queryKey: ['order-summary'] });
     router.replace('/');
   };
 
@@ -130,6 +132,8 @@ export default function Profile() {
       return;
     }
 
+    queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+    queryClient.invalidateQueries({ queryKey: ['order-summary'] });
     router.replace('/profile');
   };
 
@@ -140,6 +144,7 @@ export default function Profile() {
     queryClient.removeQueries({ queryKey: ['orders-infinite'] });
     queryClient.removeQueries({ queryKey: ['order-detail'] });
     queryClient.removeQueries({ queryKey: ['user_address'] });
+    queryClient.removeQueries({ queryKey: ['user_address', 'my_address'] });
     setLoadingAction(null);
   };
 

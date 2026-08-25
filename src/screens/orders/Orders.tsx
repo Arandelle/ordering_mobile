@@ -325,7 +325,8 @@ export default function Orders() {
 
   const activeQuery = isAuthenticated ? customerOrders : guestOrders;
   const orders = useMemo(() => {
-    return activeQuery.data?.pages.flatMap((page) => page.data) ?? [];
+    const result = activeQuery.data?.pages.flatMap((page) => page.data) ?? [];
+    return result;
   }, [activeQuery.data?.pages]);
 
   const handleSearch = () => {
