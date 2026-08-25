@@ -1,15 +1,34 @@
 import { APP_URL } from '@/constant';
 import * as SecureStore from 'expo-secure-store';
-import { authClient } from './auth-client';
 
 type ApiError = {
   message: string;
   details?: any;
 };
 
+const STORAGE_PREFIX = 'harrison-auth';
+
+async function getCookieHeader(): Promise<string | null> {
+  try {
+    const stored = await SecureStore.getItemAsync(`${STORAGE_PREFIX}_cookie`);
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored) as Record<string, { value: string; expires: string | null }>;
+
+    const cookieHeader = Object.entries(parsed)
+      .filter(([, v]) => !v.expires || new Date(v.expires) > new Date())
+      .map(([k, v]) => `${k}=${v.value}`)
+      .join('; ');
+
+    return cookieHeader || null;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers);
-  const cookie = authClient.getCookie();
+  const cookie = await getCookieHeader();
 
   if (options?.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
