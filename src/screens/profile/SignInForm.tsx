@@ -1,3 +1,4 @@
+import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import { Chrome, LockKeyhole, Mail } from 'lucide-react-native';
 import {
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constant';
 import { LoadingAction } from './types';
 
 interface SignInFormProps {
@@ -126,6 +128,21 @@ export function SignInForm({
               activeOpacity={0.8}
               onPress={() => router.push('/auth/create-account')}>
               <Text className="text-sm font-bold text-[#e13e00]">Create one</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-6 flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <Text className="text-xs text-gray-400">By continuing, you agree to our</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => WebBrowser.openBrowserAsync(TERMS_OF_USE_URL)}>
+              <Text className="text-xs font-semibold text-[#e13e00]">Terms of Use</Text>
+            </TouchableOpacity>
+            <Text className="text-xs text-gray-400">and</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}>
+              <Text className="text-xs font-semibold text-[#e13e00]">Privacy Policy</Text>
             </TouchableOpacity>
           </View>
         </View>

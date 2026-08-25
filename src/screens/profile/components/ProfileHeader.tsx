@@ -17,7 +17,7 @@ export function ProfileHeader({
   onPickPhoto,
 }: ProfileHeaderProps) {
   return (
-    <View className="items-center">
+    <View className="items-center pb-4">
       <TouchableOpacity
         className="h-24 w-24 overflow-hidden rounded-full bg-orange-50"
         activeOpacity={0.85}

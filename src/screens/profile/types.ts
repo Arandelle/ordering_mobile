@@ -8,6 +8,7 @@ export type LoadingAction =
   | 'profile'
   | 'address'
   | 'password'
+  | 'delete-account'
   | null;
 
 export type EditingSection = 'profile' | 'address' | 'password' | null;

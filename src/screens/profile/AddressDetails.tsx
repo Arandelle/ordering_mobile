@@ -32,7 +32,7 @@ export function AddressDetails({
   onSave,
 }: AddressDetailsProps) {
   return (
-    <View className="mt-7">
+    <View>
       <SectionHeader
         title="Address"
         isEditing={isEditing}
@@ -45,11 +45,11 @@ export function AddressDetails({
           <ActivityIndicator color="#e13e00" />
         </View>
       ) : isEditing ? (
-        <View className="gap-4">
+        <View className="mt-4 gap-4">
           <View>
             <FieldLabel label="Address Line 1" />
             <TextInput
-              className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
               placeholder="House number, street, barangay"
               placeholderTextColor="#b9b9b9"
               value={addressForm.line1}
@@ -64,7 +64,7 @@ export function AddressDetails({
           <View>
             <FieldLabel label="Address Line 2" optional />
             <TextInput
-              className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
               placeholder="Unit, floor, building"
               placeholderTextColor="#b9b9b9"
               value={addressForm.line2}
@@ -77,7 +77,7 @@ export function AddressDetails({
             <View className="flex-1">
               <FieldLabel label="City" />
               <TextInput
-                className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
                 placeholder="Quezon City"
                 placeholderTextColor="#b9b9b9"
                 value={addressForm.city}
@@ -92,7 +92,7 @@ export function AddressDetails({
             <View className="flex-1">
               <FieldLabel label="Province" />
               <TextInput
-                className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
                 placeholder="Metro Manila"
                 placeholderTextColor="#b9b9b9"
                 value={addressForm.province}
@@ -109,7 +109,7 @@ export function AddressDetails({
             <View className="flex-1">
               <FieldLabel label="ZIP Code" optional />
               <TextInput
-                className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
                 placeholder="1100"
                 placeholderTextColor="#b9b9b9"
                 value={addressForm.zipCode}
@@ -121,7 +121,7 @@ export function AddressDetails({
             <View className="flex-1">
               <FieldLabel label="Country" />
               <TextInput
-                className="min-h-12 rounded-2xl border border-gray-200 bg-gray-200 px-3.5 text-sm text-gray-500"
+                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-200 px-3.5 text-sm text-gray-500"
                 placeholder="Philippines"
                 placeholderTextColor="#b9b9b9"
                 value={addressForm.country}
@@ -137,7 +137,7 @@ export function AddressDetails({
           <View>
             <FieldLabel label="Landmark" optional />
             <TextInput
-              className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
               placeholder="Near the main gate"
               placeholderTextColor="#b9b9b9"
               value={addressForm.landmark}
@@ -146,23 +146,34 @@ export function AddressDetails({
             />
           </View>
 
-          <TouchableOpacity
-            className={`flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
-              loadingAction === 'address' ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
-            onPress={onSave}
-            disabled={isBusy}>
-            <Save size={17} color="#fff" />
-            <Text className="text-[15px] font-bold text-white">
-              {loadingAction === 'address' ? 'Saving...' : 'Save Address'}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 items-center rounded-2xl border border-gray-200 py-[15px]"
+              activeOpacity={0.85}
+              onPress={cancelEditing}>
+              <Text className="text-[15px] font-bold text-gray-600">Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
+                loadingAction === 'address' ? 'opacity-[0.65]' : ''
+              }`}
+              activeOpacity={0.85}
+              onPress={onSave}
+              disabled={isBusy}>
+              <Save size={17} color="#fff" />
+              <Text className="text-[15px] font-bold text-white">
+                {loadingAction === 'address' ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
-        <Text className="whitespace-pre-line border-b border-gray-100 py-3 text-sm font-semibold leading-5 text-gray-950">
-          {formatAddress(addressForm)}
-        </Text>
+        <View className="mt-2">
+          <Text className="whitespace-pre-line border-b border-gray-100 py-3 text-sm font-semibold leading-5 text-gray-950">
+            {formatAddress(addressForm)}
+          </Text>
+        </View>
       )}
     </View>
   );

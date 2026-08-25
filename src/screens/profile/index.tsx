@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   emptyAddressDetails
 } from '@/hooks/useCheckout';
+import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
 import { AddressDetails } from './AddressDetails';
@@ -146,6 +147,38 @@ export default function Profile() {
     queryClient.removeQueries({ queryKey: ['user_address'] });
     queryClient.removeQueries({ queryKey: ['user_address', 'my_address'] });
     setLoadingAction(null);
+  };
+
+  const handleDeleteAccount = async (reason: string) => {
+    setLoadingAction('delete-account');
+    clearMessages();
+
+    try {
+      await apiClient.post('/customer/account/delete', {
+        reason: reason || undefined,
+      });
+
+      await authClient.signOut();
+      queryClient.removeQueries({ queryKey: ['order-summary'] });
+      queryClient.removeQueries({ queryKey: ['orders-infinite'] });
+      queryClient.removeQueries({ queryKey: ['order-detail'] });
+      queryClient.removeQueries({ queryKey: ['user_address'] });
+      queryClient.removeQueries({ queryKey: ['user_address', 'my_address'] });
+
+      setSuccess('Account scheduled for deletion. You will be signed out.');
+
+      setTimeout(() => {
+        router.replace('/');
+      }, 1500);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message || 'Failed to delete account';
+      setError(message);
+    } finally {
+      setLoadingAction(null);
+    }
   };
 
   const startEditing = (section: EditingSection) => {
@@ -329,7 +362,7 @@ export default function Profile() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         className="flex-1 bg-gray-50"
-        contentContainerClassName="px-5 py-6"
+        contentContainerClassName="px-5 py-6 pb-12"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View className="rounded-3xl bg-white p-5 shadow-sm">
@@ -351,7 +384,9 @@ export default function Profile() {
               <Text className="text-sm font-semibold text-green-700">{success}</Text>
             </View>
           )}
+        </View>
 
+        <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
           <ProfileDetails
             user={user}
             profileForm={profileForm}
@@ -363,7 +398,9 @@ export default function Profile() {
             cancelEditing={cancelEditing}
             onSave={handleSaveProfile}
           />
+        </View>
 
+        <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
           <AddressDetails
             addressForm={addressForm}
             addressErrors={addressErrors}
@@ -376,7 +413,9 @@ export default function Profile() {
             onChange={handleAddressChange}
             onSave={handleSaveAddress}
           />
+        </View>
 
+        <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
           <SecurityDetails
             passwordForm={passwordForm}
             isEditing={isPasswordEditing}
@@ -387,21 +426,22 @@ export default function Profile() {
             startEditing={startEditing}
             cancelEditing={cancelEditing}
             onSave={handleChangePassword}
+            onDeleteAccount={handleDeleteAccount}
           />
-
-          <TouchableOpacity
-            className={`mt-7 flex-row items-center justify-center gap-2 rounded-2xl border border-gray-200 py-3.5 ${
-              loadingAction === 'sign-out' ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
-            onPress={handleSignOut}
-            disabled={loadingAction === 'sign-out'}>
-            <LogOut size={17} color={BRAND} />
-            <Text className="text-sm font-bold text-[#e13e00]">
-              {loadingAction === 'sign-out' ? 'Signing out...' : 'Sign out'}
-            </Text>
-          </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          className={`mt-8 flex-row items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-3.5 shadow-sm ${
+            loadingAction === 'sign-out' ? 'opacity-[0.65]' : ''
+          }`}
+          activeOpacity={0.85}
+          onPress={handleSignOut}
+          disabled={loadingAction === 'sign-out'}>
+          <LogOut size={17} color={BRAND} />
+          <Text className="text-sm font-bold text-[#e13e00]">
+            {loadingAction === 'sign-out' ? 'Signing out...' : 'Sign out'}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -30,7 +30,7 @@ export function ProfileDetails({
   onSave,
 }: ProfileDetailsProps) {
   return (
-    <View className="mt-6">
+    <View>
       <SectionHeader
         title="Profile"
         isEditing={isEditing}
@@ -39,11 +39,11 @@ export function ProfileDetails({
       />
 
       {isEditing ? (
-        <View className="gap-4">
+        <View className="mt-4 gap-4">
           <View>
             <FieldLabel label="First Name" optional />
             <TextInput
-              className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
               placeholder="Juan"
               placeholderTextColor="#b9b9b9"
               value={profileForm.firstName}
@@ -55,7 +55,7 @@ export function ProfileDetails({
           <View>
             <FieldLabel label="Last Name" optional />
             <TextInput
-              className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
+              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
               placeholder="Dela Cruz"
               placeholderTextColor="#b9b9b9"
               value={profileForm.lastName}
@@ -66,7 +66,7 @@ export function ProfileDetails({
 
           <View>
             <FieldLabel label="Phone" optional />
-            <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
+            <View className="mt-1.5 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
               <Phone size={17} color="#9ca3af" />
               <TextInput
                 className="min-h-12 flex-1 px-3 text-sm text-gray-950"
@@ -79,21 +79,30 @@ export function ProfileDetails({
             </View>
           </View>
 
-          <TouchableOpacity
-            className={`flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
-              loadingAction === 'profile' ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
-            onPress={onSave}
-            disabled={isBusy}>
-            <Save size={17} color="#fff" />
-            <Text className="text-[15px] font-bold text-white">
-              {loadingAction === 'profile' ? 'Saving...' : 'Save Profile'}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 items-center rounded-2xl border border-gray-200 py-[15px]"
+              activeOpacity={0.85}
+              onPress={cancelEditing}>
+              <Text className="text-[15px] font-bold text-gray-600">Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
+                loadingAction === 'profile' ? 'opacity-[0.65]' : ''
+              }`}
+              activeOpacity={0.85}
+              onPress={onSave}
+              disabled={isBusy}>
+              <Save size={17} color="#fff" />
+              <Text className="text-[15px] font-bold text-white">
+                {loadingAction === 'profile' ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
-        <View>
+        <View className="mt-2">
           <InfoRow label="First Name" value={user.firstName} />
           <InfoRow label="Last Name" value={user.lastName} />
           <InfoRow label="Phone" value={user.phone ?? user.phoneNumber} />
