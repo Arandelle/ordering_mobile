@@ -5,7 +5,7 @@
     "scheme": "harrison",
     "version": "1.0.0",
     "web": {
-      "favicon": "./assets/images/harrison_square.png",
+      "favicon": "./assets/images/harrison_logo.png",
       "bundler": "metro"
     },
     "experiments": {
@@ -17,25 +17,27 @@
       "expo-web-browser"
     ],
     "orientation": "portrait",
-    "icon": "./assets/images/harrison_square.png",
+    "icon": "./assets/images/harrison_logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/harrison_splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ef4501"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.harrisoninasal.harrisoninasal"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/harrison_logo.png",
+        "backgroundColor": "#ef4501"
       },
-      "package": "com.harrisoninasal.harrisoninasal"
+      "package": "com.harrisoninasal.harrisoninasal",
+      "versionCode" : 1
     },
     "extra": {
       "router": {},
