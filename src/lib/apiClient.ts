@@ -38,14 +38,41 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     headers.set('cookie', cookie);
   }
 
-  const response = await fetch(APP_URL + '/api' + url, {
-    ...options,
-    headers,
-  });
+  const fullUrl = APP_URL + '/api' + url;
+  console.log('[apiClient] →', fullUrl);
 
-  const data = await response.json().catch(() => null);
+  let response;
+  try {
+    response = await fetch(fullUrl, {
+      ...options,
+      headers,
+    });
+  } catch (err: any) {
+    console.error('[apiClient] Network error:', err?.message ?? err);
+    console.error('[apiClient] URL:', fullUrl);
+    throw {
+      message: 'Network error — is the backend running?',
+      details: { url: fullUrl, error: err?.message },
+    } as ApiError;
+  }
+
+  console.log('[apiClient] ←', response.status, response.statusText);
+
+  let data: any;
+  try {
+    const raw = await response.text();
+    console.log('[apiClient] Response body (first 500 chars):', raw.slice(0, 500));
+    data = JSON.parse(raw);
+  } catch (err: any) {
+    console.error('[apiClient] JSON parse error:', err?.message ?? err);
+    throw {
+      message: 'Invalid JSON from server',
+      details: { url: fullUrl, status: response.status },
+    } as ApiError;
+  }
 
   if (!response.ok) {
+    console.error('[apiClient] HTTP error:', response.status, data?.error ?? data);
     throw {
       message: data?.error || 'Request failed',
       details: data,

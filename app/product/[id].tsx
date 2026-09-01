@@ -29,7 +29,7 @@ import { StockBadge } from '@/components/home/StockBadge';
 import { StoreClosedOverlay } from '@/components/home/StoreClosedOverLay';
 import { BranchSelector } from '@/components/home/BranchSelector';
 import { ModifierGroup, ModifierItem, IncludedItem } from '@/types/products.type';
-import { SelectedModifierItem } from '@/types/menu-types';
+import { ModifierSelection, ModifierSelectionItem } from '@/types/menu-types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_BORDER_RADIUS = 28;
@@ -323,8 +323,10 @@ export default function ProductDetailsPage() {
             return String(miProductId ?? '') === itemId;
           });
           if (modItem) {
-            // Prevent selecting more than maxSelect
-            if (modGroup && modGroup.maxSelect > 0 && newSelected.size >= modGroup.maxSelect) {
+            // For single-select groups (maxSelect === 1), replace the existing selection
+            if (modGroup && modGroup.maxSelect === 1) {
+              newSelected.clear();
+            } else if (modGroup && modGroup.maxSelect > 0 && newSelected.size >= modGroup.maxSelect) {
               if (Platform.OS === 'android') {
                 ToastAndroid.show(
                   `Maximum ${modGroup.maxSelect} item(s) allowed for "${modGroup.name}"`,
@@ -414,33 +416,49 @@ export default function ProductDetailsPage() {
   };
 
   // Build selected modifiers for cart
-  const buildSelectedModifiers = (): SelectedModifierItem[] => {
+  const buildSelectedModifiers = (): ModifierSelection[] => {
     if (!product?.modifierGroups) return [];
 
-    const result: SelectedModifierItem[] = [];
+    const result: ModifierSelection[] = [];
     for (const group of product.modifierGroups) {
       const gid = group._id || group.name;
       const sel = modifierSelection[gid]?.selected;
       if (!sel || sel.size === 0) continue;
 
-      const selectedItems: SelectedModifierItem['selectedItems'][number][] = [];
+      const items: ModifierSelectionItem[] = [];
       for (const { item, qty } of sel.values()) {
+        const productId = typeof item.product === 'object' && item.product !== null
+          ? (item.product as any)._id
+          : String(item.product);
         const name =
           item.label ??
           (typeof item.product === 'object' && item.product !== null && 'name' in item.product
             ? (item.product as any).name
             : String(item.product));
-        const price =
+        const upgradePrice =
           item.price ??
           (typeof item.product === 'object' && item.product !== null && 'price' in item.product
             ? (item.product as any).price ?? 0
             : 0);
-        selectedItems.push({ name: name || '', price, quantity: qty });
+        items.push({
+          productId: productId || '',
+          name: name || '',
+          label: item.label ?? null,
+          upgradePrice,
+          quantity: qty,
+        });
       }
 
       result.push({
-        modifierGroupName: group.name,
-        selectedItems,
+        groupId: gid,
+        groupName: group.name,
+        isMain: group.isMain ?? false,
+        linkedToGroupId: group.linkedToGroupId ?? null,
+        required: group.required ?? false,
+        minSelect: group.minSelect,
+        maxSelect: group.maxSelect,
+        maxQty: group.maxQty,
+        items,
       });
     }
     return result;
@@ -477,7 +495,7 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    const selectedModifiers = buildSelectedModifiers();
+    const modifierSelections = buildSelectedModifiers();
 
     addToCart({
       _id: product._id,
@@ -489,7 +507,7 @@ export default function ProductDetailsPage() {
         name: product.category.name,
       },
       quantity: quantity,
-      selectedModifiers: selectedModifiers.length > 0 ? selectedModifiers : undefined,
+      modifierSelections: modifierSelections.length > 0 ? modifierSelections : undefined,
       includedItems: product.includedItems && product.includedItems.length > 0 ? product.includedItems : undefined,
     });
 

@@ -27,7 +27,7 @@ import { getErrorMessage } from './helper/getErrorMessage';
 import { getStatusClasses } from './helper/getStatusClasses';
 import { formatMoney } from './helper/formatMoney';
 import { useCart } from '@/context/CartContext';
-import { CartItem } from '@/types/menu-types';
+import { CartItem, ModifierSelection } from '@/types/menu-types';
 import { OrderItemImage } from './components/OrderItemImage';
 
 const BRAND = '#e13e00';
@@ -81,32 +81,59 @@ function toCartItem(item: OrderType['items'][number]): CartItem {
     description: item.description,
     image: item.image ?? '',
     quantity: item.quantity,
+    modifierSelections: item.modifierSelections,
   };
+}
+
+function ModifierList({ modifiers }: { modifiers?: ModifierSelection[] }) {
+  if (!modifiers || modifiers.length === 0) return null;
+
+  return (
+    <View className="mt-1.5">
+      {modifiers.map((group, idx) => (
+        <View key={idx} className={idx > 0 ? 'mt-1 pt-1.5 border-t border-gray-100' : ''}>
+          <Text className="text-[11px] font-semibold text-gray-500">{group.groupName}</Text>
+          <View className="mt-0.5 flex-row flex-wrap gap-x-2 gap-y-0.5">
+            {group.items.map((item, iIdx) => (
+              <Text key={iIdx} className="text-[11px] text-gray-500">
+                {item.name}{item.quantity > 1 ? ` x${item.quantity}` : ''}
+                {item.upgradePrice > 0 ? ` (+₱${(item.upgradePrice * item.quantity).toLocaleString('en-PH')})` : ''}
+              </Text>
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 function OrderItemRow({ item }: { item: OrderType['items'][number] }) {
   return (
     <View className="flex-row gap-3 rounded-xl p-2">
-      <View className="h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+      <View className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
         <OrderItemImage image={item.image} name={item.name} />
       </View>
 
-      <View className="min-w-0 flex-1 flex-row justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <Text className="text-sm font-bold leading-5 text-gray-900" numberOfLines={2}>
-            {item.name}
-          </Text>
-          {!!item.description && (
-            <Text className="mt-0.5 text-xs leading-4 text-gray-500" numberOfLines={1}>
-              {item.description}
+      <View className="min-w-0 flex-1">
+        <View className="flex-row justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-sm font-bold leading-5 text-gray-900" numberOfLines={2}>
+              {item.name}
             </Text>
-          )}
+            {!!item.description && (
+              <Text className="mt-0.5 text-xs leading-4 text-gray-500" numberOfLines={1}>
+                {item.description}
+              </Text>
+            )}
+          </View>
+
+          <View className="shrink-0 items-end">
+            <Text className="text-sm font-extrabold text-gray-950">{formatMoney(item.price)}</Text>
+            <Text className="mt-1 text-xs font-semibold text-gray-500">x{item.quantity}</Text>
+          </View>
         </View>
 
-        <View className="items-end">
-          <Text className="text-sm font-extrabold text-gray-950">{formatMoney(item.price)}</Text>
-          <Text className="mt-1 text-xs font-semibold text-gray-500">x{item.quantity}</Text>
-        </View>
+        <ModifierList modifiers={item.modifierSelections} />
       </View>
     </View>
   );

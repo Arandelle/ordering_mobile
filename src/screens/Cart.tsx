@@ -4,7 +4,9 @@ import { useState } from 'react';
 import {
   FlatList,
   Image,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,9 +14,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
-import { CartItem, SelectedModifierItem } from '@/types/menu-types';
+import { CartItem, ModifierSelection } from '@/types/menu-types';
 import { IncludedItem } from '@/types/products.type';
-import { Utensils } from 'lucide-react-native';
+import { Utensils, X } from 'lucide-react-native';
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
@@ -39,112 +41,195 @@ function EmptyCart() {
   );
 }
 
-// ─── Modifier Details ─────────────────────────────────────────────────────────
+// ─── Modifier Details Modal ───────────────────────────────────────────────────
 
-function ModifierDetails({ modifiers }: { modifiers: SelectedModifierItem[] }) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!modifiers || modifiers.length === 0) return null;
-
+function ModifierDetailsModal({
+  visible,
+  modifiers,
+  onClose,
+}: {
+  visible: boolean;
+  modifiers: ModifierSelection[];
+  onClose: () => void;
+}) {
   const totalModifierPrice = modifiers.reduce((sum, group) => {
-    return sum + group.selectedItems.reduce((gSum, item) => gSum + item.price * item.quantity, 0);
+    return sum + group.items.reduce((gSum, item) => gSum + item.upgradePrice * item.quantity, 0);
   }, 0);
 
   return (
-    <View className="mt-2 rounded-lg border border-orange-100 bg-orange-50/50">
-      <TouchableOpacity
-        onPress={() => setExpanded(!expanded)}
-        className="flex-row items-center justify-between px-3 py-2">
-        <View className="flex-row items-center gap-1.5">
-          <Ionicons name="layers-outline" size={14} color="#e13e00" />
-          <Text className="text-xs font-medium text-orange-700">
-            Customizations ({modifiers.length})
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-1">
-          {totalModifierPrice > 0 && (
-            <Text className="text-xs text-orange-600">+₱{totalModifierPrice.toLocaleString('en-PH')}</Text>
-          )}
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={14}
-            color="#e13e00"
-          />
-        </View>
-      </TouchableOpacity>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}>
+      <View className="flex-1 bg-black/50 justify-end">
+        <View className="max-h-[80%] rounded-t-3xl bg-white">
+          {/* Header */}
+          <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-4">
+            <Text className="text-base font-bold text-gray-900">Customizations</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              className="h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+              <X size={16} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
 
-      {expanded && (
-        <View className="border-t border-orange-100 px-3 pb-2 pt-1">
-          {modifiers.map((group, idx) => (
-            <View key={idx} className={idx > 0 ? 'mt-2 pt-2 border-t border-orange-100' : ''}>
-              <Text className="mb-1 text-xs font-semibold text-gray-700">{group.modifierGroupName}</Text>
-              {group.selectedItems.map((item, iIdx) => (
-                <View key={iIdx} className="flex-row justify-between py-0.5">
-                  <Text className="text-xs text-gray-600">
-                    {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
-                  </Text>
-                  {item.price > 0 && (
-                    <Text className="text-xs text-gray-500">
-                      ₱{(item.price * item.quantity).toLocaleString('en-PH')}
-                    </Text>
+          <ScrollView className="px-5 py-4">
+            {modifiers.map((group, idx) => (
+              <View
+                key={idx}
+                className={idx > 0 ? 'mt-4 border-t border-gray-100 pt-4' : ''}>
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-sm font-bold text-gray-900">{group.groupName}</Text>
+                  {group.required && (
+                    <View className="rounded-full bg-orange-100 px-2 py-0.5">
+                      <Text className="text-[10px] font-semibold text-orange-600">Required</Text>
+                    </View>
                   )}
                 </View>
-              ))}
-            </View>
-          ))}
+                {group.items.map((item, iIdx) => (
+                  <View key={iIdx} className="flex-row items-center justify-between py-2">
+                    <View className="flex-1 pr-2">
+                      <Text className="text-sm text-gray-700">
+                        {item.name}
+                        {item.quantity > 1 && (
+                          <Text className="text-gray-400"> ×{item.quantity}</Text>
+                        )}
+                      </Text>
+                      {item.label && (
+                        <Text className="mt-0.5 text-xs text-gray-400" numberOfLines={1}>
+                          {item.label}
+                        </Text>
+                      )}
+                    </View>
+                    {item.upgradePrice > 0 && (
+                      <Text className="text-sm font-semibold text-gray-900">
+                        ₱{(item.upgradePrice * item.quantity).toLocaleString('en-PH')}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ))}
+
+            {totalModifierPrice > 0 && (
+              <View className="mt-4 border-t border-gray-100 pt-4">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm font-bold text-gray-900">Extra total</Text>
+                  <Text className="text-sm font-bold text-orange-600">
+                    +₱{totalModifierPrice.toLocaleString('en-PH')}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
         </View>
-      )}
-    </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Modifier Summary Row ─────────────────────────────────────────────────────
+
+function ModifierSummary({
+  modifiers,
+}: {
+  modifiers: ModifierSelection[];
+}) {
+  const [showModal, setShowModal] = useState(false);
+
+  if (!modifiers || modifiers.length === 0) return null;
+
+  const totalItems = modifiers.reduce((sum, g) => sum + g.items.length, 0);
+  const totalModifierPrice = modifiers.reduce((sum, group) => {
+    return sum + group.items.reduce((gSum, item) => gSum + item.upgradePrice * item.quantity, 0);
+  }, 0);
+
+  return (
+    <>
+      <TouchableOpacity
+        onPress={() => setShowModal(true)}
+        className="mt-2 flex-row items-center gap-2 rounded-lg border border-orange-100 bg-orange-50/50 px-3 py-2">
+        <Ionicons name="layers-outline" size={14} color="#e13e00" />
+        <Text className="flex-1 text-xs font-medium text-orange-700">
+          {totalItems} item{totalItems > 1 ? 's' : ''} customized
+        </Text>
+        {totalModifierPrice > 0 && (
+          <Text className="text-xs text-orange-600">+₱{totalModifierPrice.toLocaleString('en-PH')}</Text>
+        )}
+        <Ionicons name="chevron-forward" size={12} color="#e13e00" />
+      </TouchableOpacity>
+
+      <ModifierDetailsModal
+        visible={showModal}
+        modifiers={modifiers}
+        onClose={() => setShowModal(false)}
+      />
+    </>
   );
 }
 
 // ─── Included Items Details ───────────────────────────────────────────────────
 
 function IncludedItemsDetails({ items }: { items: IncludedItem[] }) {
-  const [expanded, setExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   if (!items || items.length === 0) return null;
 
   return (
-    <View className="mt-2 rounded-lg border border-green-100 bg-green-50/50">
+    <>
       <TouchableOpacity
-        onPress={() => setExpanded(!expanded)}
-        className="flex-row items-center justify-between px-3 py-2">
-        <View className="flex-row items-center gap-1.5">
-          <Ionicons name="gift-outline" size={14} color="#16a34a" />
-          <Text className="text-xs font-medium text-green-700">
-            What's Included ({items.length})
-          </Text>
-        </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={14}
-          color="#16a34a"
-        />
+        onPress={() => setShowModal(true)}
+        className="mt-2 flex-row items-center gap-2 rounded-lg border border-green-100 bg-green-50/50 px-3 py-2">
+        <Ionicons name="gift-outline" size={14} color="#16a34a" />
+        <Text className="flex-1 text-xs font-medium text-green-700">
+          {items.length} item{items.length > 1 ? 's' : ''} included
+        </Text>
+        <Ionicons name="chevron-forward" size={12} color="#16a34a" />
       </TouchableOpacity>
 
-      {expanded && (
-        <View className="border-t border-green-100 px-3 pb-2 pt-1">
-          {items.map((item, idx) => {
-            const productName = typeof item.product === 'object' && item.product !== null
-              ? item.product.name
-              : String(item.product);
-            const qty = item.quantity ?? 1;
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}>
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="max-h-[80%] rounded-t-3xl bg-white">
+            <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-4">
+              <Text className="text-base font-bold text-gray-900">What's Included</Text>
+              <TouchableOpacity
+                onPress={() => setShowModal(false)}
+                className="h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                <X size={16} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
 
-            return (
-              <View
-                key={item._id ?? idx}
-                className="flex-row items-center justify-between py-1">
-                <Text className="text-xs text-gray-700">
-                  {productName}{qty > 1 ? ` ×${qty}` : ''}
-                </Text>
-                <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
-              </View>
-            );
-          })}
+            <ScrollView className="px-5 py-4">
+              {items.map((item, idx) => {
+                const productName = typeof item.product === 'object' && item.product !== null
+                  ? item.product.name
+                  : String(item.product);
+                const qty = item.quantity ?? 1;
+
+                return (
+                  <View
+                    key={item._id ?? idx}
+                    className={idx > 0 ? 'mt-2 border-t border-gray-100 pt-2' : ''}>
+                    <View className="flex-row items-center justify-between py-2">
+                      <Text className="flex-1 text-sm text-gray-700">
+                        {productName}
+                        {qty > 1 && <Text className="text-gray-400"> ×{qty}</Text>}
+                      </Text>
+                      <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
-      )}
-    </View>
+      </Modal>
+    </>
   );
 }
 
@@ -182,14 +267,15 @@ function CartItemCard({ item }: { item: CartItem }) {
         <Text className="text-xs text-gray-400">{unitPrice} each</Text>
 
         {/* Modifier details */}
-        {item.selectedModifiers && item.selectedModifiers.length > 0 && (
-          <ModifierDetails modifiers={item.selectedModifiers} />
+        {item.modifierSelections && item.modifierSelections.length > 0 && (
+          <ModifierSummary modifiers={item.modifierSelections} />
         )}
 
         {/* Included items */}
         {item.includedItems && item.includedItems.length > 0 && (
           <IncludedItemsDetails items={item.includedItems} />
         )}
+
 
         {/* Bottom row: stepper + subtotal */}
         <View className="mt-1 flex-row items-center justify-between">

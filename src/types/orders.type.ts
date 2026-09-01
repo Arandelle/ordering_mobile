@@ -1,4 +1,39 @@
-import { OrderStatus } from "./order-constant";
+import { ModifierSelection } from './menu-types';
+
+export const FULFILLMENT_TYPE = {
+  DELIVERY: 'delivery',
+  PICKUP: 'pickup',
+  DINE_IN: 'dine_in',
+} as const;
+
+export type FulfillmentType = (typeof FULFILLMENT_TYPE)[keyof typeof FULFILLMENT_TYPE];
+
+export const ORDER_STATUSES = {
+  PENDING_PAYMENT: 'pending_payment',
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  PREPARING: 'preparing',
+  DISPATCH: 'dispatch',
+  READY_FOR_PICKUP: 'ready_for_pickup',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  FAILED: 'failed',
+  EXPIRED: 'expired',
+} as const;
+
+/**
+ * Type-safe OrderStatus - derived from constants
+ * This ensures TypeScript validation matches actual status values
+ */
+export type OrderStatus = (typeof ORDER_STATUSES)[keyof typeof ORDER_STATUSES];
+
+export const PAYMENT_METHODS = {
+  MAYA: 'maya',
+  COD: 'cod',
+  WALLET: 'wallet',
+} as const;
+
+export type PaymentMethod = (typeof PAYMENT_METHODS)[keyof typeof PAYMENT_METHODS];
 
 /**
  * ORDER TYPES - TypeScript Interfaces
@@ -7,16 +42,38 @@ import { OrderStatus } from "./order-constant";
  * to ensure type consistency across the app
  */
 
-// Add this new interface
+/** Snapshot of a single modifier item within a group, stored on the order */
+export interface OrderModifierSelectionItem {
+  productId: string;
+  name: string;
+  label: string | null;
+  upgradePrice: number;
+  quantity: number;
+}
+
+/** Snapshot of a modifier group selection, stored on the order item */
+export interface OrderModifierSelection {
+  groupId: string;
+  groupName: string;
+  isMain: boolean;
+  linkedToGroupId: string | null;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  maxQty: number;
+  items: OrderModifierSelectionItem[];
+}
+
 export interface OrderItem {
-  productId: string;   // ref to Product — this is what you use for reviews
+  productId: string; // ref to Product — this is what you use for reviews
   name: string;
   price: number;
   description?: string;
   image?: string;
-  category?: string;   // ObjectId as string
+  category?: string; // ObjectId as string
   quantity: number;
-  info?: string
+  /** Modifier group selections for combo/set products — empty for solo items */
+  modifierSelections?: OrderModifierSelection[];
   // no _id — your schema has _id: false
 }
 
@@ -25,6 +82,7 @@ export interface OrderType {
   createdAt: string;
   updatedAt?: string;
   status: OrderStatus;
+  fulfillmentType: FulfillmentType;
 
   branchId?: string;
   customerId?: string;
@@ -34,7 +92,20 @@ export interface OrderType {
     code: string;
     address: string;
     contactNumber: string;
+    location?: {
+      type: 'Point';
+      coordinates: [number, number]; // [longitude, latitude] — GeoJSON order
+    };
   };
+
+  /** Reservation details — only present for dine-in orders */
+  reservation?: {
+    scheduledAt?: string;
+    partySize?: number;
+  };
+
+  /** Declared pickup time — only present for pickup orders */
+  pickupTime?: string;
 
   items: OrderItem[];
   paymentInfo: {
@@ -44,7 +115,7 @@ export interface OrderType {
     paymentStatus: string;
     paidAt?: Date;
 
-    paymentMethod: "cod" | "maya";
+    paymentMethod: PaymentMethod;
 
     method: {
       type: string;
@@ -58,13 +129,16 @@ export interface OrderType {
     customerEmail: string;
     customerPhone: string;
 
-    shippingAddress: {
+    // Computed by API: true only when paymentStatus === PAYMENT_SUCCESS AND paymentId exists
+    paymentConfirmed?: boolean;
+
+    shippingAddress?: {
       line1: string;
       line2?: string;
       city: string;
       province: string;
       postalCode: string;
-      country: "Philippines";
+      country: 'Philippines';
 
       // optional but VERY useful for delivery apps
       landmark?: string;
@@ -79,12 +153,33 @@ export interface OrderType {
     vatableSales: number;
     vatAmount?: number;
     totalAmount: number;
+    subtotalAmount?: number;
+    discountAmount?: number;
+    discountCode?: string;
+    productDiscountAmount?: number;
+    productDiscountPromotions?: {
+      promotionId: string;
+      name: string;
+      productId: string;
+      productName: string;
+      discountAmount: number;
+    }[];
+    orderDiscountAmount?: number;
+    orderDiscountPromotionId?: string;
+    orderDiscountPromotionName?: string;
+    voucherDiscountAmount?: number;
+    deliveryFeeAmount?: number;
+    rawDeliveryFee?: number;
+    deliveryDistanceKm?: number;
+    deliveryBillableKm?: number;
+    freeDeliveryApplied?: boolean;
   };
   estimatedTime: string;
 
   // Additional tracking info
   timeline?: {
     paidAt?: string;
+    confirmedAt?: string;
     preparingAt?: string;
     readyAt?: string;
     completedAt?: string;
@@ -101,6 +196,25 @@ export interface OrderType {
   };
   notes?: string;
 
+  /** Why the order reached a terminal state (cancelled, expired, failed) */
+  terminationDetails?: {
+    reason?: string;
+    notes?: string;
+    changedBy?: string;
+    changedByRole?: 'admin' | 'customer' | 'system';
+    changedAt?: string;
+  };
+
+  /** Refund lifecycle — independent of order status */
+  refund?: {
+    status: 'none' | 'requested' | 'processed';
+    amount: number;
+    reason?: string;
+    notes?: string;
+    processedBy?: string;
+    processedAt?: string;
+  };
+
   isReviewed?: boolean;
   reviewedAt?: string;
 }
@@ -114,7 +228,7 @@ export interface OrdersApiResponse {
     total: number;
     totalPages: number;
     hasNextPage: boolean;
-    hasPrevPage: boolean
+    hasPrevPage: boolean;
   };
   filters: {
     status: string | null;
@@ -134,6 +248,7 @@ export interface OrdersApiResponse {
 
 export interface CreateOrderPayload {
   branchId: string;
+  fulfillmentType?: FulfillmentType;
   firstName: string;
   lastName: string;
   customerEmail: string;
@@ -142,19 +257,40 @@ export interface CreateOrderPayload {
   items: {
     _id: string;
     quantity: number;
+    /** Modifier selections for combo/set products — omitted for solo items */
+    modifierSelections?: ModifierSelection[];
   }[];
 
-  paymentMethod: "cod" | "maya",
+  paymentMethod: PaymentMethod;
+  applyPromoCardDiscount?: boolean;
+  voucherAmount?: number;
+  /** When true, applies the customer's wallet balance toward the order total */
+  useWalletCredit?: boolean;
 
-  shippingAddress: {
+  /** When true, uses Maya QR PH endpoint (direct QR code) instead of the full checkout page */
+  useQrPh?: boolean;
+
+  /** Reservation details — required when fulfillmentType is "dine_in" */
+  reservation?: {
+    scheduledAt: string; // ISO date string
+    partySize: number;
+  };
+
+  /** Declared pickup time — required when fulfillmentType is "pickup" (ISO date string) */
+  pickupTime?: string;
+
+  shippingAddress?: {
     line1: string;
     line2?: string;
     city: string;
+    cityCode?: string;
+    barangayCode?: string;
     province: string;
     zipCode: string;
-    country: "Philippines";
+    country: 'Philippines';
 
     // optional but VERY useful for delivery apps
+    placeName?: string;
     landmark?: string;
     coordinates?: {
       lat: number;
@@ -170,7 +306,7 @@ export interface CreateOrderPayload {
 
 export interface CreateOrderResponse {
   orderId: string;
-  redirectUrl?: string;
+  redirectUrl: string;
   referenceNumber: string;
   status: OrderStatus;
 }
@@ -182,6 +318,10 @@ export interface CreateOrderResponse {
 
 export interface UpdateOrderPayLoad {
   status: OrderStatus;
+  /** Reason for terminal status changes (cancel, expire) */
+  reason?: string;
+  /** Optional free-text notes to accompany the reason */
+  notes?: string;
 }
 
 /**
@@ -213,5 +353,5 @@ export interface OrderStatusUpdate {
  */
 export interface OrderSortOptions {
   byPriority?: boolean; // Use STATUS_PRIORITY
-  byDate?: "asc" | "desc";
+  byDate?: 'asc' | 'desc';
 }

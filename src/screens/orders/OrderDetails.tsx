@@ -9,6 +9,7 @@ import { formatDate } from '@/helper/formateDate';
 import { getErrorMessage } from './helper/getErrorMessage';
 import { getStatusClasses } from './helper/getStatusClasses';
 import { formatMoney } from './helper/formatMoney';
+import { ModifierSelection } from '@/types/menu-types';
 
 const BRAND = '#e13e00';
 
@@ -17,6 +18,31 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <View className="flex-row items-start justify-between gap-4">
       <Text className="flex-1 text-sm text-gray-500">{label}</Text>
       <Text className="flex-1 text-right text-sm font-bold text-gray-900">{value}</Text>
+    </View>
+  );
+}
+
+function ModifierList({ modifiers }: { modifiers?: ModifierSelection[] }) {
+  if (!modifiers || modifiers.length === 0) return null;
+
+  return (
+    <View className="mt-1">
+      {modifiers.map((group, idx) => (
+        <View key={idx} className={idx > 0 ? 'mt-1 border-t border-gray-100 pt-1' : ''}>
+          <Text className="text-[11px] font-semibold text-gray-400">{group.groupName}</Text>
+          <View className="mt-0.5 flex-row flex-wrap gap-x-2 gap-y-0.5">
+            {group.items.map((item, iIdx) => (
+              <Text key={iIdx} className="text-[11px] text-gray-500">
+                {item.name}
+                {item.quantity > 1 ? ` x${item.quantity}` : ''}
+                {item.upgradePrice > 0
+                  ? ` (+₱${(item.upgradePrice * item.quantity).toLocaleString('en-PH')})`
+                  : ''}
+              </Text>
+            ))}
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -31,7 +57,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function OrderDetails() {
-
   const { id } = useLocalSearchParams<{ id?: string }>();
   const orderId = Array.isArray(id) ? id[0] : id;
   const { data: order, isLoading, isError, error, refetch, isRefetching } = useOrder(orderId);
@@ -131,6 +156,7 @@ export default function OrderDetails() {
                   <Text className="mt-1 text-xs text-gray-500">
                     {item.quantity} x {formatMoney(item.price)}
                   </Text>
+                  <ModifierList modifiers={item.modifierSelections} />
                 </View>
                 <Text className="text-sm font-extrabold text-gray-950">
                   {formatMoney(item.price * item.quantity)}
@@ -158,17 +184,18 @@ export default function OrderDetails() {
             <DetailRow label="Phone" value={order.paymentInfo.customerPhone} />
           </View>
         </Section>
-
-        <Section title="Delivery Address">
-          <Text className="text-sm leading-5 text-gray-800">
-            {[address.line1, address.line2, address.city, address.province, address.postalCode]
-              .filter(Boolean)
-              .join(', ')}
-          </Text>
-          {!!address.landmark && (
-            <Text className="mt-2 text-xs text-gray-500">Landmark: {address.landmark}</Text>
-          )}
-        </Section>
+        {address && (
+          <Section title="Delivery Address">
+            <Text className="text-sm leading-5 text-gray-800">
+              {[address.line1, address.line2, address.city, address.province, address.postalCode]
+                .filter(Boolean)
+                .join(', ')}
+            </Text>
+            {!!address.landmark && (
+              <Text className="mt-2 text-xs text-gray-500">Landmark: {address.landmark}</Text>
+            )}
+          </Section>
+        )}
 
         <Section title="Summary">
           <View className="gap-2.5">
