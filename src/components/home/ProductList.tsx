@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Product } from '@/types/products.type';
 import Banner from './Banner';
@@ -159,6 +160,8 @@ const ProductList = ({
   activeCategory,
   setActiveCategory,
 }: ProductListProps) => {
+  const insets = useSafeAreaInsets();
+
   const renderItem = useCallback(
     ({ item }: { item: BranchProduct }) => (
       <ProductCard
@@ -182,7 +185,7 @@ const ProductList = ({
       contentContainerStyle={{
         gap: 12,
         paddingTop: 8,
-        paddingBottom: 32,
+        paddingBottom: insets.bottom + 80,
         backgroundColor: '#f9f5f2',
       }}
       renderItem={renderItem}

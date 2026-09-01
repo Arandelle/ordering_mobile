@@ -1,4 +1,5 @@
 import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function CancelOrderModal({
   visible,
@@ -13,9 +14,13 @@ export function CancelOrderModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/40 px-5">
+      <View
+        className="flex-1 items-center justify-center bg-black/40"
+        style={{ paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
         <View className="w-full rounded-2xl bg-white p-5">
           <Text className="text-lg font-extrabold text-gray-950">Cancel order?</Text>
           <Text className="mt-2 text-sm leading-5 text-gray-500">

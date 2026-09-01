@@ -1,6 +1,6 @@
-import { SCREEN_HEIGHT } from '@/constant';
 import React, { PropsWithChildren, useEffect, useRef } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BottomSheetProps = PropsWithChildren<{
   visible: boolean;
@@ -8,7 +8,9 @@ type BottomSheetProps = PropsWithChildren<{
 }>;
 
 const BottomSheet = ({ visible, onClose, children }: BottomSheetProps) => {
-  const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('screen').height;
+  const panY = useRef(new Animated.Value(screenHeight)).current;
 
   // Resets the position of the bottom sheet to the initial state (fully visible)
   const resetPosition = () => {
@@ -22,7 +24,7 @@ const BottomSheet = ({ visible, onClose, children }: BottomSheetProps) => {
   // Closes the bottom sheet by animating it downwards and then calling the onClose callback
   const closeSheet = () => {
     Animated.timing(panY, {
-      toValue: SCREEN_HEIGHT,
+      toValue: screenHeight,
       duration: 250,
       useNativeDriver: true,
     }).start(onClose);
@@ -35,8 +37,8 @@ const BottomSheet = ({ visible, onClose, children }: BottomSheetProps) => {
 
   // Interpolates the panY value to create a translateY transformation for the bottom sheet
   const translateY = panY.interpolate({
-    inputRange: [-1, 0, SCREEN_HEIGHT],
-    outputRange: [0, 0, SCREEN_HEIGHT],
+    inputRange: [-1, 0, screenHeight],
+    outputRange: [0, 0, screenHeight],
   });
 
   // Creates a PanResponder to handle touch gestures for dragging the bottom sheet
@@ -60,12 +62,15 @@ const BottomSheet = ({ visible, onClose, children }: BottomSheetProps) => {
   ).current;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={closeSheet}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={closeSheet} statusBarTranslucent>
       <Pressable className="flex-1 justify-end bg-black/60" onPress={closeSheet}>
         <Animated.View
           {...panResponder.panHandlers}
-          style={{ transform: [{ translateY }] }}
-          className="elevation-xl max-h-[85%] rounded-t-3xl bg-white px-5 pb-8 pt-3">
+          style={{
+            transform: [{ translateY }],
+            maxHeight: screenHeight * 0.85 - insets.bottom,
+          }}
+          className="elevation-xl rounded-t-3xl bg-white px-5 pb-8 pt-3">
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View className="mb-4 h-1 w-10 self-center rounded-full bg-gray-300" />
             {children}

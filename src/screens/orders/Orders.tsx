@@ -29,6 +29,7 @@ import { formatMoney } from './helper/formatMoney';
 import { useCart } from '@/context/CartContext';
 import { CartItem, ModifierSelection } from '@/types/menu-types';
 import { OrderItemImage } from './components/OrderItemImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BRAND = '#e13e00';
 
@@ -330,6 +331,7 @@ function EmptyOrders({ isGuestSearch }: { isGuestSearch: boolean }) {
 
 export default function Orders() {
   const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const insets = useSafeAreaInsets();
   const [referenceNumber, setReferenceNumber] = useState('');
   const [submittedReference, setSubmittedReference] = useState('');
   const [orderToCancel, setOrderToCancel] = useState<OrderType | null>(null);
@@ -452,7 +454,8 @@ export default function Orders() {
             checkingPaymentOrderId={checkingPaymentOrderId}
           />
         )}
-        contentContainerClassName=""
+        contentContainerClassName="pb-20"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.4}

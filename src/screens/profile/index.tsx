@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
@@ -41,6 +42,7 @@ const BRAND = '#e13e00';
 
 export default function Profile() {
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const { data: session, isPending, refetch } = authClient.useSession();
   const user = session?.user as ProfileUser | undefined;
   const { data: savedAddress, isLoading: isAddressLoading } = useMyAddress(Boolean(user));
@@ -362,7 +364,7 @@ export default function Profile() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         className="flex-1 bg-gray-50"
-        contentContainerClassName="px-5 py-6 pb-12"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80, paddingLeft: 20, paddingRight: 20, paddingTop: 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View className="rounded-3xl bg-white p-5 shadow-sm">

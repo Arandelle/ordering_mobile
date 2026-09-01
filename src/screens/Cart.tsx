@@ -4,7 +4,6 @@ import { useState } from 'react';
 import {
   FlatList,
   Image,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,12 @@ import { useCart } from '@/context/CartContext';
 import { CartItem, ModifierSelection } from '@/types/menu-types';
 import { IncludedItem } from '@/types/products.type';
 import { Utensils, X } from 'lucide-react-native';
+import BottomSheet from '@/components/BottomSheet';
+
+// Bottom tab bar height — matches tabBarStyle padding in app/(tabs)/_layout.tsx
+// tabBarStyle paddingBottom: 8 + Math.max(insets.bottom, 8), paddingTop: 6
+// Plus icon size (~24) + label (~10) + marginBottom (2) ≈ 56-64 range
+const TAB_BAR_HEIGHT = 72;
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
@@ -41,9 +46,9 @@ function EmptyCart() {
   );
 }
 
-// ─── Modifier Details Modal ───────────────────────────────────────────────────
+// ─── Modifier Details Bottom Sheet ────────────────────────────────────────────
 
-function ModifierDetailsModal({
+function ModifierDetailsSheet({
   visible,
   modifiers,
   onClose,
@@ -57,75 +62,67 @@ function ModifierDetailsModal({
   }, 0);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}>
-      <View className="flex-1 bg-black/50 justify-end">
-        <View className="max-h-[80%] rounded-t-3xl bg-white">
-          {/* Header */}
-          <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-4">
-            <Text className="text-base font-bold text-gray-900">Customizations</Text>
-            <TouchableOpacity
-              onPress={onClose}
-              className="h-8 w-8 items-center justify-center rounded-full bg-gray-100">
-              <X size={16} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
+    <BottomSheet visible={visible} onClose={onClose}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between border-b border-gray-100 py-2">
+        <Text className="text-base font-bold text-gray-900">Customizations</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          className="h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+          <X size={16} color="#6b7280" />
+        </TouchableOpacity>
+      </View>
 
-          <ScrollView className="px-5 py-4">
-            {modifiers.map((group, idx) => (
-              <View
-                key={idx}
-                className={idx > 0 ? 'mt-4 border-t border-gray-100 pt-4' : ''}>
-                <View className="mb-2 flex-row items-center gap-2">
-                  <Text className="text-sm font-bold text-gray-900">{group.groupName}</Text>
-                  {group.required && (
-                    <View className="rounded-full bg-orange-100 px-2 py-0.5">
-                      <Text className="text-[10px] font-semibold text-orange-600">Required</Text>
-                    </View>
+      <ScrollView className="py-4" nestedScrollEnabled>
+        {modifiers.map((group, idx) => (
+          <View
+            key={idx}
+            className={idx > 0 ? 'mt-4 border-t border-gray-100 pt-4' : ''}>
+            <View className="mb-2 flex-row items-center gap-2">
+              <Text className="text-sm font-bold text-gray-900">{group.groupName}</Text>
+              {group.required && (
+                <View className="rounded-full bg-orange-100 px-2 py-0.5">
+                  <Text className="text-[10px] font-semibold text-orange-600">Required</Text>
+                </View>
+              )}
+            </View>
+            {group.items.map((item, iIdx) => (
+              <View key={iIdx} className="flex-row items-center justify-between py-2">
+                <View className="flex-1 pr-2">
+                  <Text className="text-sm text-gray-700">
+                    {item.name}
+                    {item.quantity > 1 && (
+                      <Text className="text-gray-400"> ×{item.quantity}</Text>
+                    )}
+                  </Text>
+                  {item.label && (
+                    <Text className="mt-0.5 text-xs text-gray-400" numberOfLines={1}>
+                      {item.label}
+                    </Text>
                   )}
                 </View>
-                {group.items.map((item, iIdx) => (
-                  <View key={iIdx} className="flex-row items-center justify-between py-2">
-                    <View className="flex-1 pr-2">
-                      <Text className="text-sm text-gray-700">
-                        {item.name}
-                        {item.quantity > 1 && (
-                          <Text className="text-gray-400"> ×{item.quantity}</Text>
-                        )}
-                      </Text>
-                      {item.label && (
-                        <Text className="mt-0.5 text-xs text-gray-400" numberOfLines={1}>
-                          {item.label}
-                        </Text>
-                      )}
-                    </View>
-                    {item.upgradePrice > 0 && (
-                      <Text className="text-sm font-semibold text-gray-900">
-                        ₱{(item.upgradePrice * item.quantity).toLocaleString('en-PH')}
-                      </Text>
-                    )}
-                  </View>
-                ))}
+                {item.upgradePrice > 0 && (
+                  <Text className="text-sm font-semibold text-gray-900">
+                    ₱{(item.upgradePrice * item.quantity).toLocaleString('en-PH')}
+                  </Text>
+                )}
               </View>
             ))}
+          </View>
+        ))}
 
-            {totalModifierPrice > 0 && (
-              <View className="mt-4 border-t border-gray-100 pt-4">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-bold text-gray-900">Extra total</Text>
-                  <Text className="text-sm font-bold text-orange-600">
-                    +₱{totalModifierPrice.toLocaleString('en-PH')}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+        {totalModifierPrice > 0 && (
+          <View className="mt-4 border-t border-gray-100 pt-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm font-bold text-gray-900">Extra total</Text>
+              <Text className="text-sm font-bold text-orange-600">
+                +₱{totalModifierPrice.toLocaleString('en-PH')}
+              </Text>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </BottomSheet>
   );
 }
 
@@ -160,7 +157,7 @@ function ModifierSummary({
         <Ionicons name="chevron-forward" size={12} color="#e13e00" />
       </TouchableOpacity>
 
-      <ModifierDetailsModal
+      <ModifierDetailsSheet
         visible={showModal}
         modifiers={modifiers}
         onClose={() => setShowModal(false)}
@@ -188,47 +185,40 @@ function IncludedItemsDetails({ items }: { items: IncludedItem[] }) {
         <Ionicons name="chevron-forward" size={12} color="#16a34a" />
       </TouchableOpacity>
 
-      <Modal
-        visible={showModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowModal(false)}>
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="max-h-[80%] rounded-t-3xl bg-white">
-            <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-4">
-              <Text className="text-base font-bold text-gray-900">What's Included</Text>
-              <TouchableOpacity
-                onPress={() => setShowModal(false)}
-                className="h-8 w-8 items-center justify-center rounded-full bg-gray-100">
-                <X size={16} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView className="px-5 py-4">
-              {items.map((item, idx) => {
-                const productName = typeof item.product === 'object' && item.product !== null
-                  ? item.product.name
-                  : String(item.product);
-                const qty = item.quantity ?? 1;
-
-                return (
-                  <View
-                    key={item._id ?? idx}
-                    className={idx > 0 ? 'mt-2 border-t border-gray-100 pt-2' : ''}>
-                    <View className="flex-row items-center justify-between py-2">
-                      <Text className="flex-1 text-sm text-gray-700">
-                        {productName}
-                        {qty > 1 && <Text className="text-gray-400"> ×{qty}</Text>}
-                      </Text>
-                      <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
+      <BottomSheet visible={showModal} onClose={() => setShowModal(false)}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between border-b border-gray-100 py-2">
+          <Text className="text-base font-bold text-gray-900">What&apos;s Included</Text>
+          <TouchableOpacity
+            onPress={() => setShowModal(false)}
+            className="h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+            <X size={16} color="#6b7280" />
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        <ScrollView className="py-4" nestedScrollEnabled>
+          {items.map((item, idx) => {
+            const productName = typeof item.product === 'object' && item.product !== null
+              ? item.product.name
+              : String(item.product);
+            const qty = item.quantity ?? 1;
+
+            return (
+              <View
+                key={item._id ?? idx}
+                className={idx > 0 ? 'mt-2 border-t border-gray-100 pt-2' : ''}>
+                <View className="flex-row items-center justify-between py-2">
+                  <Text className="flex-1 text-sm text-gray-700">
+                    {productName}
+                    {qty > 1 && <Text className="text-gray-400"> ×{qty}</Text>}
+                  </Text>
+                  <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </BottomSheet>
     </>
   );
 }
@@ -379,7 +369,7 @@ export default function CartScreen() {
         <FlatList
           data={cartItems}
           keyExtractor={(item) => String(item._id)}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: Math.max(insets.bottom, 48) + 100 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 16 }}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={<OrderSummary />}
           ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
@@ -390,7 +380,7 @@ export default function CartScreen() {
       {/* ── Place Order CTA ── */}
       {!isEmpty && (
         <View
-          style={{ paddingBottom: Math.max(insets.bottom, 48) + 12 }}
+          style={{ paddingBottom: Math.max(insets.bottom, 8) + 12 }}
           className="absolute bottom-0 left-0 right-0 border-t border-gray-100 bg-white px-5 pt-3">
           <TouchableOpacity
             onPress={() => router.push('/checkout')}
