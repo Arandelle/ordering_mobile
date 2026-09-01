@@ -2,52 +2,32 @@ import { Banknote, ChevronRight, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBranchContext } from '@/context/BranchContext';
 import { useCart } from '@/context/CartContext';
 import { BranchSelector } from '@/components/home/BranchSelector';
-import {
-  CheckoutAddressDetails,
-  CheckoutPaymentMethod,
-  useCheckoutDraft,
-  useSubmitCheckout,
-} from '@/hooks/useCheckout';
-import { CreateOrderPayload } from '@/types/orders.type';
+import { useCheckout } from '@/context/CheckoutContext';
+import { CreateOrderPayload, FULFILLMENT_TYPE } from '@/types/orders.type';
 import { QuantityStepper } from '@/components/products/QuantityStepper';
 import CheckoutStepper from './CheckoutStepper';
+import { OrderConfirmationModal } from './OrderConfirmationModal';
 
 function formatMoney(value: number) {
-  return `PHP ${value.toLocaleString('en-PH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function display(value?: string) {
   return value?.trim() ? value.trim() : 'Not provided';
 }
 
-function formatAddress(address?: CheckoutAddressDetails) {
-  if (!address) return 'Address not provided';
-
-  const streetAddress = [address.line1, address.line2, address.city, address.province]
-    .filter((part) => part?.trim())
-    .join(' ');
-
-  const postalAddress = [address.zipCode, address.country].filter((part) => part?.trim()).join(' ');
-
-  return [streetAddress, postalAddress].filter(Boolean).join(', ');
-}
-
-function toSubmitAddress(address: CheckoutAddressDetails): CreateOrderPayload['shippingAddress'] {
-  return {
-    line1: address.line1,
-    line2: address.line2,
-    city: address.city,
-    province: address.province,
-    zipCode: address.zipCode,
-    country: 'Philippines',
-    landmark: address.landmark,
-  };
+function formatFulfillment(type: string): string {
+  switch (type) {
+    case FULFILLMENT_TYPE.DELIVERY: return 'Delivery';
+    case FULFILLMENT_TYPE.PICKUP: return 'Pickup';
+    case FULFILLMENT_TYPE.DINE_IN: return 'Dine-In';
+    default: return type;
+  }
 }
 
 function getCheckoutErrorMessage(error: unknown) {
@@ -55,17 +35,18 @@ function getCheckoutErrorMessage(error: unknown) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === 'string') return message;
   }
-
   return 'Unable to submit order. Please try again.';
 }
 
 function PaymentOption({
   method,
   selected,
+  disabled,
   onPress,
 }: {
-  method: CheckoutPaymentMethod;
+  method: 'cod' | 'maya';
   selected: boolean;
+  disabled: boolean;
   onPress: () => void;
 }) {
   const isCod = method === 'cod';
@@ -75,8 +56,9 @@ function PaymentOption({
     <TouchableOpacity
       className={`flex-1 rounded-2xl border p-4 ${
         selected ? 'border-[#e13e00] bg-orange-50' : 'border-gray-200 bg-white'
-      }`}
+      } ${disabled ? 'opacity-40' : ''}`}
       activeOpacity={0.86}
+      disabled={disabled}
       onPress={onPress}>
       <View className="mb-3 h-10 w-10 items-center justify-center rounded-full bg-white">
         <Icon size={20} color={selected ? '#e13e00' : '#4b5563'} />
@@ -93,9 +75,7 @@ function PaymentOption({
 
 const ReviewOrder = () => {
   const router = useRouter();
-  const { draft, savePaymentMethod, clearCheckoutDraft } = useCheckoutDraft();
-  const paymentMethod = draft?.paymentMethod ?? 'cod';
-  const submitCheckout = useSubmitCheckout(paymentMethod);
+  const insets = useSafeAreaInsets();
   const { selectedBranch } = useBranchContext();
   const {
     cartItems,
@@ -108,18 +88,80 @@ const ReviewOrder = () => {
     clearCart,
   } = useCart();
 
-  const personal = draft?.personalDetails;
-  const address = draft?.shippingAddress;
-  const fullName = personal ? `${personal.firstName} ${personal.lastName}`.trim() : '';
+  const {
+    draft,
+    isCodAvailable,
+    setPaymentMethod,
+    submitOrder,
+    clearDraftAndState,
+    isReady,
+  } = useCheckout();
 
-  const handleSubmit = async () => {
-    if (!selectedBranch?._id) {
-      Alert.alert('Branch required', 'Please select a branch before checkout.');
-      return;
+  const paymentMethod = draft.paymentMethod;
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  const isDelivery = draft.fulfillmentType === FULFILLMENT_TYPE.DELIVERY;
+  const isDineIn = draft.fulfillmentType === FULFILLMENT_TYPE.DINE_IN;
+  const isPickup = draft.fulfillmentType === FULFILLMENT_TYPE.PICKUP;
+
+  // Effective COD availability
+  const effectiveCodAvailable = isCodAvailable && isDelivery;
+
+  // Ensure payment method defaults to maya if COD not available
+  if (!effectiveCodAvailable && paymentMethod === 'cod') {
+    setPaymentMethod('maya');
+  }
+
+  const buildPayload = (): CreateOrderPayload => {
+    const base: CreateOrderPayload = {
+      branchId: selectedBranch?._id ?? '',
+      fulfillmentType: draft.fulfillmentType,
+      firstName: draft.customer.firstName.trim(),
+      lastName: draft.customer.lastName.trim(),
+      customerEmail: draft.customer.customerEmail.trim(),
+      customerPhone: draft.customer.customerPhone.trim(),
+      notes: draft.customer.notes.trim() || undefined,
+      paymentMethod,
+      items: cartItems.map((item) => ({
+        _id: String(item._id),
+        quantity: item.quantity,
+      })),
+    };
+
+    if (isDelivery) {
+      base.shippingAddress = {
+        line1: draft.shippingAddress.line1,
+        line2: draft.shippingAddress.line2 || undefined,
+        city: draft.shippingAddress.city,
+        province: draft.shippingAddress.province,
+        zipCode: draft.shippingAddress.zipCode,
+        country: 'Philippines',
+        landmark: draft.shippingAddress.landmark || undefined,
+      };
     }
 
-    if (!personal || !address) {
-      Alert.alert('Missing details', 'Please complete your personal and address details.');
+    if (isDineIn) {
+      base.reservation = {
+        scheduledAt: draft.reservation.scheduledAt,
+        partySize: draft.reservation.partySize,
+      };
+    }
+
+    if (isPickup) {
+      base.pickupTime = draft.pickupTime;
+    }
+
+    return base;
+  };
+
+  const handleConfirmOrder = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!selectedBranch?._id) {
+      Alert.alert('Branch required', 'Please select a branch before checkout.');
       return;
     }
 
@@ -128,23 +170,14 @@ const ReviewOrder = () => {
       return;
     }
 
-    const payload: CreateOrderPayload = {
-      branchId: selectedBranch._id,
-      firstName: personal.firstName.trim(),
-      lastName: personal.lastName.trim(),
-      customerEmail: personal.email.trim(),
-      customerPhone: personal.phone.trim(),
-      notes: personal.note.trim() || undefined,
-      paymentMethod,
-      items: cartItems.map((item) => ({
-        _id: String(item._id),
-        quantity: item.quantity,
-      })),
-      shippingAddress: toSubmitAddress(address),
-    };
+    setIsPlacingOrder(true);
 
     try {
-      const response = await submitCheckout.mutateAsync(payload);
+      const payload = buildPayload();
+      const response = await submitOrder(payload);
+
+      await clearCart();
+      await clearDraftAndState();
 
       if (paymentMethod === 'maya') {
         if (!response.redirectUrl) {
@@ -155,40 +188,54 @@ const ReviewOrder = () => {
           return;
         }
 
-        await clearCart();
-        await clearCheckoutDraft.mutateAsync();
         await WebBrowser.openBrowserAsync(response.redirectUrl);
         router.replace('/orders');
-        return;
+      } else {
+        Alert.alert('Order placed', `Reference number: ${response.referenceNumber}`, [
+          { text: 'View orders', onPress: () => router.replace('/orders') },
+        ]);
       }
-
-      await clearCart();
-      await clearCheckoutDraft.mutateAsync();
-      Alert.alert('Order placed', `Reference number: ${response.referenceNumber}`, [
-        {
-          text: 'View orders',
-          onPress: () => router.replace('/orders'),
-        },
-      ]);
     } catch (error) {
       Alert.alert('Checkout failed', getCheckoutErrorMessage(error));
+    } finally {
+      setIsPlacingOrder(false);
+      setShowConfirmModal(false);
     }
   };
+
+  const fullName = `${draft.customer.firstName} ${draft.customer.lastName}`.trim();
+
+  if (!isReady) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-50">
+        <Text className="text-sm text-gray-400">Loading review...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
       className="flex-1 bg-gray-50"
+      contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       contentContainerClassName="px-5 pt-5"
       showsVerticalScrollIndicator={false}>
-      <CheckoutStepper currentStep={3} />
+      <CheckoutStepper currentStep={isDelivery ? 3 : 2} />
 
       <Text className="mb-1 text-xl font-bold text-gray-950">Review Order</Text>
       <Text className="mb-5 text-[13px] text-gray-500">
         Confirm your details before submitting.
       </Text>
 
+      {/* Branch + Fulfillment type */}
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-        <Text className="mb-3 text-[15px] font-bold text-gray-950">Pickup branch</Text>
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text className="text-[15px] font-bold text-gray-950">Branch</Text>
+          <View className="rounded-full bg-orange-100 px-2.5 py-0.5">
+            <Text className="text-[10px] font-bold text-orange-600">
+              {formatFulfillment(draft.fulfillmentType)}
+            </Text>
+          </View>
+        </View>
         <BranchSelector className="mt-0 px-0" />
         {!!selectedBranch?.address && (
           <Text className="mt-2 text-xs leading-4 text-gray-500">
@@ -197,6 +244,7 @@ const ReviewOrder = () => {
         )}
       </View>
 
+      {/* Summary card (editable) */}
       <TouchableOpacity
         className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
         activeOpacity={0.86}
@@ -205,9 +253,46 @@ const ReviewOrder = () => {
           <View className="flex-1">
             <Text className="text-base font-extrabold text-gray-950">{display(fullName)}</Text>
             <Text className="mt-1 text-sm leading-5 text-gray-600">
-              {display(personal?.email)} - {display(personal?.phone)}
+              {display(draft.customer.customerEmail)} - {display(draft.customer.customerPhone)}
             </Text>
-            <Text className="mt-2 text-sm leading-5 text-gray-800">{formatAddress(address)}</Text>
+
+            {isDelivery && draft.shippingAddress.line1 && (
+              <Text className="mt-2 text-sm leading-5 text-gray-800">
+                {[
+                  draft.shippingAddress.line1,
+                  draft.shippingAddress.line2,
+                  draft.shippingAddress.city,
+                  draft.shippingAddress.province,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            )}
+
+            {isDineIn && (
+              <Text className="mt-2 text-sm text-gray-700">
+                Reservation: {new Date(draft.reservation.scheduledAt).toLocaleString('en-PH', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+                {' · '}{draft.reservation.partySize} guest{draft.reservation.partySize !== 1 ? 's' : ''}
+              </Text>
+            )}
+
+            {isPickup && (
+              <Text className="mt-2 text-sm text-gray-700">
+                Pickup: {new Date(draft.pickupTime).toLocaleString('en-PH', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+              </Text>
+            )}
           </View>
 
           <View className="flex-row items-center gap-1">
@@ -216,14 +301,15 @@ const ReviewOrder = () => {
           </View>
         </View>
 
-        {!!address?.landmark?.trim() && (
-          <Text className="mt-2 text-xs text-gray-500">Landmark: {address.landmark}</Text>
+        {!!draft.shippingAddress.landmark?.trim() && (
+          <Text className="mt-2 text-xs text-gray-500">Landmark: {draft.shippingAddress.landmark}</Text>
         )}
-        {!!personal?.note?.trim() && (
-          <Text className="mt-2 text-xs text-gray-500">Note: {personal.note}</Text>
+        {!!draft.customer.notes?.trim() && (
+          <Text className="mt-2 text-xs text-gray-500">Note: {draft.customer.notes}</Text>
         )}
       </TouchableOpacity>
 
+      {/* Items */}
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <View className="mb-3 flex-row items-center justify-between">
           <Text className="text-[15px] font-bold text-gray-950">Items</Text>
@@ -262,6 +348,7 @@ const ReviewOrder = () => {
         </View>
       </View>
 
+      {/* Payment method */}
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <Text className="mb-3 text-[15px] font-bold text-gray-950">Payment method</Text>
 
@@ -269,16 +356,25 @@ const ReviewOrder = () => {
           <PaymentOption
             method="cod"
             selected={paymentMethod === 'cod'}
-            onPress={() => savePaymentMethod.mutate('cod')}
+            disabled={!effectiveCodAvailable}
+            onPress={() => setPaymentMethod('cod')}
           />
           <PaymentOption
             method="maya"
             selected={paymentMethod === 'maya'}
-            onPress={() => savePaymentMethod.mutate('maya')}
+            disabled={false}
+            onPress={() => setPaymentMethod('maya')}
           />
         </View>
+
+        {!effectiveCodAvailable && isDelivery && (
+          <Text className="mt-2 text-xs text-gray-400">
+            COD is not available for this branch. Maya payment only.
+          </Text>
+        )}
       </View>
 
+      {/* Order total */}
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <Text className="mb-3 text-[15px] font-bold text-gray-950">Order total</Text>
 
@@ -301,23 +397,28 @@ const ReviewOrder = () => {
         </View>
       </View>
 
+      {/* Place Order button */}
       <TouchableOpacity
         className={`items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-          submitCheckout.isPending || cartItems.length === 0 ? 'opacity-[0.65]' : ''
+          cartItems.length === 0 ? 'opacity-[0.65]' : ''
         }`}
-        onPress={handleSubmit}
+        onPress={handleConfirmOrder}
         activeOpacity={0.85}
-        disabled={submitCheckout.isPending || cartItems.length === 0}>
+        disabled={cartItems.length === 0}>
         <Text className="text-[15px] font-bold text-white">
-          {submitCheckout.isPending
-            ? 'Submitting...'
-            : paymentMethod === 'maya'
-              ? 'Proceed to Maya'
-              : 'Place COD Order'}
+          {paymentMethod === 'maya' ? 'Proceed to Maya' : 'Place Order'}
         </Text>
       </TouchableOpacity>
 
-      <View className="h-8" />
+      {/* Confirmation modal */}
+      <OrderConfirmationModal
+        visible={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handlePlaceOrder}
+        isPlacingOrder={isPlacingOrder}
+        displayTotalPrice={totalPrice}
+        selectedPayment={paymentMethod}
+      />
     </ScrollView>
   );
 };
