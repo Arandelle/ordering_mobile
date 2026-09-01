@@ -1,8 +1,8 @@
-import { ORDER_STATUSES, OrderStatus } from "@/types/order-constant";
-import { OrdersApiResponse } from "@/types/orders.type";
-import { PAYMENT_STATUSES } from "@/types/payment.type";
+import { ORDER_STATUSES, OrderStatus } from '@/types/order-constant';
+import { OrdersApiResponse } from '@/types/orders.type';
+import { PAYMENT_STATUSES } from '@/types/payment.type';
 
-export function useOrderState(order: OrdersApiResponse["data"][number] | null) {
+export function useOrderState(order: OrdersApiResponse['data'][number] | null) {
   if (!order) return null;
 
   const status = order.status as OrderStatus;
@@ -10,7 +10,7 @@ export function useOrderState(order: OrdersApiResponse["data"][number] | null) {
   const paymentStatus = order.paymentInfo?.paymentStatus;
 
   const isMayaPaid =
-    paymentMethod === "maya" &&
+    paymentMethod === 'maya' &&
     paymentStatus === PAYMENT_STATUSES.PAYMENT_SUCCESS &&
     status === ORDER_STATUSES.PENDING;
 
@@ -25,7 +25,7 @@ export function useOrderState(order: OrdersApiResponse["data"][number] | null) {
 
   const needPayment =
     order.status === ORDER_STATUSES.PENDING &&
-    order.paymentInfo?.paymentMethod === "maya" &&
+    order.paymentInfo?.paymentMethod === 'maya' &&
     order.paymentInfo?.paymentStatus !== PAYMENT_STATUSES.PAYMENT_SUCCESS;
 
   const canCancel = status === ORDER_STATUSES.PENDING && !isMayaPaid; // COD pending OR Maya not yet paid
@@ -33,8 +33,7 @@ export function useOrderState(order: OrdersApiResponse["data"][number] | null) {
   const canBuyAgain = isCancelled || isCompleted;
 
   const isCodPending =
-    order.paymentInfo?.paymentMethod === "cod" &&
-    status === ORDER_STATUSES.PENDING;
+    order.paymentInfo?.paymentMethod === 'cod' && status === ORDER_STATUSES.PENDING;
 
   return {
     status,

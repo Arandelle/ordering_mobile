@@ -1,13 +1,15 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -15,64 +17,69 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { authClient } from '@/lib/auth-client';
-import { ORDER_STATUSES, getActionConfig } from '@/types/order-constant';
-import { OrderType } from '@/types/orders.type';
-import { PAYMENT_STATUSES } from '@/types/payment.type';
 import { useCancelOrder, useCreateMayaCheckout, useOrders } from '@/hooks/useOrders';
+import { useCart } from '@/context/CartContext';
+import { formatDate } from '@/helper/formateDate';
+import { ORDER_STATUSES } from '@/types/order-constant';
+import { OrderType } from '@/types/orders.type';
+import { CartItem, ModifierSelection } from '@/types/menu-types';
+
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
-import { getErrorMessage } from './helper/getErrorMessage';
-import { getStatusClasses } from './helper/getStatusClasses';
-import { formatMoney } from './helper/formatMoney';
-import { useCart } from '@/context/CartContext';
-import { CartItem, ModifierSelection } from '@/types/menu-types';
 import { OrderItemImage } from './components/OrderItemImage';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OrderStatusPill } from './components/OrderStatusPill';
+import { getErrorMessage } from './helper/getErrorMessage';
+import { getFulfillmentMeta } from './helper/getFulfillmentMeta';
+import { getOrderStatusLabel } from './helper/getOrderStatusLabel';
+import { formatMoney } from './helper/formatMoney';
 
 const BRAND = '#e13e00';
 
+const ACTIVE_ORDER_STATUSES = new Set<string>([
+  ORDER_STATUSES.PENDING,
+  ORDER_STATUSES.PREPARING,
+  ORDER_STATUSES.READY,
+]);
+
+const cardShadow = StyleSheet.create({
+  card: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+});
+
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+type OrderListItem =
+  { type: 'header'; title: string; count: number } | { type: 'order'; order: OrderType };
+
 const ACTION_BUTTON_STYLES = {
   primary: {
-    container: 'border-[#e13e00] bg-[#e13e00]',
+    container: 'bg-[#e13e00]',
     text: 'text-white',
-    icon: 'white',
+    icon: '#ffffff',
   },
   danger: {
-    container: 'border-red-200 bg-white',
+    container: 'border border-red-100 bg-red-50',
     text: 'text-red-700',
-    icon: '#b91c1c',
+    icon: '#dc2626',
   },
   secondary: {
-    container: 'border-gray-200 bg-white',
+    container: 'border border-gray-200 bg-white',
     text: 'text-gray-700',
     icon: '#374151',
   },
-  muted: {
-    container: 'border-gray-200 bg-gray-50',
-    text: 'text-gray-400',
-    icon: '#9ca3af',
-  },
 } as const;
-
-function formatDisplayLabel(value?: string | null) {
-  if (!value) return 'Pending';
-
-  return value
-    .toLowerCase()
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function getOrderStatusLabel(order: OrderType) {
-  const statusLabel = formatDisplayLabel(order.status);
-  const isPaid = order.paymentInfo?.paymentStatus === PAYMENT_STATUSES.PAYMENT_SUCCESS;
-
-  return isPaid ? `Paid - ${statusLabel}` : statusLabel;
-}
 
 function toCartItem(item: OrderType['items'][number]): CartItem {
   return {
@@ -92,13 +99,16 @@ function ModifierList({ modifiers }: { modifiers?: ModifierSelection[] }) {
   return (
     <View className="mt-1.5">
       {modifiers.map((group, idx) => (
-        <View key={idx} className={idx > 0 ? 'mt-1 pt-1.5 border-t border-gray-100' : ''}>
+        <View key={idx} className={idx > 0 ? 'mt-1 border-t border-gray-100 pt-1.5' : ''}>
           <Text className="text-[11px] font-semibold text-gray-500">{group.groupName}</Text>
           <View className="mt-0.5 flex-row flex-wrap gap-x-2 gap-y-0.5">
             {group.items.map((item, iIdx) => (
               <Text key={iIdx} className="text-[11px] text-gray-500">
-                {item.name}{item.quantity > 1 ? ` x${item.quantity}` : ''}
-                {item.upgradePrice > 0 ? ` (+₱${(item.upgradePrice * item.quantity).toLocaleString('en-PH')})` : ''}
+                {item.name}
+                {item.quantity > 1 ? ` x${item.quantity}` : ''}
+                {item.upgradePrice > 0
+                  ? ` (+₱${(item.upgradePrice * item.quantity).toLocaleString('en-PH')})`
+                  : ''}
               </Text>
             ))}
           </View>
@@ -110,27 +120,29 @@ function ModifierList({ modifiers }: { modifiers?: ModifierSelection[] }) {
 
 function OrderItemRow({ item }: { item: OrderType['items'][number] }) {
   return (
-    <View className="flex-row gap-3 rounded-xl p-2">
-      <View className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+    <View className="flex-row gap-3 py-0.5">
+      <View className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100">
         <OrderItemImage image={item.image} name={item.name} />
       </View>
 
       <View className="min-w-0 flex-1">
-        <View className="flex-row justify-between gap-3">
+        <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
-            <Text className="text-sm font-bold leading-5 text-gray-900" numberOfLines={2}>
+            <Text className="text-[13px] font-bold leading-[18px] text-gray-900" numberOfLines={2}>
               {item.name}
             </Text>
             {!!item.description && (
-              <Text className="mt-0.5 text-xs leading-4 text-gray-500" numberOfLines={1}>
+              <Text className="mt-0.5 text-[11px] leading-4 text-gray-400" numberOfLines={1}>
                 {item.description}
               </Text>
             )}
           </View>
 
           <View className="shrink-0 items-end">
-            <Text className="text-sm font-extrabold text-gray-950">{formatMoney(item.price)}</Text>
-            <Text className="mt-1 text-xs font-semibold text-gray-500">x{item.quantity}</Text>
+            <Text className="text-[13px] font-extrabold text-gray-950">
+              {formatMoney(item.price)}
+            </Text>
+            <Text className="mt-0.5 text-[11px] font-semibold text-gray-400">x{item.quantity}</Text>
           </View>
         </View>
 
@@ -142,25 +154,29 @@ function OrderItemRow({ item }: { item: OrderType['items'][number] }) {
 
 function ActionButton({
   label,
+  icon,
   variant,
   onPress,
   disabled = false,
 }: {
-  label?: string | ReactNode;
+  label: string;
+  icon?: IoniconName;
   variant: keyof typeof ACTION_BUTTON_STYLES;
   onPress: () => void;
   disabled?: boolean;
 }) {
   const style = ACTION_BUTTON_STYLES[variant];
-  const disabledClassName = disabled ? 'opacity-[0.55]' : '';
 
   return (
     <TouchableOpacity
-      className={`min-h-9 flex-row items-center justify-center gap-1.5 rounded-3xl border px-3 ${style.container} ${disabledClassName}`}
+      className={`min-h-10 flex-row items-center justify-center gap-1.5 rounded-full px-4 ${style.container} ${
+        disabled ? 'opacity-[0.55]' : ''
+      }`}
       activeOpacity={0.85}
       disabled={disabled}
       onPress={onPress}>
-      {label && <Text className={`text-center text-sm font-bold ${style.text}`}>{label}</Text>}
+      {icon && <Ionicons name={icon} size={15} color={style.icon} />}
+      <Text className={`text-[13px] font-bold ${style.text}`}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -182,149 +198,260 @@ function OrderCard({
 }) {
   const [showAllItems, setShowAllItems] = useState(false);
   const state = useOrderState(order);
-  const statusClasses = getStatusClasses(order.status);
-  const orderStatusLabel = getOrderStatusLabel(order);
-  const cancelConfig = getActionConfig(order.status, ORDER_STATUSES.CANCELLED);
-  const visibleItems = showAllItems ? order.items : order.items.slice(0, 1);
+  const statusLabel = getOrderStatusLabel(order);
+  const referenceNumber = order.paymentInfo.referenceNumber ?? order._id;
+  const fulfillment = getFulfillmentMeta(order.fulfillmentType);
+  const visibleItems = showAllItems ? order.items : order.items.slice(0, 2);
   const hiddenItemCount = Math.max(order.items.length - visibleItems.length, 0);
+  const itemLineCount = order.items.length;
 
   const isPaying = payingOrderId === order._id;
   const isCheckingPayment = checkingPaymentOrderId === order._id;
   const disableActions = isPaying || isCheckingPayment;
-  const cardStateClass = state?.isCancelled ? 'opacity-70' : '';
+
+  const hasActions = Boolean(
+    state?.needPayment || state?.canCancel || state?.needsReview || state?.isCompleted
+  );
+  const showFooter = hasActions || isCheckingPayment;
 
   return (
     <TouchableOpacity
-      className={`mb-2 overflow-hidden bg-white ${cardStateClass}`}
-      activeOpacity={0.88}
+      className={`mb-3 overflow-hidden rounded-3xl bg-white ${state?.isCancelled ? 'opacity-80' : ''}`}
+      style={cardShadow.card}
+      activeOpacity={0.92}
       onPress={() => router.push(`/orders/${order._id}`)}>
-      <View className="p-4">
-        <View className="mb-3 flex-row items-start justify-end gap-3">
-          <View className={`rounded-full px-2.5 py-0.5 ${statusClasses.container}`}>
-            <Text className={`text-[11px] font-bold ${statusClasses.text}`}>
-              {orderStatusLabel}
+      {/* Header — reference, fulfillment and status */}
+      <View className="flex-row items-start justify-between gap-3 px-4 pb-3 pt-4">
+        <View className="min-w-0 flex-1">
+          <Text
+            className="text-[15px] font-extrabold tracking-tight text-gray-950"
+            numberOfLines={1}>
+            #{referenceNumber}
+          </Text>
+          <View className="mt-1.5 flex-row items-center gap-1.5">
+            <Ionicons name={fulfillment.icon} size={12} color="#9ca3af" />
+            <Text className="text-xs font-medium text-gray-500">{fulfillment.label}</Text>
+            <View className="h-1 w-1 rounded-full bg-gray-300" />
+            <Text className="text-xs text-gray-500">
+              {formatDate(order.createdAt)}
             </Text>
           </View>
         </View>
 
-        <View className="gap-2">
-          {visibleItems.length > 0 ? (
-            visibleItems.map((item) => <OrderItemRow key={item.productId} item={item} />)
-          ) : (
-            <View className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
-              <Text className="text-center text-sm font-semibold text-gray-500">
-                No items listed
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View className="flex-row items-center justify-between">
-          <TouchableOpacity
-            className={`mt-2 flex-row items-center justify-start gap-1 rounded-xl px-2 py-1 ${order.items.length > 1 ? 'opacity-100' : 'opacity-0'}`}
-            activeOpacity={0.85}
-            onPress={() => setShowAllItems((current) => !current)}>
-            <Text className="text-sm font-bold text-gray-500">
-              {showAllItems ? 'Show less' : `View more (${hiddenItemCount})`}
-            </Text>
-            {showAllItems ? (
-              <Ionicons name='chevron-up-outline' size={14} className="text-gray-500" />
-            ) : (
-              <Ionicons name='chevron-down-outline' size={14} className="text-gray-500" />
-            )}
-          </TouchableOpacity>
-
-          <View className="flex-row items-center gap-1">
-            <Text className="text-sm text-gray-400">Total: </Text>
-            <Text className="text-sm font-semibold text-gray-950">
-              {formatMoney(order.total.totalAmount)}
-            </Text>
-          </View>
-        </View>
+        <OrderStatusPill status={order.status} label={statusLabel} />
       </View>
 
-      <View className="px-4 py-3">
-        {isCheckingPayment && (
-          <View className="mb-3 rounded-2xl bg-amber-50 px-4 py-3">
-            <Text className="text-sm font-bold text-amber-800">Checking payment status</Text>
-            <Text className="mt-1 text-xs leading-4 text-amber-700">
-              Maya is processing your payment. This can take a few moments.
-            </Text>
+      {/* Items */}
+      <View className="gap-2 border-t border-gray-100 px-4 pb-3 pt-3">
+        {visibleItems.length > 0 ? (
+          visibleItems.map((item, idx) => (
+            <View
+              key={`${item.productId}-${idx}`}
+              className={idx > 0 ? 'border-t border-dashed border-gray-100 pt-2' : ''}>
+              <OrderItemRow item={item} />
+            </View>
+          ))
+        ) : (
+          <View className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5">
+            <Text className="text-center text-sm font-semibold text-gray-400">No items listed</Text>
           </View>
         )}
 
-        <View className="flex-row flex-wrap justify-end gap-2">
-          {state?.needPayment && (
-            <ActionButton
-              label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
-              variant="primary"
-              disabled={disableActions}
-              onPress={() => onPayNowPress(order)}
+        {itemLineCount > 2 && (
+          <TouchableOpacity
+            className="flex-row items-center justify-center gap-1 rounded-xl bg-gray-50 py-2.5"
+            activeOpacity={0.8}
+            onPress={() => setShowAllItems((current) => !current)}>
+            <Text className="text-xs font-bold text-gray-500">
+              {showAllItems
+                ? 'Show less'
+                : `View ${hiddenItemCount} more item${hiddenItemCount === 1 ? '' : 's'}`}
+            </Text>
+            <Ionicons
+              name={showAllItems ? 'chevron-up' : 'chevron-down'}
+              size={13}
+              color="#6b7280"
             />
-          )}
+          </TouchableOpacity>
+        )}
+      </View>
 
-          {state?.canCancel && (
-            <ActionButton
-              label={cancelConfig?.label ?? 'Cancel'}
-              variant="danger"
-              disabled={disableActions}
-              onPress={() => onCancelPress(order)}
-            />
-          )}
+      {/* Totals */}
+      <View className="flex-row items-center justify-between border-t border-gray-100 px-4 py-3">
+        <View className="flex-row items-center gap-1">
+          <Text className="text-xs font-medium text-gray-400">
+            {itemLineCount} item{itemLineCount === 1 ? '' : 's'}
+          </Text>
+          <View className="h-1 w-1 rounded-full bg-gray-300" />
+          <Text className="text-xs font-bold text-[#e13e00]">View details</Text>
+          <Ionicons name="chevron-forward" size={11} color="#e13e00" />
+        </View>
 
-          {state?.needsReview && (
-            <ActionButton
-              label="Write Review"
-              variant="primary"
-              disabled={disableActions}
-              onPress={() => router.push(`/review/${order._id}`)}
-            />
-          )}
-
-          {state?.isCompleted && (
-            <>
-              {!state?.needsReview && (
-                <ActionButton
-                  label="View Review"
-                  variant="muted"
-                  disabled
-                  onPress={() => undefined}
-                />
-              )}
-              <ActionButton
-                label={
-                  <Ionicons
-                    name="cart-outline"
-                    size={14}
-                    color={ACTION_BUTTON_STYLES.secondary.icon}
-                  />
-                }
-                variant="secondary"
-                disabled={disableActions}
-                onPress={() => onAddToCartPress(order)}
-              />
-            </>
-          )}
+        <View className="flex-row items-baseline gap-1.5">
+          <Text className="text-xs font-semibold text-gray-400">Total</Text>
+          <Text className="text-base font-extrabold tracking-tight text-gray-950">
+            {formatMoney(order.total.totalAmount)}
+          </Text>
         </View>
       </View>
+
+      {/* Actions */}
+      {showFooter && (
+        <View className="gap-2.5 border-t border-gray-100 bg-gray-50/70 px-4 pb-4 pt-3">
+          {isCheckingPayment && (
+            <View className="flex-row items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-3.5 py-3">
+              <ActivityIndicator size="small" color="#b45309" />
+              <View className="min-w-0 flex-1">
+                <Text className="text-[13px] font-bold text-amber-800">
+                  Checking payment status
+                </Text>
+                <Text className="mt-0.5 text-[11px] leading-4 text-amber-700">
+                  Maya is processing your payment. This can take a few moments.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {hasActions && (
+            <View className="flex-row flex-wrap justify-end gap-2">
+              {state?.needPayment && (
+                <ActionButton
+                  label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
+                  icon="card-outline"
+                  variant="primary"
+                  disabled={disableActions}
+                  onPress={() => onPayNowPress(order)}
+                />
+              )}
+
+              {state?.canCancel && (
+                <ActionButton
+                  label="Cancel Order"
+                  icon="close-circle-outline"
+                  variant="danger"
+                  disabled={disableActions}
+                  onPress={() => onCancelPress(order)}
+                />
+              )}
+
+              {state?.needsReview && (
+                <ActionButton
+                  label="Write Review"
+                  icon="star-outline"
+                  variant="primary"
+                  disabled={disableActions}
+                  onPress={() => router.push(`/review/${order._id}`)}
+                />
+              )}
+
+              {state?.isCompleted && !state?.needsReview && (
+                <View className="min-h-10 flex-row items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4">
+                  <Ionicons name="star" size={14} color="#f59e0b" />
+                  <Text className="text-[13px] font-bold text-gray-500">Reviewed</Text>
+                </View>
+              )}
+
+              {state?.isCompleted && (
+                <ActionButton
+                  label="Buy Again"
+                  icon="repeat-outline"
+                  variant="secondary"
+                  disabled={disableActions}
+                  onPress={() => onAddToCartPress(order)}
+                />
+              )}
+            </View>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
+  );
+}
+
+function OrdersSectionHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <View className="flex-row items-center gap-2 bg-gray-50 px-1 pb-2 pt-5">
+      <Text className="text-[13px] font-extrabold uppercase tracking-widest text-gray-400">
+        {title}
+      </Text>
+      <View className="rounded-full bg-gray-200/80 px-2 py-0.5">
+        <Text className="text-[11px] font-bold text-gray-600">{count}</Text>
+      </View>
+    </View>
+  );
+}
+
+function usePulse() {
+  const pulse = useRef(new Animated.Value(0.45)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 650, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.45, duration: 650, useNativeDriver: true }),
+      ])
+    );
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [pulse]);
+
+  return pulse;
+}
+
+function OrderCardSkeleton({ opacity }: { opacity: Animated.Value }) {
+  return (
+    <View className="mb-3 rounded-3xl bg-white p-4" style={cardShadow.card}>
+      <View className="flex-row items-start justify-between">
+        <View className="gap-2">
+          <Animated.View style={{ opacity }} className="h-4 w-36 rounded-full bg-gray-100" />
+          <Animated.View style={{ opacity }} className="h-3 w-24 rounded-full bg-gray-100" />
+        </View>
+        <Animated.View style={{ opacity }} className="h-6 w-20 rounded-full bg-gray-100" />
+      </View>
+
+      <View className="mt-4 flex-row gap-3 border-t border-gray-100 pt-4">
+        <Animated.View style={{ opacity }} className="h-14 w-14 rounded-xl bg-gray-100" />
+        <View className="flex-1 gap-2 pt-1">
+          <Animated.View style={{ opacity }} className="h-4 w-3/4 rounded-full bg-gray-100" />
+          <Animated.View style={{ opacity }} className="h-3 w-1/2 rounded-full bg-gray-100" />
+        </View>
+      </View>
+
+      <View className="mt-4 flex-row items-center justify-between border-t border-gray-100 pt-3">
+        <Animated.View style={{ opacity }} className="h-3 w-24 rounded-full bg-gray-100" />
+        <Animated.View style={{ opacity }} className="h-5 w-24 rounded-full bg-gray-100" />
+      </View>
+    </View>
   );
 }
 
 function EmptyOrders({ isGuestSearch }: { isGuestSearch: boolean }) {
   return (
-    <View className="items-center rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-10">
-      <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-orange-50">
-        <Ionicons name='clipboard-outline' size={24} color={BRAND} />
+    <View className="items-center rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12">
+      <View className="h-20 w-20 items-center justify-center rounded-full bg-orange-50">
+        <View className="h-14 w-14 items-center justify-center rounded-full bg-orange-100/70">
+          <Ionicons name="receipt-outline" size={26} color={BRAND} />
+        </View>
       </View>
-      <Text className="text-center text-lg font-extrabold text-gray-950">
+      <Text className="mt-5 text-center text-lg font-extrabold tracking-tight text-gray-950">
         {isGuestSearch ? 'No order found' : 'No orders yet'}
       </Text>
-      <Text className="mt-2 text-center text-sm leading-5 text-gray-500">
+      <Text className="mt-1.5 text-center text-sm leading-5 text-gray-500">
         {isGuestSearch
-          ? 'Check the reference number and try again.'
-          : 'Your order history will appear here after checkout.'}
+          ? "We couldn't find an order with that reference number. Double-check it and try again."
+          : 'Your order history will appear here after your first checkout.'}
       </Text>
+
+      {!isGuestSearch && (
+        <TouchableOpacity
+          className="mt-5 min-h-11 items-center justify-center rounded-full bg-[#e13e00] px-6"
+          activeOpacity={0.85}
+          onPress={() => router.push('/')}>
+          <Text className="text-sm font-bold text-white">Browse Menu</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -332,6 +459,7 @@ function EmptyOrders({ isGuestSearch }: { isGuestSearch: boolean }) {
 export default function Orders() {
   const { data: session, isPending: isSessionPending } = authClient.useSession();
   const insets = useSafeAreaInsets();
+  const pulse = usePulse();
   const [referenceNumber, setReferenceNumber] = useState('');
   const [submittedReference, setSubmittedReference] = useState('');
   const [orderToCancel, setOrderToCancel] = useState<OrderType | null>(null);
@@ -357,6 +485,28 @@ export default function Orders() {
     const result = activeQuery.data?.pages.flatMap((page) => page.data) ?? [];
     return result;
   }, [activeQuery.data?.pages]);
+
+  const listData = useMemo<OrderListItem[]>(() => {
+    if (!isAuthenticated) {
+      return orders.map((order) => ({ type: 'order', order }));
+    }
+
+    const active = orders.filter((order) => ACTIVE_ORDER_STATUSES.has(order.status));
+    const past = orders.filter((order) => !ACTIVE_ORDER_STATUSES.has(order.status));
+    const result: OrderListItem[] = [];
+
+    if (active.length > 0) {
+      result.push({ type: 'header', title: 'Active', count: active.length });
+      active.forEach((order) => result.push({ type: 'order', order }));
+    }
+
+    if (past.length > 0) {
+      result.push({ type: 'header', title: 'Past', count: past.length });
+      past.forEach((order) => result.push({ type: 'order', order }));
+    }
+
+    return result;
+  }, [isAuthenticated, orders]);
 
   const handleSearch = () => {
     setSubmittedReference(referenceNumber.trim());
@@ -442,20 +592,24 @@ export default function Orders() {
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <FlatList
-        data={orders}
-        keyExtractor={(order) => order._id}
-        renderItem={({ item }) => (
-          <OrderCard
-            order={item}
-            onCancelPress={setOrderToCancel}
-            onPayNowPress={handlePayNow}
-            onAddToCartPress={handleAddToCart}
-            payingOrderId={payingOrderId}
-            checkingPaymentOrderId={checkingPaymentOrderId}
-          />
-        )}
-        contentContainerClassName="pb-20"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+        data={listData}
+        keyExtractor={(item) => (item.type === 'header' ? `header-${item.title}` : item.order._id)}
+        renderItem={({ item }) =>
+          item.type === 'header' ? (
+            <OrdersSectionHeader title={item.title} count={item.count} />
+          ) : (
+            <OrderCard
+              order={item.order}
+              onCancelPress={setOrderToCancel}
+              onPayNowPress={handlePayNow}
+              onAddToCartPress={handleAddToCart}
+              payingOrderId={payingOrderId}
+              checkingPaymentOrderId={checkingPaymentOrderId}
+            />
+          )
+        }
+        contentContainerClassName="px-5"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 88 }}
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.4}
@@ -467,28 +621,50 @@ export default function Orders() {
                 void activeQuery.refetch();
               }}
               tintColor={BRAND}
+              colors={[BRAND]}
             />
           ) : undefined
         }
         ListHeaderComponent={
-          <View className="p-5">
-            <Text className="text-2xl font-extrabold text-gray-950">Orders</Text>
-            <Text className="mt-1 text-sm leading-5 text-gray-500">
-              {isAuthenticated
-                ? 'Track your recent orders and available actions.'
-                : 'Enter your order reference number to check a guest order.'}
-            </Text>
+          <View className="pb-2 pt-1">
+            <View className="flex-row items-end justify-between gap-3">
+              <View className="min-w-0 flex-1">
+                <Text className="text-2xl font-extrabold tracking-tight text-gray-950">Orders</Text>
+                <Text className="mt-1 text-sm leading-5 text-gray-500">
+                  {isAuthenticated
+                    ? 'Track your orders and manage pending actions.'
+                    : 'Look up a guest order with its reference number.'}
+                </Text>
+              </View>
+
+              {isAuthenticated && orders.length > 0 && (
+                <View className="mb-1 rounded-full bg-[#fdeee7] px-3 py-1">
+                  <Text className="text-xs font-bold text-[#e13e00]">
+                    {orders.length} order{orders.length === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              )}
+            </View>
 
             {!isAuthenticated && (
-              <View className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
-                <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">
-                  Order reference number
-                </Text>
-                <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                  <Ionicons name="search-outline" size={17} color="#9ca3af" />
+              <View className="mt-5 rounded-3xl bg-white p-4" style={cardShadow.card}>
+                <View className="flex-row items-center gap-2.5">
+                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
+                    <Ionicons name="search-outline" size={16} color={BRAND} />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-sm font-bold text-gray-900">Find your order</Text>
+                    <Text className="text-[11px] text-gray-400">
+                      Enter the reference number from your receipt
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mt-3 flex-row items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
+                  <Ionicons name="barcode-outline" size={15} color="#9ca3af" />
                   <TextInput
-                    className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                    placeholder="Example: ORD-123456"
+                    className="min-h-12 flex-1 text-sm text-gray-950"
+                    placeholder="ORD-123456"
                     placeholderTextColor="#b9b9b9"
                     value={referenceNumber}
                     onChangeText={setReferenceNumber}
@@ -499,7 +675,7 @@ export default function Orders() {
                 </View>
 
                 <TouchableOpacity
-                  className={`mt-4 min-h-12 items-center justify-center rounded-2xl bg-[#e13e00] ${
+                  className={`mt-3 min-h-12 items-center justify-center rounded-2xl bg-[#e13e00] ${
                     referenceNumber.trim() ? '' : 'opacity-[0.55]'
                   }`}
                   activeOpacity={0.85}
@@ -511,19 +687,32 @@ export default function Orders() {
             )}
 
             {activeQuery.isError && (
-              <View className="mt-4 rounded-2xl bg-red-50 px-4 py-3">
-                <Text className="text-sm font-semibold text-red-700">
-                  {activeQuery.error.message || 'Unable to load orders.'}
-                </Text>
+              <View className="mt-4 flex-row items-center gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+                <Ionicons name="alert-circle-outline" size={20} color="#dc2626" />
+                <View className="min-w-0 flex-1">
+                  <Text className="text-sm font-bold text-red-700">Couldn&apos;t load orders</Text>
+                  <Text className="mt-0.5 text-xs leading-4 text-red-600" numberOfLines={2}>
+                    {activeQuery.error?.message || 'Please check your connection and try again.'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="rounded-full bg-red-600 px-3.5 py-2"
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    void activeQuery.refetch();
+                  }}>
+                  <Text className="text-xs font-bold text-white">Retry</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
         }
         ListEmptyComponent={
           activeQuery.isLoading ? (
-            <View className="items-center py-12">
-              <ActivityIndicator color={BRAND} />
-              <Text className="mt-3 text-sm font-semibold text-gray-500">Loading orders...</Text>
+            <View>
+              <OrderCardSkeleton opacity={pulse} />
+              <OrderCardSkeleton opacity={pulse} />
+              <OrderCardSkeleton opacity={pulse} />
             </View>
           ) : !isAuthenticated && !submittedReference ? null : (
             <EmptyOrders isGuestSearch={!isAuthenticated} />

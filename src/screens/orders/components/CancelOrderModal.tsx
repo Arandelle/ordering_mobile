@@ -1,4 +1,5 @@
 import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function CancelOrderModal({
@@ -19,17 +20,27 @@ export function CancelOrderModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View
-        className="flex-1 items-center justify-center bg-black/40"
-        style={{ paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
-        <View className="w-full rounded-2xl bg-white p-5">
-          <Text className="text-lg font-extrabold text-gray-950">Cancel order?</Text>
-          <Text className="mt-2 text-sm leading-5 text-gray-500">
+        className="flex-1 items-center justify-center bg-black/50 px-6"
+        style={{
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left + 24,
+          paddingRight: insets.right + 24,
+        }}>
+        <View className="w-full rounded-3xl bg-white p-6">
+          <View className="h-12 w-12 items-center justify-center rounded-full bg-red-50">
+            <Ionicons name="close-circle-outline" size={24} color="#dc2626" />
+          </View>
+
+          <Text className="mt-4 text-lg font-extrabold tracking-tight text-gray-950">
+            Cancel order?
+          </Text>
+          <Text className="mt-1.5 text-sm leading-5 text-gray-500">
             {referenceNumber
-              ? `This will cancel order ${referenceNumber}.`
-              : 'This will cancel your order.'}
+              ? `Order ${referenceNumber} will be cancelled. This action can't be undone.`
+              : "This order will be cancelled. This action can't be undone."}
           </Text>
 
-          <View className="mt-5 flex-row gap-3">
+          <View className="mt-6 flex-row gap-3">
             <TouchableOpacity
               className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-gray-200 bg-white"
               activeOpacity={0.85}

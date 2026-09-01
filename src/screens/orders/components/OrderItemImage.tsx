@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, View } from 'react-native';
 import { Flame } from 'lucide-react-native';
 
 export function OrderItemImage({
@@ -16,11 +16,8 @@ export function OrderItemImage({
       <View
         accessibilityRole="image"
         accessibilityLabel={`${name} image not available`}
-        className="h-full w-full items-center justify-center bg-orange-50 px-1">
-        <Flame size={20} color="#fed7aa" />
-        <Text className="mt-1 text-center text-[10px] font-semibold text-gray-500">
-          No image
-        </Text>
+        className="h-full w-full items-center justify-center bg-orange-50">
+        <Flame size={22} color="#fdba74" />
       </View>
     );
   }
