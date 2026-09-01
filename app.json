@@ -14,7 +14,8 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "orientation": "portrait",
     "icon": "./assets/images/harrison_logo.png",
@@ -37,7 +38,7 @@
         "backgroundColor": "#ef4501"
       },
       "package": "com.harrisoninasal.harrisoninasal",
-      "versionCode" : 1
+      "versionCode": 1
     },
     "extra": {
       "router": {},

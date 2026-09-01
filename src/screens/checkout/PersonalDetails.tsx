@@ -1,112 +1,74 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { authClient } from '@/lib/auth-client';
 import { BranchSelector } from '@/components/home/BranchSelector';
-import { emptyPersonalDetails, useCheckoutDraft } from '@/hooks/useCheckout';
+import { useCheckout } from '@/context/CheckoutContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CheckoutStepper from './CheckoutStepper';
 import CheckoutTextField from './CheckoutTextField';
-
-type Field = 'firstName' | 'lastName' | 'email' | 'phone' | 'note';
-
-interface FormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  note: string;
-}
-
-interface FormErrors {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-}
+import { FulfillmentSelector } from './FulfillmentSelector';
+import { ReservationPicker } from './ReservationPicker';
+import { PickupTimePicker } from './PickupTimePicker';
+import { useSettings } from '@/hooks/useSettings';
+import { FULFILLMENT_TYPE } from '@/types/orders.type';
 
 const PersonalDetails = () => {
   const router = useRouter();
-  const { draft, savePersonalDetails } = useCheckoutDraft();
+  const insets = useSafeAreaInsets();
   const { data: session } = authClient.useSession();
+  const { data: operatingSched } = useSettings();
 
-  const [form, setForm] = useState<FormData>({
-    ...emptyPersonalDetails,
-  });
+  const {
+    draft,
+    errors,
+    isReady,
+    selectedBranch,
+    shouldShowSyncProfileDetails,
+    isCodAvailable,
+    setFulfillmentType,
+    setCustomerField,
+    setReservationField,
+    setPickupTime,
+    syncProfileDetails,
+    validateCustomerField,
+    validateReservation,
+    validatePickupTime,
+  } = useCheckout();
 
-  const [errors, setErrors] = useState<FormErrors>({});
+  const isDineIn = draft.fulfillmentType === FULFILLMENT_TYPE.DINE_IN;
+  const isPickup = draft.fulfillmentType === FULFILLMENT_TYPE.PICKUP;
+  const isDelivery = draft.fulfillmentType === FULFILLMENT_TYPE.DELIVERY;
 
-  useEffect(() => {
-    if (draft?.personalDetails) {
-      setForm(draft.personalDetails);
-      return;
-    }
+  const handleProceed = () => {
+    // Validate customer fields
+    const fieldErrors = [
+      validateCustomerField('firstName', draft.customer.firstName),
+      validateCustomerField('lastName', draft.customer.lastName),
+      validateCustomerField('customerEmail', draft.customer.customerEmail),
+      validateCustomerField('customerPhone', draft.customer.customerPhone),
+    ];
 
-    const user = session?.user as Record<string, unknown> | undefined;
-    if (!user) return;
+    if (fieldErrors.some(Boolean)) return;
 
-    const name = typeof user.name === 'string' ? user.name.trim() : '';
-    const [fallbackFirstName = '', ...fallbackLastNameParts] = name.split(' ').filter(Boolean);
+    // Validate conditional fields
+    if (isDineIn && !validateReservation()) return;
+    if (isPickup && !validatePickupTime()) return;
 
-    setForm((current) => ({
-      ...current,
-      firstName:
-        typeof user.firstName === 'string'
-          ? user.firstName
-          : current.firstName || fallbackFirstName,
-      lastName:
-        typeof user.lastName === 'string'
-          ? user.lastName
-          : current.lastName || fallbackLastNameParts.join(' '),
-      email: typeof user.email === 'string' ? user.email : current.email,
-      phone:
-        typeof user.phone === 'string'
-          ? user.phone
-          : typeof user.phoneNumber === 'string'
-            ? user.phoneNumber
-            : current.phone,
-    }));
-  }, [draft?.personalDetails, session?.user]);
-
-  const validate = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!form.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!form.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!form.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      newErrors.email = 'Enter a valid email';
-    }
-    if (!form.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-]{7,15}$/.test(form.phone)) {
-      newErrors.phone = 'Enter a valid phone number';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleProceed = async () => {
-    if (validate()) {
-      await savePersonalDetails.mutateAsync(form);
+    // For delivery, go to address step; for pickup/dine-in, skip to review
+    if (isDelivery) {
       router.push('/checkout/address');
+    } else {
+      router.push('/checkout/review');
     }
   };
 
-  const handleChange = (field: Field, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
+  if (!isReady) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-50">
+        <Text className="text-sm text-gray-400">Loading checkout...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -114,87 +76,142 @@ const PersonalDetails = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         className="flex-1 bg-gray-50"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         contentContainerClassName="px-5 pt-5"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <CheckoutStepper currentStep={1} />
 
+        {/* Branch selector */}
         <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
           <Text className="mb-3 text-[15px] font-bold text-gray-950">Pickup branch</Text>
           <BranchSelector className="mt-0 px-0" />
         </View>
 
+        {/* Fulfillment type selector */}
+        <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+          <Text className="mb-3 text-[15px] font-bold text-gray-950">Order type</Text>
+          <FulfillmentSelector
+            value={draft.fulfillmentType}
+            onChange={setFulfillmentType}
+          />
+        </View>
+
+        {/* Customer details */}
         <View className="rounded-2xl bg-white p-4 shadow-sm">
-          <Text className="mb-1 text-xl font-bold text-gray-950">Personal Details</Text>
-          <Text className="mb-5 text-[13px] text-gray-500">Tell us a bit about yourself</Text>
+          <View className="mb-1">
+            <Text className="text-xl font-bold text-gray-950">Personal Details</Text>
+            <Text className="mb-1 text-[13px] text-gray-500">
+              We&apos;ll use this to process and contact you about your order.
+            </Text>
+          </View>
+
+          {/* Sync from profile button */}
+          {shouldShowSyncProfileDetails && (
+            <TouchableOpacity
+              className="mb-3 self-end rounded-lg border border-gray-200 bg-white px-3 py-1.5"
+              onPress={syncProfileDetails}>
+              <Text className="text-xs font-bold text-[#e13e00]">Sync from profile</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Authenticated hint */}
+          {session?.user && (
+            <Text className="mb-3 text-xs text-gray-400">
+              Prefilled from your saved profile.
+            </Text>
+          )}
 
           <View className="flex-row gap-3">
             <CheckoutTextField
               fieldClassName="mb-4 flex-1"
-              label="First Name"
+              label="First name"
               placeholder="Juan"
-              value={form.firstName}
-              onChangeText={v => handleChange('firstName', v)}
+              value={draft.customer.firstName}
+              onChangeText={(v) => setCustomerField('firstName', v)}
               autoCapitalize="words"
-              error={errors.firstName}
+              error={errors.customer.firstName}
             />
 
             <CheckoutTextField
               fieldClassName="mb-4 flex-1"
-              label="Last Name"
-              placeholder="dela Cruz"
-              value={form.lastName}
-              onChangeText={v => handleChange('lastName', v)}
+              label="Last name"
+              placeholder="Dela Cruz"
+              value={draft.customer.lastName}
+              onChangeText={(v) => setCustomerField('lastName', v)}
               autoCapitalize="words"
-              error={errors.lastName}
+              error={errors.customer.lastName}
             />
           </View>
 
           <CheckoutTextField
-            label="Email Address"
-            placeholder="juan@email.com"
-            value={form.email}
-            onChangeText={v => handleChange('email', v)}
+            label="Email"
+            placeholder="juan@example.com"
+            value={draft.customer.customerEmail}
+            onChangeText={(v) => setCustomerField('customerEmail', v)}
             keyboardType="email-address"
             autoCapitalize="none"
-            error={errors.email}
+            error={errors.customer.customerEmail}
           />
 
           <CheckoutTextField
-            label="Phone Number"
+            label="Phone number"
             placeholder="+63 912 345 6789"
-            value={form.phone}
-            onChangeText={v => handleChange('phone', v)}
+            value={draft.customer.customerPhone}
+            onChangeText={(v) => setCustomerField('customerPhone', v)}
             keyboardType="phone-pad"
-            error={errors.phone}
+            error={errors.customer.customerPhone}
           />
 
           <CheckoutTextField
-            label="Order Note"
-            optional
+            label="Order note (optional)"
             inputClassName="h-[88px] pt-3"
             placeholder="Any special instructions for your order..."
-            value={form.note}
-            onChangeText={v => handleChange('note', v)}
+            value={draft.customer.notes}
+            onChangeText={(v) => setCustomerField('notes', v)}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
           />
 
+          {/* Reservation picker for dine-in */}
+          {isDineIn && (
+            <ReservationPicker
+              scheduledAt={draft.reservation.scheduledAt}
+              partySize={draft.reservation.partySize}
+              onChangeScheduledAt={(v) => setReservationField('scheduledAt', v)}
+              onChangePartySize={(v) => setReservationField('partySize', v)}
+              error={errors.reservation.scheduledAt || errors.reservation.partySize}
+              operatingHours={operatingSched?.operatingHours}
+            />
+          )}
+
+          {/* Pickup time picker for pickup */}
+          {isPickup && (
+            <PickupTimePicker
+              value={draft.pickupTime}
+              onChange={setPickupTime}
+              error={errors.pickupTime ?? undefined}
+              operatingHours={operatingSched?.operatingHours}
+            />
+          )}
+
+          {/* Delivery hint */}
+          {isDelivery && (
+            <Text className="mt-2 text-xs text-gray-400">
+              Delivery address will be collected on the next step.
+            </Text>
+          )}
+
           <TouchableOpacity
-            className={`mt-2 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-              savePersonalDetails.isPending ? 'opacity-[0.65]' : ''
-            }`}
+            className={`mt-4 items-center rounded-2xl bg-[#e13e00] py-[15px]`}
             onPress={handleProceed}
-            activeOpacity={0.85}
-            disabled={savePersonalDetails.isPending}>
+            activeOpacity={0.85}>
             <Text className="text-[15px] font-bold text-white">
-              {savePersonalDetails.isPending ? 'Saving...' : 'Proceed to Address'}
+              {isDelivery ? 'Proceed to Address' : 'Continue to Review'}
             </Text>
           </TouchableOpacity>
         </View>
-
-        <View className="h-8" />
       </ScrollView>
     </KeyboardAvoidingView>
   );
