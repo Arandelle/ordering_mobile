@@ -40,7 +40,12 @@ const PersonalDetails = () => {
   const isDelivery = draft.fulfillmentType === FULFILLMENT_TYPE.DELIVERY;
 
   const handleProceed = () => {
-    // Validate customer fields
+    // Must select a branch
+    if (!selectedBranch?._id) {
+      return;
+    }
+
+    // Validate customer fields (includes email domain check)
     const fieldErrors = [
       validateCustomerField('firstName', draft.customer.firstName),
       validateCustomerField('lastName', draft.customer.lastName),
@@ -204,11 +209,18 @@ const PersonalDetails = () => {
           )}
 
           <TouchableOpacity
-            className={`mt-4 items-center rounded-2xl bg-[#e13e00] py-[15px]`}
-            onPress={handleProceed}
-            activeOpacity={0.85}>
+            className={`mt-4 items-center rounded-2xl py-[15px] ${
+              selectedBranch?._id ? 'bg-[#e13e00]' : 'bg-gray-300'
+            }`}
+            onPress={selectedBranch?._id ? handleProceed : undefined}
+            activeOpacity={0.85}
+            disabled={!selectedBranch?._id}>
             <Text className="text-[15px] font-bold text-white">
-              {isDelivery ? 'Proceed to Address' : 'Continue to Review'}
+              {!selectedBranch?._id
+                ? 'Select a branch'
+                : isDelivery
+                  ? 'Proceed to Address'
+                  : 'Continue to Review'}
             </Text>
           </TouchableOpacity>
         </View>
