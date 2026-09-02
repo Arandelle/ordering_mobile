@@ -135,3 +135,80 @@ export async function getGuestOrder(
   );
   return normalizeOrdersResponse(response);
 }
+
+export type DeliveryFeeEstimateParams = {
+  branchId: string;
+  lat: number;
+  lng: number;
+  customerBarangayCode?: string;
+  itemSubtotalAmount?: number;
+};
+
+export type DeliveryFeeEstimateResponse = {
+  distanceKm: number;
+  billableKm: number;
+  deliveryFee: number;
+  freeDeliveryEligible: boolean;
+  effectiveDeliveryFee: number;
+  freeDeliveryApplied: boolean;
+  freeDeliveryReason?: string;
+  recommendedBranch?: {
+    id: string;
+    name: string;
+    code: string;
+    distanceKm: number;
+    estimate: DeliveryFeeEstimateResponse;
+  };
+  deliveryUnavailable?: boolean;
+};
+
+export async function getDeliveryFeeEstimate(
+  params: DeliveryFeeEstimateParams,
+): Promise<DeliveryFeeEstimateResponse | null> {
+  // Detect expo-location mock coordinates (Silicon Valley area in development mode)
+  const isSiliconValley =
+    params.lat > 37.0 && params.lat < 38.0 &&
+    params.lng > -123.0 && params.lng < -121.0;
+
+  if (isSiliconValley) {
+    console.warn('[getDeliveryFeeEstimate] Mock/expo dev coordinates detected. Skipping API call.');
+    return {
+      distanceKm: 0,
+      billableKm: 0,
+      deliveryFee: 0,
+      freeDeliveryEligible: false,
+      freeDeliveryApplied: false,
+      effectiveDeliveryFee: 0,
+      freeDeliveryReason: 'Please pin your delivery location on the map instead of using current location in development mode.',
+      deliveryUnavailable: true,
+    };
+  }
+
+  const body: {
+    branchId: string;
+    coordinates: { lat: number; lng: number };
+    customerBarangayCode?: string;
+    itemSubtotalAmount?: number;
+  } = {
+    branchId: params.branchId,
+    coordinates: { lat: params.lat, lng: params.lng },
+  };
+
+  if (params.customerBarangayCode) {
+    body.customerBarangayCode = params.customerBarangayCode;
+  }
+  if (params.itemSubtotalAmount !== undefined) {
+    body.itemSubtotalAmount = params.itemSubtotalAmount;
+  }
+
+  console.log('[getDeliveryFeeEstimate] Request:', JSON.stringify(body, null, 2));
+
+  const response = await apiClient.post<{ data: DeliveryFeeEstimateResponse }>(
+    '/customer/delivery-fee/estimate',
+    body,
+  );
+
+  console.log('[getDeliveryFeeEstimate] Response:', JSON.stringify(response, null, 2));
+
+  return (response as { data: DeliveryFeeEstimateResponse })?.data ?? null;
+}

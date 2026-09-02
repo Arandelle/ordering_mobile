@@ -10,11 +10,13 @@ import {
   createMayaCheckoutForOrder,
   getCustomerOrder,
   getCustomerOrders,
+  getDeliveryFeeEstimate,
   getGuestOrder,
   submitOrderReview,
+  DeliveryFeeEstimateParams,
+  DeliveryFeeEstimateResponse,
 } from '@/services/orders.service';
-import { ORDER_STATUSES, OrderStatus } from '@/types/order-constant';
-import { CreateOrderResponse, OrderType, OrdersApiResponse } from '@/types/orders.type';
+import { CreateOrderResponse, OrderType, OrdersApiResponse, ORDER_STATUSES, OrderStatus } from '@/types/orders.type';
 import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
 
 const ORDERS_PAGE_SIZE = 20;
@@ -22,9 +24,12 @@ const ACTIVE_ORDER_REFETCH_INTERVAL_MS = 10_000;
 const ORDERS_REFETCH_INTERVAL_MS = 15_000;
 
 const ACTIVE_ORDER_STATUSES = new Set<OrderStatus>([
+  ORDER_STATUSES.PENDING_PAYMENT,
   ORDER_STATUSES.PENDING,
+  ORDER_STATUSES.CONFIRMED,
   ORDER_STATUSES.PREPARING,
-  ORDER_STATUSES.READY,
+  ORDER_STATUSES.DISPATCH,
+  ORDER_STATUSES.READY_FOR_PICKUP,
 ]);
 
 function hasActiveOrders(response?: OrdersApiResponse) {
@@ -135,5 +140,15 @@ export function useCreateMayaCheckout() {
       void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
       void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
     },
+  });
+}
+
+export function useDeliveryFeeEstimate(params: DeliveryFeeEstimateParams | null) {
+  return useQuery<DeliveryFeeEstimateResponse | null, Error>({
+    queryKey: ['delivery-fee-estimate', params?.branchId, params?.lat, params?.lng],
+    queryFn: () => getDeliveryFeeEstimate(params!),
+    enabled: !!params,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 }

@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useBranchContext } from '@/context/BranchContext';
 import { useCart } from '@/context/CartContext';
 import { BranchSelector } from '@/components/home/BranchSelector';
@@ -12,6 +13,7 @@ import { CreateOrderPayload, FULFILLMENT_TYPE } from '@/types/orders.type';
 import { QuantityStepper } from '@/components/products/QuantityStepper';
 import CheckoutStepper from './CheckoutStepper';
 import { OrderConfirmationModal } from './OrderConfirmationModal';
+import { useDeliveryFeeEstimate } from '@/hooks/useOrders';
 
 function formatMoney(value: number) {
   return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -90,6 +92,7 @@ const ReviewOrder = () => {
 
   const {
     draft,
+    errors,
     isCodAvailable,
     setPaymentMethod,
     submitOrder,
@@ -104,6 +107,20 @@ const ReviewOrder = () => {
   const isDelivery = draft.fulfillmentType === FULFILLMENT_TYPE.DELIVERY;
   const isDineIn = draft.fulfillmentType === FULFILLMENT_TYPE.DINE_IN;
   const isPickup = draft.fulfillmentType === FULFILLMENT_TYPE.PICKUP;
+
+  // Delivery fee estimate
+  const deliveryCoords = draft.shippingAddress.coordinates;
+  const { data: deliveryEstimate, isLoading: isLoadingDeliveryFee } = useDeliveryFeeEstimate(
+    isDelivery && deliveryCoords && selectedBranch?._id
+      ? {
+          branchId: selectedBranch._id,
+          lat: deliveryCoords.lat,
+          lng: deliveryCoords.lng,
+          customerBarangayCode: draft.shippingAddress.barangayCode || undefined,
+          itemSubtotalAmount: vatableSales,
+        }
+      : null,
+  );
 
   // Effective COD availability
   const effectiveCodAvailable = isCodAvailable && isDelivery;
@@ -160,6 +177,12 @@ const ReviewOrder = () => {
   };
 
   const handlePlaceOrder = async () => {
+    // Double-check validation at submit time
+    if (!canPlaceOrder) {
+      Alert.alert('Cannot place order', 'Please complete all required fields.');
+      return;
+    }
+
     if (!selectedBranch?._id) {
       Alert.alert('Branch required', 'Please select a branch before checkout.');
       return;
@@ -204,6 +227,26 @@ const ReviewOrder = () => {
   };
 
   const fullName = `${draft.customer.firstName} ${draft.customer.lastName}`.trim();
+
+  // Can place order — no validation errors, branch selected, cart not empty
+  const hasCustomerErrors = Object.keys(errors.customer).length > 0;
+  const hasShippingErrors = isDelivery && Object.keys(errors.shipping).length > 0;
+  const hasReservationErrors = isDineIn && Object.keys(errors.reservation).length > 0;
+  const hasPickupError = isPickup && !!errors.pickupTime;
+  const deliveryBlocked = isDelivery && deliveryEstimate?.deliveryUnavailable === true;
+  const deliveryLoading = isDelivery && isLoadingDeliveryFee;
+  const deliveryNotFetched = isDelivery && !deliveryCoords;
+
+  const canPlaceOrder =
+    cartItems.length > 0 &&
+    !!selectedBranch?._id &&
+    !hasCustomerErrors &&
+    !hasShippingErrors &&
+    !hasReservationErrors &&
+    !hasPickupError &&
+    !deliveryBlocked &&
+    !deliveryLoading &&
+    !deliveryNotFetched;
 
   if (!isReady) {
     return (
@@ -387,6 +430,93 @@ const ReviewOrder = () => {
             <Text className="text-sm text-gray-500">VAT 12%</Text>
             <Text className="text-sm font-semibold text-gray-800">{formatMoney(vatAmount)}</Text>
           </View>
+
+          {isDelivery && (
+            <>
+              {isLoadingDeliveryFee ? (
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm text-gray-500">Delivery fee</Text>
+                  <Text className="text-sm text-gray-400">Calculating...</Text>
+                </View>
+              ) : deliveryEstimate ? (
+                <>
+                  {/* Distance + billable km */}
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-1.5">
+                      <Ionicons name="location-outline" size={14} color="#6b7280" />
+                      <Text className="text-sm text-gray-500">Distance</Text>
+                    </View>
+                    <Text className="text-sm font-semibold text-gray-800">
+                      {deliveryEstimate.distanceKm.toFixed(1)} km
+                      {deliveryEstimate.billableKm !== Math.round(deliveryEstimate.distanceKm) && (
+                        <Text className="text-xs text-gray-400">
+                          {' '}({deliveryEstimate.billableKm} km billed)
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+
+                  {/* Delivery fee */}
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-sm text-gray-500">Delivery fee</Text>
+                    {deliveryEstimate.freeDeliveryEligible ? (
+                      <View className="flex-row items-center gap-1">
+                        <Text className="text-xs text-gray-400 line-through">
+                          {formatMoney(deliveryEstimate.deliveryFee)}
+                        </Text>
+                        <Text className="text-sm font-bold text-green-600">FREE</Text>
+                      </View>
+                    ) : (
+                      <Text className="text-sm font-semibold text-gray-800">
+                        {formatMoney(deliveryEstimate.effectiveDeliveryFee)}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Free delivery reason */}
+                  {deliveryEstimate.freeDeliveryEligible && deliveryEstimate.freeDeliveryReason && (
+                    <View className="flex-row items-start gap-1.5 rounded-lg bg-green-50 px-3 py-2">
+                      <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
+                      <Text className="flex-1 text-xs text-green-700">
+                        {deliveryEstimate.freeDeliveryReason}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Free delivery not eligible — show upsell hint */}
+                  {!deliveryEstimate.freeDeliveryEligible && deliveryEstimate.freeDeliveryReason && (
+                    <View className="flex-row items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2">
+                      <Ionicons name="information-circle" size={14} color="#d97706" />
+                      <Text className="flex-1 text-xs text-amber-800">
+                        {deliveryEstimate.freeDeliveryReason}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Delivery unavailable warning */}
+                  {deliveryEstimate.deliveryUnavailable && (
+                    <View className="flex-row items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2">
+                      <Ionicons name="alert-circle" size={14} color="#dc2626" />
+                      <Text className="flex-1 text-xs text-red-600">
+                        Delivery is not available for this address.
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Recommended branch */}
+                  {deliveryEstimate.recommendedBranch && (
+                    <View className="flex-row items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2">
+                      <Ionicons name="navigate" size={14} color="#d97706" />
+                      <Text className="flex-1 text-xs text-amber-800">
+                        Try {deliveryEstimate.recommendedBranch.name} —{' '}
+                        {deliveryEstimate.recommendedBranch.distanceKm.toFixed(1)} km away
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : null}
+            </>
+          )}
         </View>
 
         <View className="my-3 h-px bg-gray-100" />
@@ -397,16 +527,65 @@ const ReviewOrder = () => {
         </View>
       </View>
 
+      {/* Validation errors banner */}
+      {!canPlaceOrder && (
+        <View className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <View className="mb-2 flex-row items-center gap-2">
+            <Ionicons name="alert-circle" size={16} color="#dc2626" />
+            <Text className="text-sm font-bold text-red-700">Please fix the following:</Text>
+          </View>
+          <View className="gap-1">
+            {Object.values(errors.customer).map((err, i) =>
+              err ? <Text key={`c-${i}`} className="text-xs text-red-600">• {err}</Text> : null,
+            )}
+            {Object.values(errors.shipping).map((err, i) =>
+              err ? <Text key={`s-${i}`} className="text-xs text-red-600">• {err}</Text> : null,
+            )}
+            {Object.values(errors.reservation).map((err, i) =>
+              err ? <Text key={`r-${i}`} className="text-xs text-red-600">• {err}</Text> : null,
+            )}
+            {errors.pickupTime && (
+              <Text className="text-xs text-red-600">• {errors.pickupTime}</Text>
+            )}
+            {!selectedBranch?._id && (
+              <Text className="text-xs text-red-600">• Please select a branch</Text>
+            )}
+            {cartItems.length === 0 && (
+              <Text className="text-xs text-red-600">• Your cart is empty</Text>
+            )}
+            {deliveryBlocked && (
+              <Text className="text-xs text-red-600">• Delivery is not available for this address</Text>
+            )}
+            {deliveryLoading && isDelivery && (
+              <Text className="text-xs text-red-600">• Calculating delivery fee...</Text>
+            )}
+            {deliveryNotFetched && isDelivery && (
+              <Text className="text-xs text-red-600">• Please pin your delivery location first</Text>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* Place Order button */}
       <TouchableOpacity
-        className={`items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-          cartItems.length === 0 ? 'opacity-[0.65]' : ''
+        className={`items-center rounded-2xl py-[15px] ${
+          canPlaceOrder ? 'bg-[#e13e00]' : 'bg-gray-300'
         }`}
-        onPress={handleConfirmOrder}
+        onPress={canPlaceOrder ? handleConfirmOrder : undefined}
         activeOpacity={0.85}
-        disabled={cartItems.length === 0}>
+        disabled={!canPlaceOrder}>
         <Text className="text-[15px] font-bold text-white">
-          {paymentMethod === 'maya' ? 'Proceed to Maya' : 'Place Order'}
+          {deliveryNotFetched
+            ? 'Pin delivery location first'
+            : deliveryLoading
+              ? 'Calculating delivery fee...'
+              : deliveryBlocked
+                ? 'Delivery not available'
+                : !canPlaceOrder
+                  ? 'Complete required fields'
+                  : paymentMethod === 'maya'
+                    ? 'Proceed to Maya'
+                    : 'Place Order'}
         </Text>
       </TouchableOpacity>
 
