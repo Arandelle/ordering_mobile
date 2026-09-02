@@ -29,23 +29,3 @@ export function isAllowedCustomerDomain(email: string): boolean {
   const domain = email.trim().toLowerCase().split("@")[1];
   return CUSTOMER_EMAIL_DOMAINS.includes(domain);
 }
-
-/** @deprecated Use isAllowedCustomerDomain instead. */
-export function isGmail(email: string): boolean {
-  return isAllowedCustomerDomain(email);
-}
-
-/** Admin accounts must use one of these approved email domains. */
-export const ADMIN_EMAIL_DOMAINS = [
-  "jpfoodlab.com",
-  "jptechnologyph.com",
-  "harrisoninasalbbq.com.ph",
-  "harrisoninasalbbq.ph",
-  "digitaloneph.com",
-  "jpscgroup.com",
-];
-
-export function isAllowedAdminDomain(email: string): boolean {
-  const domain = email.trim().toLowerCase().split("@")[1];
-  return ADMIN_EMAIL_DOMAINS.includes(domain);
-}

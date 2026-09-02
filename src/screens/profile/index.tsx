@@ -20,6 +20,7 @@ import {
 import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
+import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 import { AddressDetails } from './AddressDetails';
 import { ProfileDetails } from './ProfileDetails';
 import { SecurityDetails } from './SecurityDetails';
@@ -100,6 +101,12 @@ export default function Profile() {
 
   const handleEmailLogin = async () => {
     clearMessages();
+
+    if (!isAllowedCustomerDomain(email.trim())) {
+      setError('This email domain is not allowed. Please use an approved email provider.');
+      return;
+    }
+
     setLoadingAction('email');
 
     const { error: authError } = await authClient.signIn.email({

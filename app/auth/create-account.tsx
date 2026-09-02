@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { Chrome, LockKeyhole, Mail } from 'lucide-react-native';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
+import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 
 export default function CreateAccount() {
   const [email, setEmail] = useState('');
@@ -21,6 +22,11 @@ export default function CreateAccount() {
 
   const handleCreateAccount = async () => {
     setError('');
+
+    if (!isAllowedCustomerDomain(email.trim())) {
+      setError('This email domain is not allowed. Please use an approved email provider.');
+      return;
+    }
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
