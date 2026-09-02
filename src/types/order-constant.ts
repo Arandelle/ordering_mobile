@@ -6,19 +6,8 @@
  * across the entire application.
  */
 
-// ============================================
-// ORDER STATUSES
-// ============================================
+import { ORDER_STATUSES, PAYMENT_METHODS, PaymentMethod } from "./orders.type";
 
-export const ORDER_STATUSES = {
-  PENDING: "pending",
-  PREPARING: "preparing",
-  READY: "ready",
-  COMPLETED: "completed",
-  CANCELLED: "cancelled",
-  FAILED: "failed",
-  EXPIRED: "expired",
-} as const;
 
 /**
  * Type-safe OrderStatus - derived from constants
@@ -28,9 +17,12 @@ export type OrderStatus = (typeof ORDER_STATUSES)[keyof typeof ORDER_STATUSES];
 
 // =================== USED for select options =====================
 export const ORDER_STATUS_FILTER_LIST = [
+  ORDER_STATUSES.PENDING_PAYMENT,
   ORDER_STATUSES.PENDING,
+  ORDER_STATUSES.CONFIRMED,
   ORDER_STATUSES.PREPARING,
-  ORDER_STATUSES.READY,
+  ORDER_STATUSES.DISPATCH,
+  ORDER_STATUSES.READY_FOR_PICKUP,
   ORDER_STATUSES.COMPLETED,
   ORDER_STATUSES.CANCELLED,
   ORDER_STATUSES.FAILED,
@@ -54,13 +46,16 @@ export const ORDER_STATUS_OPTIONS = ORDER_STATUS_FILTER_LIST.map((status) => ({
  */
 
 export const STATUS_PRIORITY: Record<OrderStatus, number> = {
-  [ORDER_STATUSES.PENDING]: 1, // Awaiting payment
-  [ORDER_STATUSES.PREPARING]: 2, // In kitchen
-  [ORDER_STATUSES.READY]: 3, // Ready for pickup/delivery
-  [ORDER_STATUSES.COMPLETED]: 4, // Done
-  [ORDER_STATUSES.CANCELLED]: 5, // Cancelled
-  [ORDER_STATUSES.FAILED]: 6, // Payment failed
-  [ORDER_STATUSES.EXPIRED]: 7, // Expired
+  [ORDER_STATUSES.PENDING_PAYMENT]: 1, // Awaiting external payment
+  [ORDER_STATUSES.PENDING]: 2, // Awaiting staff action
+  [ORDER_STATUSES.CONFIRMED]: 3, // Reservation confirmed, awaiting day-of
+  [ORDER_STATUSES.PREPARING]: 4, // In kitchen
+  [ORDER_STATUSES.DISPATCH]: 5, // Out for delivery
+  [ORDER_STATUSES.READY_FOR_PICKUP]: 5, // Ready at counter
+  [ORDER_STATUSES.COMPLETED]: 6, // Done
+  [ORDER_STATUSES.CANCELLED]: 7, // Cancelled
+  [ORDER_STATUSES.FAILED]: 8, // Payment failed
+  [ORDER_STATUSES.EXPIRED]: 9, // Expired
 };
 
 // ============================================
@@ -75,12 +70,27 @@ export const STATUS_PRIORITY: Record<OrderStatus, number> = {
  */
 
 export const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[] | null> = {
+  [ORDER_STATUSES.PENDING_PAYMENT]: [
+    ORDER_STATUSES.PENDING,
+    ORDER_STATUSES.CANCELLED,
+    ORDER_STATUSES.FAILED,
+    ORDER_STATUSES.EXPIRED,
+  ],
   [ORDER_STATUSES.PENDING]: [
+    ORDER_STATUSES.CONFIRMED,
     ORDER_STATUSES.PREPARING,
     ORDER_STATUSES.CANCELLED,
-  ], // Accept order for cod
-  [ORDER_STATUSES.PREPARING]: [ORDER_STATUSES.READY], // Food ready
-  [ORDER_STATUSES.READY]: [ORDER_STATUSES.COMPLETED], // Dispatch to customer
+  ], // Accept: confirmed for reservations, preparing for non-reservations
+  [ORDER_STATUSES.CONFIRMED]: [
+    ORDER_STATUSES.PREPARING,
+    ORDER_STATUSES.CANCELLED,
+  ], // Reservation confirmed → start preparing on day-of (1hr guard)
+  [ORDER_STATUSES.PREPARING]: [
+    ORDER_STATUSES.DISPATCH,
+    ORDER_STATUSES.READY_FOR_PICKUP,
+  ], // Food ready for delivery/pickup
+  [ORDER_STATUSES.DISPATCH]: [ORDER_STATUSES.COMPLETED], // Dispatch to customer
+  [ORDER_STATUSES.READY_FOR_PICKUP]: [ORDER_STATUSES.COMPLETED], // Customer pickup
   [ORDER_STATUSES.COMPLETED]: null, // Terminal state
   [ORDER_STATUSES.CANCELLED]: null, // Terminal state
   [ORDER_STATUSES.FAILED]: null, // Terminal state (payment failed)
@@ -106,39 +116,86 @@ export const ORDER_ACTION_CONFIG: Record<
         label: string;
         variant: string;
         roles?: ("admin" | "customer")[];
-        paymentMethods?: ("cod" | "maya")[];
+        paymentMethods?: PaymentMethod[];
       }
     >
   >
 > = {
+  [ORDER_STATUSES.PENDING_PAYMENT]: {
+    [ORDER_STATUSES.CANCELLED]: {
+      label: "Cancel Order",
+      variant: "text-red-600 hover:text-red-700",
+      roles: ["customer", "admin"],
+      paymentMethods: [PAYMENT_METHODS.MAYA],
+    },
+    [ORDER_STATUSES.EXPIRED]: {
+      label: "Expire Order",
+      variant: "text-gray-600 hover:text-gray-700",
+      roles: ["admin"],
+    },
+  },
+
   [ORDER_STATUSES.PENDING]: {
+    [ORDER_STATUSES.CONFIRMED]: {
+      label: "Accept Reservation",
+      variant: "text-[#ef4501] hover:text-[#c13500]",
+      roles: ["admin"],
+      paymentMethods: Object.values(PAYMENT_METHODS),
+    },
     [ORDER_STATUSES.PREPARING]: {
       label: "Accept Order",
-      variant: "bg-[#ef4501] hover:bg-[#c13500]",
+      variant: "text-[#ef4501] hover:text-[#c13500]",
       roles: ["admin"],
-      paymentMethods: ["cod", "maya"],
+      paymentMethods: Object.values(PAYMENT_METHODS),
     },
 
     [ORDER_STATUSES.CANCELLED]: {
       label: "Cancel Order",
-      variant: "bg-red-600 hover:bg-red-700",
-      roles: ["customer"],
+      variant: "text-red-600 hover:text-red-700",
+      roles: ["customer", "admin"],
+    },
+  },
+
+  [ORDER_STATUSES.CONFIRMED]: {
+    [ORDER_STATUSES.PREPARING]: {
+      label: "Start Preparing",
+      variant: "text-[#ef4501] hover:text-[#c13500]",
+      roles: ["admin"],
+      paymentMethods: Object.values(PAYMENT_METHODS),
+    },
+
+    [ORDER_STATUSES.CANCELLED]: {
+      label: "Cancel Reservation",
+      variant: "text-red-600 hover:text-red-700",
+      roles: ["customer", "admin"],
     },
   },
 
   [ORDER_STATUSES.PREPARING]: {
-    [ORDER_STATUSES.READY]: {
-      label: "Mark as Ready",
-      variant: "bg-green-700 hover:bg-green-800",
+    [ORDER_STATUSES.DISPATCH]: {
+      label: "Dispatch",
+      variant: "text-green-700 hover:text-green-800",
+      roles: ["admin"],
+    },
+    [ORDER_STATUSES.READY_FOR_PICKUP]: {
+      label: "Ready for Pickup",
+      variant: "text-green-700 hover:text-green-800",
       roles: ["admin"],
     },
   },
 
 
-  [ORDER_STATUSES.READY]: {
+  [ORDER_STATUSES.DISPATCH]: {
     [ORDER_STATUSES.COMPLETED]: {
       label: "Mark Completed",
-      variant: "bg-amber-500 hover:bg-amber-600",
+      variant: "text-amber-500 hover:text-amber-600",
+      roles: ["admin"],
+    },
+  },
+  [ORDER_STATUSES.READY_FOR_PICKUP]: {
+    [ORDER_STATUSES.COMPLETED]: {
+      label: "Mark Completed",
+      variant: "text-amber-500 hover:text-amber-600",
       roles: ["admin"],
     },
   },
@@ -160,9 +217,10 @@ export const ORDER_ACTION_CONFIG: Record<
 export const TIMELINE_FIELD_MAP: Record<
   OrderStatus,
   | "paidAt"
+  | "confirmedAt"
   | "preparingAt"
-  | "readyAt"
   | "dispatchedAt"
+  | "readyAt"
   | "completedAt"
   | "cancelledAt"
   | "failedAt"
@@ -170,8 +228,11 @@ export const TIMELINE_FIELD_MAP: Record<
   | null
 > = {
   [ORDER_STATUSES.PENDING]: null, // No timestamp on pending
+  [ORDER_STATUSES.PENDING_PAYMENT]: null, // No timestamp until terminal/paid
+  [ORDER_STATUSES.CONFIRMED]: "confirmedAt",
   [ORDER_STATUSES.PREPARING]: "preparingAt",
-  [ORDER_STATUSES.READY]: "readyAt",
+  [ORDER_STATUSES.DISPATCH]: "dispatchedAt",
+  [ORDER_STATUSES.READY_FOR_PICKUP]: "readyAt",
   [ORDER_STATUSES.COMPLETED]: "completedAt",
   [ORDER_STATUSES.CANCELLED]: "cancelledAt",
   [ORDER_STATUSES.FAILED]: "failedAt",
