@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { apiClient } from '@/lib/apiClient';
 import { FULFILLMENT_TYPE } from '@/types/orders.type';
 import type { FulfillmentType, CreateOrderPayload, CreateOrderResponse } from '@/types/orders.type';
 import type { Branch } from '@/types/branch.type';
-import type { SettingsType } from '@/hooks/useSettings';
 import { useMyAddress } from '@/hooks/useAddress';
+import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -174,6 +174,7 @@ interface CheckoutContextValue {
   validateShippingField: (field: keyof CheckoutAddressDetails, value: string) => string | null;
   validateReservation: () => boolean;
   validatePickupTime: () => boolean;
+  validateAll: (fulfillmentType: FulfillmentType) => { ok: boolean; errors: CheckoutErrors };
   submitOrder: (payload: CreateOrderPayload) => Promise<CreateOrderResponse>;
   clearDraftAndState: () => Promise<void>;
 }
@@ -401,6 +402,7 @@ export function CheckoutProvider({
       case 'customerEmail':
         if (!value.trim()) error = 'Email is required';
         else if (!/\S+@\S+\.\S+/.test(value)) error = 'Enter a valid email';
+        else if (!isAllowedCustomerDomain(value)) error = 'Email domain is not allowed';
         break;
       case 'customerPhone':
         if (!value.trim()) error = 'Phone number is required';
@@ -466,6 +468,77 @@ export function CheckoutProvider({
     return true;
   }, [draft.pickupTime]);
 
+  // ── Validate all fields for the given fulfillment type ─────────────
+  // Pure validation — does NOT call setErrors. Use for pre-submit checks.
+  const validateAll = useCallback((fulfillmentType: FulfillmentType): { ok: boolean; errors: CheckoutErrors } => {
+    const customerErrors: Partial<Record<keyof CheckoutPersonalDetails, string>> = {};
+    const shippingErrors: Partial<Record<keyof CheckoutAddressDetails, string>> = {};
+    const reservationErrors: Partial<Record<keyof CheckoutReservation, string>> = {};
+    let pickupTimeError: string | null = null;
+
+    // Customer validation (always required)
+    if (!draft.customer.firstName.trim()) customerErrors.firstName = 'First name is required';
+    if (!draft.customer.lastName.trim()) customerErrors.lastName = 'Last name is required';
+    if (!draft.customer.customerEmail.trim()) {
+      customerErrors.customerEmail = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(draft.customer.customerEmail)) {
+      customerErrors.customerEmail = 'Enter a valid email';
+    } else if (!isAllowedCustomerDomain(draft.customer.customerEmail)) {
+      customerErrors.customerEmail = 'Email domain is not allowed';
+    }
+    if (!draft.customer.customerPhone.trim()) {
+      customerErrors.customerPhone = 'Phone number is required';
+    } else if (!/^\+?[\d\s\-]{7,15}$/.test(draft.customer.customerPhone)) {
+      customerErrors.customerPhone = 'Enter a valid phone number';
+    }
+
+    // Fulfillment-specific validation
+    if (fulfillmentType === FULFILLMENT_TYPE.DELIVERY) {
+      if (!draft.shippingAddress.line1.trim()) shippingErrors.line1 = 'Street address is required';
+      if (!draft.shippingAddress.city.trim()) shippingErrors.city = 'City is required';
+      if (!draft.shippingAddress.province.trim()) shippingErrors.province = 'Province is required';
+      if (!draft.shippingAddress.coordinates) shippingErrors.line1 = 'Please pin your location on the map';
+    }
+
+    if (fulfillmentType === FULFILLMENT_TYPE.DINE_IN) {
+      const resDate = new Date(draft.reservation.scheduledAt);
+      if (isNaN(resDate.getTime())) {
+        reservationErrors.scheduledAt = 'Invalid date';
+      } else if (resDate <= new Date()) {
+        reservationErrors.scheduledAt = 'Reservation must be in the future';
+      }
+      if (draft.reservation.partySize < 1) reservationErrors.partySize = 'At least 1 guest';
+      if (draft.reservation.partySize > 20) reservationErrors.partySize = 'Maximum 20 guests';
+    }
+
+    if (fulfillmentType === FULFILLMENT_TYPE.PICKUP) {
+      const pickupDate = new Date(draft.pickupTime);
+      if (isNaN(pickupDate.getTime())) {
+        pickupTimeError = 'Invalid pickup time';
+      } else if (pickupDate <= new Date()) {
+        pickupTimeError = 'Pickup time must be in the future';
+      }
+    }
+
+    const hasErrors =
+      Object.keys(customerErrors).length > 0 ||
+      Object.keys(shippingErrors).length > 0 ||
+      Object.keys(reservationErrors).length > 0 ||
+      !!pickupTimeError;
+
+    const newErrors: CheckoutErrors = {
+      customer: customerErrors,
+      shipping: shippingErrors,
+      reservation: reservationErrors,
+      pickupTime: pickupTimeError,
+    };
+
+    // Also push errors to state so they appear inline on previous screens
+    setErrors(newErrors);
+
+    return { ok: !hasErrors, errors: newErrors };
+  }, [draft.customer.firstName, draft.customer.lastName, draft.customer.customerEmail, draft.customer.customerPhone, draft.shippingAddress.line1, draft.shippingAddress.city, draft.shippingAddress.province, draft.shippingAddress.coordinates, draft.reservation.scheduledAt, draft.reservation.partySize, draft.pickupTime]);
+
   // ── Submit order ─────────────────────────────────────────────────────
   const submitOrder = useCallback(
     async (payload: CreateOrderPayload): Promise<CreateOrderResponse> => {
@@ -514,6 +587,7 @@ export function CheckoutProvider({
       validateShippingField,
       validateReservation,
       validatePickupTime,
+      validateAll,
       submitOrder,
       clearDraftAndState,
     }),
@@ -536,6 +610,7 @@ export function CheckoutProvider({
       validateShippingField,
       validateReservation,
       validatePickupTime,
+      validateAll,
       submitOrder,
       clearDraftAndState,
     ]
