@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  Modal,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import CheckoutTextField from './CheckoutTextField';
@@ -123,9 +130,11 @@ export const fetchSubMunicipalityBarangays = async (
   }
 };
 
-// ─── Dropdown Component ───────────────────────────────────────────────────────
+// ─── Modal Picker Component ───────────────────────────────────────────────────
 
-function PsgcDropdown({
+type PickerOption = { value: string; label: string; disabled?: boolean };
+
+function PsgcModalPicker({
   label,
   value,
   options,
@@ -134,22 +143,34 @@ function PsgcDropdown({
   loading,
   placeholder,
   error,
-  hint,
   required,
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string; disabled?: boolean }[];
+  options: PickerOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
   loading?: boolean;
   placeholder?: string;
   error?: string;
-  hint?: string;
   required?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return options;
+    const q = search.toLowerCase();
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [options, search]);
+
+  const handleSelect = (opt: PickerOption) => {
+    if (opt.disabled) return;
+    onChange(opt.value);
+    setSearch('');
+    setModalOpen(false);
+  };
 
   return (
     <View className="mb-3">
@@ -161,7 +182,7 @@ function PsgcDropdown({
         className={`flex-row items-center justify-between rounded-xl border bg-white px-3 py-3 ${
           error ? 'border-red-300' : 'border-gray-200'
         } ${disabled ? 'opacity-50' : ''}`}
-        onPress={() => !disabled && setOpen(!open)}
+        onPress={() => !disabled && setModalOpen(true)}
         activeOpacity={0.7}
         disabled={disabled || loading}>
         <Text
@@ -169,34 +190,68 @@ function PsgcDropdown({
           numberOfLines={1}>
           {loading ? 'Loading...' : selectedLabel || placeholder || `Select ${label.toLowerCase()}`}
         </Text>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#9ca3af" />
+        <Ionicons name="chevron-down" size={16} color="#9ca3af" />
       </TouchableOpacity>
 
-      {open && (
-        <View className="absolute z-50 mt-1 max-h-48 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
-          {options.map((option, idx) => (
-            <TouchableOpacity
-              key={option.value}
-              className={`px-4 py-3 ${idx < options.length - 1 ? 'border-b border-gray-100' : ''} ${
-                option.disabled ? 'opacity-40' : ''
-              } ${option.value === value ? 'bg-orange-50' : ''}`}
-              disabled={option.disabled}
-              onPress={() => {
-                onChange(option.value);
-                setOpen(false);
-              }}
-              activeOpacity={0.7}>
-              <Text
-                className={`text-sm ${option.value === value ? 'font-semibold text-[#e13e00]' : 'text-gray-700'}`}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {hint && <Text className="mt-1 text-xs text-amber-600">{hint}</Text>}
       {error && <Text className="mt-1 text-xs font-semibold text-red-500">{error}</Text>}
+
+      <Modal visible={modalOpen} animationType="slide" transparent>
+        <View className="flex-1 justify-end bg-black/40">
+          <View className="max-h-[75%] rounded-t-2xl bg-white">
+            {/* Header */}
+            <View className="flex-row items-center justify-between border-b border-gray-200 px-4 py-3">
+              <Text className="text-base font-semibold text-gray-900">{label}</Text>
+              <TouchableOpacity onPress={() => { setSearch(''); setModalOpen(false); }} activeOpacity={0.7}>
+                <Ionicons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search */}
+            <View className="border-b border-gray-100 px-4 py-2">
+              <View className="flex-row items-center rounded-lg bg-gray-100 px-3">
+                <Ionicons name="search-outline" size={16} color="#9ca3af" />
+                <TextInput
+                  className="flex-1 py-2 pl-2 text-sm text-gray-900"
+                  placeholder={`Search ${label.toLowerCase()}...`}
+                  placeholderTextColor="#9ca3af"
+                  value={search}
+                  onChangeText={setSearch}
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            {/* List */}
+            <FlatList
+              data={filtered}
+              keyExtractor={(item) => item.value}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  className={`px-4 py-3 ${item.disabled ? 'opacity-40' : ''} ${
+                    item.value === value ? 'bg-orange-50' : ''
+                  }`}
+                  disabled={item.disabled}
+                  onPress={() => handleSelect(item)}
+                  activeOpacity={0.7}>
+                  <Text
+                    className={`text-sm ${
+                      item.value === value ? 'font-semibold text-[#e13e00]' : 'text-gray-700'
+                    }`}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View className="py-8 items-center">
+                  <Text className="text-sm text-gray-400">
+                    {search ? 'No matching results' : 'No options available'}
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -292,43 +347,36 @@ export function PsgcAddressFields() {
   return (
     <>
       {/* Region — locked */}
-      <PsgcDropdown
+      <PsgcModalPicker
         label="Region"
         value={NCR_REGION.code}
         options={[{ value: NCR_REGION.code, label: NCR_REGION.displayName }]}
         onChange={() => {}}
         disabled
         required
-        hint={errors.shipping.city ? undefined : undefined}
       />
 
       {/* City */}
-      <PsgcDropdown
+      <PsgcModalPicker
         label="City / Municipality"
         value={selectedCity?.code ?? ''}
         options={[
-          { value: '', label: 'Select City', disabled: true },
+          { value: '', label: '— Select City —', disabled: true },
           ...cities.map((c) => ({ value: c.code, label: c.name })),
         ]}
         onChange={handleCityChange}
         disabled={isLoadingCities}
         loading={isLoadingCities}
         required
-        hint={
-          draft.shippingAddress.city && draft.shippingAddress.city !== selectedCity?.name
-            ? `Detected "${draft.shippingAddress.city}". Choose the closest city if not exact.`
-            : undefined
-        }
-        error={errors.shipping.city}
       />
 
       {/* Manila Area (sub-municipality) — only for Manila */}
       {isManila && (
-        <PsgcDropdown
+        <PsgcModalPicker
           label="Manila Area"
           value={selectedSubMunicipality?.code ?? ''}
           options={[
-            { value: '', label: isLoadingManilaAreas ? 'Loading...' : 'Select Area', disabled: true },
+            { value: '', label: '— Select Area —', disabled: true },
             ...manilaAreas.map((a) => ({ value: a.code, label: a.name })),
           ]}
           onChange={handleSubMunicipalityChange}
@@ -339,7 +387,7 @@ export function PsgcAddressFields() {
       )}
 
       {/* Barangay */}
-      <PsgcDropdown
+      <PsgcModalPicker
         label="Barangay"
         value={selectedBarangay?.code ?? ''}
         options={[
@@ -351,7 +399,7 @@ export function PsgcAddressFields() {
                 ? 'Select Manila area first'
                 : !selectedCity
                   ? 'Select city first'
-                  : 'Select barangay',
+                  : '— Select Barangay —',
             disabled: true,
           },
           ...barangays.map((b) => ({ value: b.code, label: b.name })),
@@ -360,12 +408,6 @@ export function PsgcAddressFields() {
         disabled={isLoadingBarangays || !selectedCity || (isManila && !selectedSubMunicipality)}
         loading={isLoadingBarangays}
         required
-        hint={
-          draft.shippingAddress.line2 && !selectedBarangay
-            ? `Detected "${draft.shippingAddress.line2}". Choose the closest barangay if not exact.`
-            : undefined
-        }
-        error={errors.shipping.line2}
       />
 
       {/* Province — locked */}
