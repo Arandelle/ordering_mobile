@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Alert, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { ChevronDown, Trash2 } from 'lucide-react-native';
 import { LoadingAction } from '../types';
+import { Input } from '@/components/ui/Input';
 
 interface DangerZoneProps {
   isBusy: boolean;
@@ -77,18 +78,13 @@ export function DangerZone({ isBusy, loadingAction, onDeleteAccount }: DangerZon
               Please tell us why you're leaving (optional). This helps us improve.
             </Text>
 
-            <View className="mt-4">
-              <TextInput
-                className="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-950"
-                placeholder="Reason for deletion (optional)"
-                placeholderTextColor="#b9b9b9"
-                value={reason}
-                onChangeText={setReason}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
+            <Input
+              placeholder="Reason for deletion (optional)"
+              value={reason}
+              onChangeText={setReason}
+              multiline
+              inputClassName="min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-950"
+            />
 
             <View className="mt-5 flex-row gap-3">
               <TouchableOpacity

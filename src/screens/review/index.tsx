@@ -6,13 +6,13 @@ import {
   Image,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { useOrder, useSubmitReview } from '@/hooks/useOrders';
 import { ItemReviewInput } from '@/types/review.type';
+import { Input } from '@/components/ui/Input';
 
 const BRAND = '#e13e00';
 
@@ -172,17 +172,12 @@ export default function OrderReview() {
           <RatingStars value={rating} onChange={setRating} />
         </View>
 
-        <Text className="mb-1.5 mt-5 text-[13px] font-semibold text-gray-700">
-          Overall comment
-        </Text>
-        <TextInput
-          className="min-h-24 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-950"
+        <Input
           placeholder="Tell us about your order..."
-          placeholderTextColor="#b9b9b9"
           value={comment}
           onChangeText={setComment}
           multiline
-          textAlignVertical="top"
+          inputClassName="min-h-24 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-950"
         />
       </View>
 
@@ -226,16 +221,14 @@ export default function OrderReview() {
                 </View>
 
                 {itemRating > 0 && (
-                  <TextInput
-                    className="mt-3 min-h-20 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-950"
+                  <Input
                     placeholder="Comment for this item..."
-                    placeholderTextColor="#b9b9b9"
                     value={itemReview?.comment ?? ''}
                     onChangeText={(nextComment) =>
                       handleItemCommentChange(item.productId, nextComment)
                     }
                     multiline
-                    textAlignVertical="top"
+                    inputClassName="min-h-20 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-950"
                   />
                 )}
               </View>

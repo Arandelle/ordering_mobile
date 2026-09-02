@@ -11,6 +11,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { LockKeyhole } from 'lucide-react-native';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
+import { Button } from '@/components/ui/Button';
 
 export default function ResetPassword() {
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -107,17 +108,12 @@ export default function ResetPassword() {
             </View>
           )}
 
-          <TouchableOpacity
-            className={`mt-5 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-              isSubmitting ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
+          <Button
+            text={isSubmitting ? 'Saving...' : 'Reset Password'}
             onPress={handleResetPassword}
-            disabled={isSubmitting}>
-            <Text className="text-[15px] font-bold text-white">
-              {isSubmitting ? 'Saving...' : 'Reset Password'}
-            </Text>
-          </TouchableOpacity>
+            isLoading={isSubmitting}
+            loadingText="Saving..."
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

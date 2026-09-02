@@ -11,6 +11,7 @@ import { ReservationPicker } from './ReservationPicker';
 import { PickupTimePicker } from './PickupTimePicker';
 import { useSettings } from '@/hooks/useSettings';
 import { FULFILLMENT_TYPE } from '@/types/orders.type';
+import { Button } from '@/components/ui/Button';
 
 const PersonalDetails = () => {
   const router = useRouter();
@@ -208,21 +209,18 @@ const PersonalDetails = () => {
             </Text>
           )}
 
-          <TouchableOpacity
-            className={`mt-4 items-center rounded-2xl py-[15px] ${
-              selectedBranch?._id ? 'bg-[#e13e00]' : 'bg-gray-300'
-            }`}
-            onPress={selectedBranch?._id ? handleProceed : undefined}
-            activeOpacity={0.85}
-            disabled={!selectedBranch?._id}>
-            <Text className="text-[15px] font-bold text-white">
-              {!selectedBranch?._id
+          <Button
+            className="mt-4"
+            text={
+              !selectedBranch?._id
                 ? 'Select a branch'
                 : isDelivery
                   ? 'Proceed to Address'
-                  : 'Continue to Review'}
-            </Text>
-          </TouchableOpacity>
+                  : 'Continue to Review'
+            }
+            onPress={selectedBranch?._id ? handleProceed : undefined}
+            disabled={!selectedBranch?._id}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

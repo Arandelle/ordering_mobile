@@ -11,19 +11,19 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   ToastAndroid,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Input } from '@/components/ui/Input';
 
 import { authClient } from '@/lib/auth-client';
 import { useCancelOrder, useCreateMayaCheckout, useOrders } from '@/hooks/useOrders';
 import { useCart } from '@/context/CartContext';
 import { formatDate } from '@/helper/formateDate';
-import { ORDER_STATUSES } from '@/types/order-constant';
+import { ORDER_STATUSES } from '@/types/orders.type';
 import { OrderType } from '@/types/orders.type';
 import { CartItem, ModifierSelection } from '@/types/menu-types';
 
@@ -41,7 +41,7 @@ const BRAND = '#e13e00';
 const ACTIVE_ORDER_STATUSES = new Set<string>([
   ORDER_STATUSES.PENDING,
   ORDER_STATUSES.PREPARING,
-  ORDER_STATUSES.READY,
+  ORDER_STATUSES.READY_FOR_PICKUP,
 ]);
 
 const cardShadow = StyleSheet.create({
@@ -660,19 +660,15 @@ export default function Orders() {
                   </View>
                 </View>
 
-                <View className="mt-3 flex-row items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                  <Ionicons name="barcode-outline" size={15} color="#9ca3af" />
-                  <TextInput
-                    className="min-h-12 flex-1 text-sm text-gray-950"
-                    placeholder="ORD-123456"
-                    placeholderTextColor="#b9b9b9"
-                    value={referenceNumber}
-                    onChangeText={setReferenceNumber}
-                    autoCapitalize="characters"
-                    returnKeyType="search"
-                    onSubmitEditing={handleSearch}
-                  />
-                </View>
+                <Input
+                  placeholder="ORD-123456"
+                  value={referenceNumber}
+                  onChangeText={setReferenceNumber}
+                  autoCapitalize="characters"
+                  returnKeyType="search"
+                  onSubmitEditing={handleSearch}
+                  inputClassName="min-h-12 text-sm text-gray-950"
+                />
 
                 <TouchableOpacity
                   className={`mt-3 min-h-12 items-center justify-center rounded-2xl bg-[#e13e00] ${

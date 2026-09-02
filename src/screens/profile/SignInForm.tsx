@@ -6,12 +6,13 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constant';
 import { LoadingAction } from './types';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 interface SignInFormProps {
   email: string;
@@ -50,36 +51,24 @@ export function SignInForm({
           </Text>
 
           <View className="mt-6 gap-4">
-            <View>
-              <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Email</Text>
-              <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                <Mail size={17} color="#9ca3af" />
-                <TextInput
-                  className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                  placeholder="juan@email.com"
-                  placeholderTextColor="#b9b9b9"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
+            <Input
+              label="Email"
+              placeholder="juan@email.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              leftIcon={{ icon: Mail }}
+            />
 
-            <View>
-              <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Password</Text>
-              <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                <LockKeyhole size={17} color="#9ca3af" />
-                <TextInput
-                  className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                  placeholder="Password"
-                  placeholderTextColor="#b9b9b9"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </View>
-            </View>
+            <Input
+              label="Password"
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              leftIcon={{ icon: LockKeyhole }}
+            />
           </View>
 
           {!!error && (
@@ -88,17 +77,14 @@ export function SignInForm({
             </View>
           )}
 
-          <TouchableOpacity
-            className={`mt-5 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-              loadingAction === 'email' ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
+          <Button
+            className="mt-5"
+            text={loadingAction === 'email' ? 'Signing in...' : 'Sign in'}
             onPress={onEmailLogin}
-            disabled={loadingAction !== null}>
-            <Text className="text-[15px] font-bold text-white">
-              {loadingAction === 'email' ? 'Signing in...' : 'Sign in'}
-            </Text>
-          </TouchableOpacity>
+            isLoading={loadingAction === 'email'}
+            loadingText="Signing in..."
+            disabled={loadingAction !== null}
+          />
 
           <TouchableOpacity
             className="mt-4 self-center"

@@ -4,7 +4,6 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -12,6 +11,8 @@ import { router } from 'expo-router';
 import { Chrome, LockKeyhole, Mail } from 'lucide-react-native';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
 import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 export default function CreateAccount() {
   const [email, setEmail] = useState('');
@@ -91,51 +92,33 @@ export default function CreateAccount() {
           </Text>
 
           <View className="mt-6 gap-4">
-            <View>
-              <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Email</Text>
-              <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                <Mail size={17} color="#9ca3af" />
-                <TextInput
-                  className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                  placeholder="juan@email.com"
-                  placeholderTextColor="#b9b9b9"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
+            <Input
+              label="Email"
+              placeholder="juan@email.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              leftIcon={{ icon: Mail }}
+            />
 
-            <View>
-              <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Password</Text>
-              <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                <LockKeyhole size={17} color="#9ca3af" />
-                <TextInput
-                  className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                  placeholder="At least 8 characters"
-                  placeholderTextColor="#b9b9b9"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </View>
-            </View>
+            <Input
+              label="Password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              leftIcon={{ icon: LockKeyhole }}
+            />
 
-            <View>
-              <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Confirm Password</Text>
-              <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-                <LockKeyhole size={17} color="#9ca3af" />
-                <TextInput
-                  className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                  placeholder="Repeat password"
-                  placeholderTextColor="#b9b9b9"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                />
-              </View>
-            </View>
+            <Input
+              label="Confirm Password"
+              placeholder="Repeat password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              leftIcon={{ icon: LockKeyhole }}
+            />
           </View>
 
           {!!error && (
@@ -144,17 +127,14 @@ export default function CreateAccount() {
             </View>
           )}
 
-          <TouchableOpacity
-            className={`mt-5 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-              loadingAction === 'email' ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
+          <Button
+            className="mt-5"
+            text={loadingAction === 'email' ? 'Creating...' : 'Create Account'}
             onPress={handleCreateAccount}
-            disabled={loadingAction !== null}>
-            <Text className="text-[15px] font-bold text-white">
-              {loadingAction === 'email' ? 'Creating...' : 'Create Account'}
-            </Text>
-          </TouchableOpacity>
+            isLoading={loadingAction === 'email'}
+            loadingText="Creating..."
+            disabled={loadingAction !== null}
+          />
 
           <View className="my-5 h-px bg-gray-100" />
 

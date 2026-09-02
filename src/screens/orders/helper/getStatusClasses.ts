@@ -1,5 +1,4 @@
-import { ORDER_STATUSES, OrderStatus } from '@/types/order-constant';
-import { OrderType } from '@/types/orders.type';
+import { OrderType, ORDER_STATUSES, OrderStatus } from '@/types/orders.type';
 
 export function getStatusClasses(status: OrderType['status'] | OrderStatus) {
   switch (status) {
@@ -15,7 +14,7 @@ export function getStatusClasses(status: OrderType['status'] | OrderStatus) {
         text: 'text-orange-700',
         dot: 'bg-orange-500',
       };
-    case ORDER_STATUSES.READY:
+    case ORDER_STATUSES.READY_FOR_PICKUP:
       return {
         container: 'border-emerald-200/70 bg-emerald-50',
         text: 'text-emerald-700',

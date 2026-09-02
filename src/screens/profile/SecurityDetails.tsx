@@ -1,11 +1,12 @@
 import { Dispatch, SetStateAction } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { LockKeyhole } from 'lucide-react-native';
 import { DangerZone } from './components/DangerZone';
-import { FieldLabel } from './components/FieldLabel';
 import { InfoRow } from './components/InfoRow';
 import { SectionHeader } from './components/SectionHeader';
 import { EditingSection, LoadingAction, PasswordForm } from './types';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 interface SecurityDetailsProps {
   passwordForm: PasswordForm;
@@ -56,56 +57,38 @@ export function SecurityDetails({
             </View>
           )}
 
-          <View>
-            <FieldLabel label="Current Password" />
-            <View className="mt-1.5 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-              <LockKeyhole size={17} color="#9ca3af" />
-              <TextInput
-                className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                placeholder="Current password"
-                placeholderTextColor="#b9b9b9"
-                value={passwordForm.currentPassword}
-                onChangeText={(value) =>
-                  setPasswordForm((prev) => ({ ...prev, currentPassword: value }))
-                }
-                secureTextEntry
-              />
-            </View>
-          </View>
+          <Input
+            label="Current Password"
+            placeholder="Current password"
+            value={passwordForm.currentPassword}
+            onChangeText={(value) =>
+              setPasswordForm((prev) => ({ ...prev, currentPassword: value }))
+            }
+            secureTextEntry
+            leftIcon={{ icon: LockKeyhole }}
+          />
 
-          <View>
-            <FieldLabel label="New Password" />
-            <View className="mt-1.5 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-              <LockKeyhole size={17} color="#9ca3af" />
-              <TextInput
-                className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                placeholder="At least 8 characters"
-                placeholderTextColor="#b9b9b9"
-                value={passwordForm.newPassword}
-                onChangeText={(value) =>
-                  setPasswordForm((prev) => ({ ...prev, newPassword: value }))
-                }
-                secureTextEntry
-              />
-            </View>
-          </View>
+          <Input
+            label="New Password"
+            placeholder="At least 8 characters"
+            value={passwordForm.newPassword}
+            onChangeText={(value) =>
+              setPasswordForm((prev) => ({ ...prev, newPassword: value }))
+            }
+            secureTextEntry
+            leftIcon={{ icon: LockKeyhole }}
+          />
 
-          <View>
-            <FieldLabel label="Confirm Password" />
-            <View className="mt-1.5 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-              <LockKeyhole size={17} color="#9ca3af" />
-              <TextInput
-                className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                placeholder="Repeat new password"
-                placeholderTextColor="#b9b9b9"
-                value={passwordForm.confirmPassword}
-                onChangeText={(value) =>
-                  setPasswordForm((prev) => ({ ...prev, confirmPassword: value }))
-                }
-                secureTextEntry
-              />
-            </View>
-          </View>
+          <Input
+            label="Confirm Password"
+            placeholder="Repeat new password"
+            value={passwordForm.confirmPassword}
+            onChangeText={(value) =>
+              setPasswordForm((prev) => ({ ...prev, confirmPassword: value }))
+            }
+            secureTextEntry
+            leftIcon={{ icon: LockKeyhole }}
+          />
 
           <View className="flex-row gap-3">
             <TouchableOpacity
@@ -115,17 +98,14 @@ export function SecurityDetails({
               <Text className="text-[15px] font-bold text-gray-600">Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
-                loadingAction === 'password' ? 'opacity-[0.65]' : ''
-              }`}
-              activeOpacity={0.85}
+            <Button
+              className="flex-1"
+              text={loadingAction === 'password' ? 'Saving...' : 'Save'}
               onPress={onSave}
-              disabled={isBusy}>
-              <Text className="text-[15px] font-bold text-white">
-                {loadingAction === 'password' ? 'Saving...' : 'Save'}
-              </Text>
-            </TouchableOpacity>
+              isLoading={loadingAction === 'password'}
+              loadingText="Saving..."
+              disabled={isBusy}
+            />
           </View>
         </View>
       ) : (

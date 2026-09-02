@@ -1,10 +1,11 @@
 import { Phone, Save } from 'lucide-react-native';
 import { Dispatch, SetStateAction } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { FieldLabel } from './components/FieldLabel';
+import { View } from 'react-native';
 import { InfoRow } from './components/InfoRow';
 import { SectionHeader } from './components/SectionHeader';
 import { EditingSection, LoadingAction, ProfileForm, ProfileUser } from './types';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 interface ProfileDetailsProps {
   user: ProfileUser;
@@ -40,65 +41,49 @@ export function ProfileDetails({
 
       {isEditing ? (
         <View className="mt-4 gap-4">
-          <View>
-            <FieldLabel label="First Name" optional />
-            <TextInput
-              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-              placeholder="Juan"
-              placeholderTextColor="#b9b9b9"
-              value={profileForm.firstName}
-              onChangeText={(value) => setProfileForm((prev) => ({ ...prev, firstName: value }))}
-              autoCapitalize="words"
-            />
-          </View>
+          <Input
+            label="First Name"
+            placeholder="Juan"
+            value={profileForm.firstName}
+            onChangeText={(value) => setProfileForm((prev) => ({ ...prev, firstName: value }))}
+            autoCapitalize="words"
+          />
 
-          <View>
-            <FieldLabel label="Last Name" optional />
-            <TextInput
-              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-              placeholder="Dela Cruz"
-              placeholderTextColor="#b9b9b9"
-              value={profileForm.lastName}
-              onChangeText={(value) => setProfileForm((prev) => ({ ...prev, lastName: value }))}
-              autoCapitalize="words"
-            />
-          </View>
+          <Input
+            label="Last Name"
+            placeholder="Dela Cruz"
+            value={profileForm.lastName}
+            onChangeText={(value) => setProfileForm((prev) => ({ ...prev, lastName: value }))}
+            autoCapitalize="words"
+          />
 
-          <View>
-            <FieldLabel label="Phone" optional />
-            <View className="mt-1.5 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-              <Phone size={17} color="#9ca3af" />
-              <TextInput
-                className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                placeholder="+63 912 345 6789"
-                placeholderTextColor="#b9b9b9"
-                value={profileForm.phone}
-                onChangeText={(value) => setProfileForm((prev) => ({ ...prev, phone: value }))}
-                keyboardType="phone-pad"
-              />
-            </View>
-          </View>
+          <Input
+            label="Phone"
+            placeholder="+63 912 345 6789"
+            value={profileForm.phone}
+            onChangeText={(value) => setProfileForm((prev) => ({ ...prev, phone: value }))}
+            keyboardType="phone-pad"
+            leftIcon={{ icon: Phone }}
+          />
 
           <View className="flex-row gap-3">
-            <TouchableOpacity
-              className="flex-1 items-center rounded-2xl border border-gray-200 py-[15px]"
+            <Button
+              text="Cancel"
+              variant="outline"
+              onPress={cancelEditing}
               activeOpacity={0.85}
-              onPress={cancelEditing}>
-              <Text className="text-[15px] font-bold text-gray-600">Cancel</Text>
-            </TouchableOpacity>
+              className="flex-1"
+            />
 
-            <TouchableOpacity
-              className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
-                loadingAction === 'profile' ? 'opacity-[0.65]' : ''
-              }`}
-              activeOpacity={0.85}
+            <Button
+              className="flex-1"
+              text={'Save'}
               onPress={onSave}
-              disabled={isBusy}>
-              <Save size={17} color="#fff" />
-              <Text className="text-[15px] font-bold text-white">
-                {loadingAction === 'profile' ? 'Saving...' : 'Save'}
-              </Text>
-            </TouchableOpacity>
+              isLoading={loadingAction === 'profile'}
+              loadingText="Saving..."
+              disabled={isBusy}
+              iconLeft={{ icon: Save, size: 16 }}
+            />
           </View>
         </View>
       ) : (

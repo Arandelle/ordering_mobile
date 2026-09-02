@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCancelOrder, useOrder } from '@/hooks/useOrders';
 import { formatDate } from '@/helper/formateDate';
-import { ORDER_STATUSES } from '@/types/order-constant';
+import { ORDER_STATUSES } from '@/types/orders.type';
 import { FULFILLMENT_TYPE, OrderType } from '@/types/orders.type';
 import { ModifierSelection } from '@/types/menu-types';
 
@@ -35,7 +35,7 @@ const BRAND = '#e13e00';
 const ACTIVE_STATUSES = new Set<string>([
   ORDER_STATUSES.PENDING,
   ORDER_STATUSES.PREPARING,
-  ORDER_STATUSES.READY,
+  ORDER_STATUSES.READY_FOR_PICKUP,
 ]);
 
 const cardShadow = StyleSheet.create({

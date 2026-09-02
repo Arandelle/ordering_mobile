@@ -21,6 +21,7 @@ import { DeliveryLocationPicker } from './DeliveryLocationPicker';
 import type { ResolvedDeliveryAddress } from './DeliveryLocationPicker';
 import { PsgcAddressFields } from './PsgcAddressFields';
 import CheckoutTextField from './CheckoutTextField';
+import { Button } from '@/components/ui/Button';
 
 const AddressDetails = () => {
   const router = useRouter();
@@ -256,12 +257,11 @@ const AddressDetails = () => {
             autoCapitalize="sentences"
           />
 
-          <TouchableOpacity
-            className="mt-4 items-center rounded-2xl bg-[#e13e00] py-[15px]"
+          <Button
+            className="mt-4"
+            text="Review Order"
             onPress={handleProceed}
-            activeOpacity={0.85}>
-            <Text className="text-[15px] font-bold text-white">Review Order</Text>
-          </TouchableOpacity>
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

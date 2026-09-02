@@ -6,14 +6,7 @@
  * across the entire application.
  */
 
-import { ORDER_STATUSES, PAYMENT_METHODS, PaymentMethod } from "./orders.type";
-
-
-/**
- * Type-safe OrderStatus - derived from constants
- * This ensures TypeScript validation matches actual status values
- */
-export type OrderStatus = (typeof ORDER_STATUSES)[keyof typeof ORDER_STATUSES];
+import { ORDER_STATUSES, OrderStatus, PAYMENT_METHODS, PaymentMethod } from "./orders.type";
 
 // =================== USED for select options =====================
 export const ORDER_STATUS_FILTER_LIST = [

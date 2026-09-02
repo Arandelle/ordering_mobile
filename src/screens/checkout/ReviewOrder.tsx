@@ -14,6 +14,7 @@ import { QuantityStepper } from '@/components/products/QuantityStepper';
 import CheckoutStepper from './CheckoutStepper';
 import { OrderConfirmationModal } from './OrderConfirmationModal';
 import { useDeliveryFeeEstimate } from '@/hooks/useOrders';
+import { Button } from '@/components/ui/Button';
 
 function formatMoney(value: number) {
   return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -567,15 +568,10 @@ const ReviewOrder = () => {
       )}
 
       {/* Place Order button */}
-      <TouchableOpacity
-        className={`items-center rounded-2xl py-[15px] ${
-          canPlaceOrder ? 'bg-[#e13e00]' : 'bg-gray-300'
-        }`}
-        onPress={canPlaceOrder ? handleConfirmOrder : undefined}
-        activeOpacity={0.85}
-        disabled={!canPlaceOrder}>
-        <Text className="text-[15px] font-bold text-white">
-          {deliveryNotFetched
+      <Button
+        className={canPlaceOrder ? '' : 'opacity-40'}
+        text={
+          deliveryNotFetched
             ? 'Pin delivery location first'
             : deliveryLoading
               ? 'Calculating delivery fee...'
@@ -585,9 +581,13 @@ const ReviewOrder = () => {
                   ? 'Complete required fields'
                   : paymentMethod === 'maya'
                     ? 'Proceed to Maya'
-                    : 'Place Order'}
-        </Text>
-      </TouchableOpacity>
+                    : 'Place Order'
+        }
+        onPress={canPlaceOrder ? handleConfirmOrder : undefined}
+        disabled={!canPlaceOrder}
+        isLoading={isPlacingOrder}
+        loadingText="Placing Order..."
+      />
 
       {/* Confirmation modal */}
       <OrderConfirmationModal

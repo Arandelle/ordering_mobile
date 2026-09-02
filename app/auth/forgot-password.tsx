@@ -5,11 +5,11 @@ import {
   ScrollView,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Mail } from 'lucide-react-native';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
+import { Button } from '@/components/ui/Button';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -80,17 +80,13 @@ export default function ForgotPassword() {
             </View>
           )}
 
-          <TouchableOpacity
-            className={`mt-5 items-center rounded-2xl bg-[#e13e00] py-[15px] ${
-              isSubmitting ? 'opacity-[0.65]' : ''
-            }`}
-            activeOpacity={0.85}
+          <Button
+            className="mt-5"
+            text={isSubmitting ? 'Sending...' : 'Send Reset Link'}
             onPress={handleResetRequest}
-            disabled={isSubmitting}>
-            <Text className="text-[15px] font-bold text-white">
-              {isSubmitting ? 'Sending...' : 'Send Reset Link'}
-            </Text>
-          </TouchableOpacity>
+            isLoading={isSubmitting}
+            loadingText="Sending..."
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

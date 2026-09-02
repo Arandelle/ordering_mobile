@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
-
-import { ORDER_STATUSES, OrderStatus } from '@/types/order-constant';
-import { OrderType } from '@/types/orders.type';
+import { OrderType, ORDER_STATUSES, OrderStatus } from '@/types/orders.type';
 
 const STEPS = [
   { key: 'placed', label: 'Placed', field: undefined },
@@ -15,7 +13,7 @@ function getCurrentStepIndex(status: OrderType['status'] | OrderStatus) {
   switch (status) {
     case ORDER_STATUSES.PREPARING:
       return 1;
-    case ORDER_STATUSES.READY:
+    case ORDER_STATUSES.READY_FOR_PICKUP:
     case 'dispatch':
     case 'ready_for_pickup':
       return 2;

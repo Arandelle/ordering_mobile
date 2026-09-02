@@ -1,10 +1,11 @@
-import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { Save } from 'lucide-react-native';
 import { CheckoutAddressDetails } from '@/hooks/useCheckout';
-import { FieldLabel } from './components/FieldLabel';
 import { SectionHeader } from './components/SectionHeader';
 import { formatAddress } from './utils';
 import { AddressErrors, AddressField, EditingSection, LoadingAction } from './types';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 interface AddressDetailsProps {
   addressForm: CheckoutAddressDetails;
@@ -46,105 +47,72 @@ export function AddressDetails({
         </View>
       ) : isEditing ? (
         <View className="mt-4 gap-4">
-          <View>
-            <FieldLabel label="Address Line 1" />
-            <TextInput
-              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-              placeholder="House number, street, barangay"
-              placeholderTextColor="#b9b9b9"
-              value={addressForm.line1}
-              onChangeText={(value) => onChange('line1', value)}
-              autoCapitalize="words"
-            />
-            {!!addressErrors.line1 && (
-              <Text className="mt-1 text-[11px] text-red-600">{addressErrors.line1}</Text>
-            )}
-          </View>
+          <Input
+            label="Address Line 1"
+            placeholder="House number, street, barangay"
+            value={addressForm.line1}
+            onChangeText={(value) => onChange('line1', value)}
+            autoCapitalize="words"
+            error={addressErrors.line1}
+          />
 
-          <View>
-            <FieldLabel label="Address Line 2" optional />
-            <TextInput
-              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-              placeholder="Unit, floor, building"
-              placeholderTextColor="#b9b9b9"
-              value={addressForm.line2}
-              onChangeText={(value) => onChange('line2', value)}
+          <Input
+            label="Address Line 2"
+            placeholder="Unit, floor, building"
+            value={addressForm.line2}
+            onChangeText={(value) => onChange('line2', value)}
+            autoCapitalize="words"
+          />
+
+          <View className="flex-row gap-3">
+            <Input
+              fieldClassName="flex-1"
+              label="City"
+              placeholder="Quezon City"
+              value={addressForm.city}
+              onChangeText={(value) => onChange('city', value)}
               autoCapitalize="words"
+              error={addressErrors.city}
+            />
+
+            <Input
+              fieldClassName="flex-1"
+              label="Province"
+              placeholder="Metro Manila"
+              value={addressForm.province}
+              onChangeText={(value) => onChange('province', value)}
+              autoCapitalize="words"
+              error={addressErrors.province}
             />
           </View>
 
           <View className="flex-row gap-3">
-            <View className="flex-1">
-              <FieldLabel label="City" />
-              <TextInput
-                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-                placeholder="Quezon City"
-                placeholderTextColor="#b9b9b9"
-                value={addressForm.city}
-                onChangeText={(value) => onChange('city', value)}
-                autoCapitalize="words"
-              />
-              {!!addressErrors.city && (
-                <Text className="mt-1 text-[11px] text-red-600">{addressErrors.city}</Text>
-              )}
-            </View>
+            <Input
+              fieldClassName="flex-1"
+              label="ZIP Code"
+              placeholder="1100"
+              value={addressForm.zipCode}
+              onChangeText={(value) => onChange('zipCode', value)}
+              keyboardType="number-pad"
+            />
 
-            <View className="flex-1">
-              <FieldLabel label="Province" />
-              <TextInput
-                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-                placeholder="Metro Manila"
-                placeholderTextColor="#b9b9b9"
-                value={addressForm.province}
-                onChangeText={(value) => onChange('province', value)}
-                autoCapitalize="words"
-              />
-              {!!addressErrors.province && (
-                <Text className="mt-1 text-[11px] text-red-600">{addressErrors.province}</Text>
-              )}
-            </View>
-          </View>
-
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <FieldLabel label="ZIP Code" optional />
-              <TextInput
-                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-                placeholder="1100"
-                placeholderTextColor="#b9b9b9"
-                value={addressForm.zipCode}
-                onChangeText={(value) => onChange('zipCode', value)}
-                keyboardType="number-pad"
-              />
-            </View>
-
-            <View className="flex-1">
-              <FieldLabel label="Country" />
-              <TextInput
-                className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-200 px-3.5 text-sm text-gray-500"
-                placeholder="Philippines"
-                placeholderTextColor="#b9b9b9"
-                value={addressForm.country}
-                autoCapitalize="words"
-                editable={false}
-              />
-              {!!addressErrors.country && (
-                <Text className="mt-1 text-[11px] text-red-600">{addressErrors.country}</Text>
-              )}
-            </View>
-          </View>
-
-          <View>
-            <FieldLabel label="Landmark" optional />
-            <TextInput
-              className="mt-1.5 min-h-12 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-950"
-              placeholder="Near the main gate"
-              placeholderTextColor="#b9b9b9"
-              value={addressForm.landmark}
-              onChangeText={(value) => onChange('landmark', value)}
-              autoCapitalize="sentences"
+            <Input
+              fieldClassName="flex-1"
+              label="Country"
+              placeholder="Philippines"
+              value={addressForm.country}
+              autoCapitalize="words"
+              editable={false}
             />
           </View>
+
+          <Input
+            label="Landmark"
+            placeholder="Near the main gate"
+            value={addressForm.landmark}
+            onChangeText={(value) => onChange('landmark', value)}
+            autoCapitalize="sentences"
+          />
 
           <View className="flex-row gap-3">
             <TouchableOpacity
@@ -154,18 +122,15 @@ export function AddressDetails({
               <Text className="text-[15px] font-bold text-gray-600">Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#e13e00] py-[15px] ${
-                loadingAction === 'address' ? 'opacity-[0.65]' : ''
-              }`}
-              activeOpacity={0.85}
+            <Button
+              className="flex-1"
+              text={loadingAction === 'address' ? 'Saving...' : 'Save'}
               onPress={onSave}
-              disabled={isBusy}>
-              <Save size={17} color="#fff" />
-              <Text className="text-[15px] font-bold text-white">
-                {loadingAction === 'address' ? 'Saving...' : 'Save'}
-              </Text>
-            </TouchableOpacity>
+              isLoading={loadingAction === 'address'}
+              loadingText="Saving..."
+              disabled={isBusy}
+              iconRight={{ icon: Save, size: 16 }}
+            />
           </View>
         </View>
       ) : (
