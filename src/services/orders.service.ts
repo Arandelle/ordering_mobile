@@ -120,7 +120,7 @@ export async function submitOrderReview(
 }
 
 export async function createMayaCheckoutForOrder(orderId: string): Promise<CreateOrderResponse> {
-  return apiClient.post<CreateOrderResponse>(`/paymaya/checkout/${orderId}`);
+  return apiClient.post<CreateOrderResponse>(`/paymaya/checkout/${orderId}?useQrPh=true`);
 }
 
 export async function getGuestOrder(
