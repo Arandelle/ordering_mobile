@@ -5,7 +5,6 @@ import {
   Animated,
   Dimensions,
   FlatList,
-  Image,
   RefreshControl,
   Text,
   TouchableOpacity,
@@ -21,6 +20,7 @@ import { BranchProduct } from '@/hooks/useProducts';
 import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from './StockBadge';
 import { StoreClosedOverlay } from './StoreClosedOverLay';
+import { DynamicImage } from '@/components/ui/DynamicImage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,13 +91,12 @@ const ProductCard = React.memo(
         style={{ width: CARD_WIDTH }}>
         {/* Image block */}
         <View style={{ height: CARD_WIDTH, backgroundColor: '#f5f0ed', position: 'relative' }}>
-          <Image
-            source={
-              item.image?.url ? { uri: item.image.url } : require('assets/images/char-icon.jpg')
-            }
-            style={{ width: '100%', height: '100%' }}
-            className="rounded-t-lg"
-            resizeMode="cover"
+          <DynamicImage
+            src={item.image?.url}
+            variant="product"
+            alt={item.name}
+            containerStyle={{ width: '100%', height: '100%' }}
+            imageClassName="rounded-t-lg"
           />
 
           {/* Stock overlay — only when branch is selected */}

@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import { Star } from 'lucide-react-native';
 import { useOrder, useSubmitReview } from '@/hooks/useOrders';
 import { ItemReviewInput } from '@/types/review.type';
 import { Input } from '@/components/ui/Input';
+import { DynamicImage } from '@/components/ui/DynamicImage';
 
 const BRAND = '#e13e00';
 
@@ -196,13 +196,12 @@ export default function OrderReview() {
                 className={`${isLastItem ? '' : 'border-b border-gray-100'} pb-4`}>
                 <View className="flex-row gap-3">
                   <View className="h-16 w-16 overflow-hidden rounded-2xl bg-gray-100">
-                    {item.image ? (
-                      <Image source={{ uri: item.image }} className="h-full w-full" resizeMode="cover" />
-                    ) : (
-                      <View className="h-full w-full items-center justify-center">
-                        <Text className="text-xs font-bold text-gray-400">No image</Text>
-                      </View>
-                    )}
+                    <DynamicImage
+                      src={item.image ?? undefined}
+                      variant="product"
+                      alt={item.name}
+                      containerClassName="h-full w-full rounded-2xl"
+                    />
                   </View>
 
                   <View className="flex-1">

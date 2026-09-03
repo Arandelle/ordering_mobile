@@ -21,7 +21,6 @@ import { ModifierSelection } from '@/types/menu-types';
 
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
-import { OrderItemImage } from './components/OrderItemImage';
 import { OrderStatusPill } from './components/OrderStatusPill';
 import { OrderTimeline } from './components/OrderTimeline';
 import { getErrorMessage } from './helper/getErrorMessage';
@@ -29,6 +28,7 @@ import { getFulfillmentMeta } from './helper/getFulfillmentMeta';
 import { formatDisplayLabel, getOrderStatusLabel } from './helper/getOrderStatusLabel';
 import { getPaymentMethodLabel, getPaymentStatusMeta } from './helper/getPaymentMeta';
 import { formatMoney } from './helper/formatMoney';
+import DynamicImage from '@/components/ui/DynamicImage';
 
 const BRAND = '#e13e00';
 
@@ -365,9 +365,12 @@ export default function OrderDetails() {
                 key={`${item.productId}-${idx}`}
                 className={idx > 0 ? 'border-t border-gray-100 pt-4' : ''}>
                 <View className="flex-row gap-3">
-                  <View className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-gray-100">
-                    <OrderItemImage image={item.image} name={item.name} />
-                  </View>
+                  <DynamicImage
+                    src={item.image ?? undefined}
+                    alt={item.name}
+                    variant="order"
+                    containerClassName="w-16 h-16 rounded-2xl overflow-hiddenFF"
+                  />
 
                   <View className="min-w-0 flex-1">
                     <View className="flex-row items-start justify-between gap-3">

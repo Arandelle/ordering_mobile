@@ -1,7 +1,8 @@
 import { Camera } from 'lucide-react-native';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { DynamicImage } from '@/components/ui/DynamicImage';
 import { ProfileUser } from '../types';
-import { getDisplayName, getInitial } from '../utils';
+import { getDisplayName } from '../utils';
 
 interface ProfileHeaderProps {
   user: ProfileUser;
@@ -22,13 +23,12 @@ export function ProfileHeader({
         className="h-24 w-24 overflow-hidden rounded-full bg-orange-50"
         activeOpacity={0.85}
         onPress={isEditing ? onPickPhoto : undefined}>
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} className="h-full w-full" resizeMode="cover" />
-        ) : (
-          <View className="h-full w-full items-center justify-center">
-            <Text className="text-3xl font-extrabold text-[#e13e00]">{getInitial(user)}</Text>
-          </View>
-        )}
+        <DynamicImage
+          src={profileImage || undefined}
+          variant="profile"
+          alt={getDisplayName(user)}
+          containerClassName="h-full w-full rounded-full"
+        />
       </TouchableOpacity>
       <Text className="mt-3 text-xl font-extrabold text-gray-950">{getDisplayName(user)}</Text>
       <Text className="mt-1 text-sm text-gray-500">{user.email}</Text>

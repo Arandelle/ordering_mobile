@@ -1,4 +1,4 @@
-import { ORDER_STATUSES, OrderStatus } from '@/types/order-constant';
+import { ORDER_STATUSES, OrderStatus } from '@/types/orders.type';
 import { OrdersApiResponse } from '@/types/orders.type';
 import { PAYMENT_STATUSES } from '@/types/payment.type';
 

@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   FlatList,
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { CartItem, ModifierSelection } from '@/types/menu-types';
 import { IncludedItem } from '@/types/products.type';
 import { Utensils, X } from 'lucide-react-native';
 import BottomSheet from '@/components/BottomSheet';
+import { DynamicImage } from '@/components/ui/DynamicImage';
 
 // Bottom tab bar height — matches tabBarStyle padding in app/(tabs)/_layout.tsx
 // tabBarStyle paddingBottom: 8 + Math.max(insets.bottom, 8), paddingTop: 6
@@ -234,11 +234,12 @@ function CartItemCard({ item }: { item: CartItem }) {
   return (
     <View className="flex-row gap-3 rounded-2xl bg-white p-3" style={styles.card}>
       {/* Image */}
-      <Image
-        source={{ uri: item.image }}
-        className="rounded-xl"
-        style={styles.itemImage}
-        resizeMode="cover"
+      <DynamicImage
+        src={item.image}
+        variant="product"
+        alt={item.name}
+        containerStyle={styles.itemImage}
+        containerClassName="rounded-xl"
       />
 
       {/* Details */}

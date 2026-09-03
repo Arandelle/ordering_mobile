@@ -29,12 +29,12 @@ import { CartItem, ModifierSelection } from '@/types/menu-types';
 
 import { useOrderState } from './hooks/useOrderState';
 import { CancelOrderModal } from './components/CancelOrderModal';
-import { OrderItemImage } from './components/OrderItemImage';
 import { OrderStatusPill } from './components/OrderStatusPill';
 import { getErrorMessage } from './helper/getErrorMessage';
 import { getFulfillmentMeta } from './helper/getFulfillmentMeta';
 import { getOrderStatusLabel } from './helper/getOrderStatusLabel';
 import { formatMoney } from './helper/formatMoney';
+import DynamicImage from '@/components/ui/DynamicImage';
 
 const BRAND = '#e13e00';
 
@@ -121,9 +121,12 @@ function ModifierList({ modifiers }: { modifiers?: ModifierSelection[] }) {
 function OrderItemRow({ item }: { item: OrderType['items'][number] }) {
   return (
     <View className="flex-row gap-3 py-0.5">
-      <View className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-        <OrderItemImage image={item.image} name={item.name} />
-      </View>
+      <DynamicImage
+        src={item.image}
+        alt={item.name}
+        variant="order"
+        containerClassName="h-14 w-14 shrink-0 overflow-hidden rounded-xl"
+      />
 
       <View className="min-w-0 flex-1">
         <View className="flex-row items-start justify-between gap-3">
@@ -232,9 +235,7 @@ function OrderCard({
             <Ionicons name={fulfillment.icon} size={12} color="#9ca3af" />
             <Text className="text-xs font-medium text-gray-500">{fulfillment.label}</Text>
             <View className="h-1 w-1 rounded-full bg-gray-300" />
-            <Text className="text-xs text-gray-500">
-              {formatDate(order.createdAt)}
-            </Text>
+            <Text className="text-xs text-gray-500">{formatDate(order.createdAt)}</Text>
           </View>
         </View>
 
