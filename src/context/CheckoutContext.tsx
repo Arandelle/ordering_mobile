@@ -11,7 +11,7 @@ import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type CheckoutPaymentMethod = 'cod' | 'maya';
+export type CheckoutPaymentMethod = 'cod' | 'maya' | 'wallet';
 
 export interface CheckoutPersonalDetails {
   firstName: string;

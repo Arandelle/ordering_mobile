@@ -22,7 +22,7 @@ export function OrderConfirmationModal({
   onConfirm: () => void;
   isPlacingOrder: boolean;
   displayTotalPrice: number;
-  selectedPayment: 'cod' | 'maya';
+  selectedPayment: 'cod' | 'maya' | 'wallet';
 }) {
   const insets = useSafeAreaInsets();
   const { cartItems, totalPrice, vatableSales, vatAmount } = useCart();
@@ -77,12 +77,22 @@ export function OrderConfirmationModal({
           <View className="mb-4 flex-row items-center justify-between rounded-xl bg-gray-50 p-3">
             <View className="flex-row items-center gap-2">
               <Ionicons
-                name={selectedPayment === 'cod' ? 'cash-outline' : 'card-outline'}
+                name={
+                  selectedPayment === 'cod'
+                    ? 'cash-outline'
+                    : selectedPayment === 'wallet'
+                      ? 'wallet-outline'
+                      : 'card-outline'
+                }
                 size={16}
                 color="#6b7280"
               />
               <Text className="text-sm text-gray-700">
-                {selectedPayment === 'cod' ? 'Cash on Delivery' : 'Maya'}
+                {selectedPayment === 'cod'
+                  ? 'Cash on Delivery'
+                  : selectedPayment === 'wallet'
+                    ? 'Wallet Balance'
+                    : 'Maya'}
               </Text>
             </View>
             <Text className="text-sm font-bold text-orange-600">{formatMoney(displayTotalPrice || totalPrice)}</Text>
