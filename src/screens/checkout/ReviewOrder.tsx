@@ -1,4 +1,4 @@
-import { Banknote, ChevronRight, CreditCard } from 'lucide-react-native';
+import { Banknote, ChevronRight, CreditCard, Wallet } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -15,6 +15,7 @@ import CheckoutStepper from './CheckoutStepper';
 import { OrderConfirmationModal } from './OrderConfirmationModal';
 import { useDeliveryFeeEstimate } from '@/hooks/useOrders';
 import { Button } from '@/components/ui/Button';
+import { useWallet } from '@/hooks/useWallet';
 
 function formatMoney(value: number) {
   return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -46,14 +47,24 @@ function PaymentOption({
   selected,
   disabled,
   onPress,
+  balance,
 }: {
-  method: 'cod' | 'maya';
+  method: 'cod' | 'maya' | 'wallet';
   selected: boolean;
   disabled: boolean;
   onPress: () => void;
+  balance?: number;
 }) {
-  const isCod = method === 'cod';
-  const Icon = isCod ? Banknote : CreditCard;
+  const { Icon, label, subtitle } = (() => {
+    switch (method) {
+      case 'cod':
+        return { Icon: Banknote, label: 'Cash on Delivery', subtitle: 'Pay when your order arrives.' };
+      case 'wallet':
+        return { Icon: Wallet, label: 'Wallet', subtitle: balance != null ? `Balance: ${formatMoney(balance)}` : 'Use your wallet balance' };
+      default:
+        return { Icon: CreditCard, label: 'Maya', subtitle: 'Pay online through Maya checkout.' };
+    }
+  })();
 
   return (
     <TouchableOpacity
@@ -66,12 +77,8 @@ function PaymentOption({
       <View className="mb-3 h-10 w-10 items-center justify-center rounded-full bg-white">
         <Icon size={20} color={selected ? '#e13e00' : '#4b5563'} />
       </View>
-      <Text className="text-sm font-extrabold text-gray-950">
-        {isCod ? 'Cash on Delivery' : 'Maya'}
-      </Text>
-      <Text className="mt-1 text-xs leading-4 text-gray-500">
-        {isCod ? 'Pay when your order arrives.' : 'Pay online through Maya checkout.'}
-      </Text>
+      <Text className="text-sm font-extrabold text-gray-950">{label}</Text>
+      <Text className="mt-1 text-xs leading-4 text-gray-500">{subtitle}</Text>
     </TouchableOpacity>
   );
 }
@@ -101,6 +108,10 @@ const ReviewOrder = () => {
     isReady,
   } = useCheckout();
 
+  const { data: walletData } = useWallet();
+  const walletBalance = walletData?.balance ?? 0;
+  const hasWalletBalance = walletBalance > 0;
+
   const paymentMethod = draft.paymentMethod;
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -126,8 +137,14 @@ const ReviewOrder = () => {
   // Effective COD availability
   const effectiveCodAvailable = isCodAvailable && isDelivery;
 
-  // Ensure payment method defaults to maya if COD not available
-  if (!effectiveCodAvailable && paymentMethod === 'cod') {
+  // Wallet can cover the full order total
+  const walletCanCover = hasWalletBalance && walletBalance >= totalPrice;
+
+  // Ensure payment method defaults appropriately
+  // Priority: wallet (if can cover) > maya (fallback when COD unavailable)
+  if (walletCanCover && paymentMethod !== 'wallet') {
+    setPaymentMethod('wallet');
+  } else if (!effectiveCodAvailable && paymentMethod === 'cod') {
     setPaymentMethod('maya');
   }
 
@@ -214,6 +231,12 @@ const ReviewOrder = () => {
 
         await WebBrowser.openBrowserAsync(response.redirectUrl);
         router.replace('/orders');
+      } else if (paymentMethod === 'wallet') {
+        Alert.alert(
+          'Order placed',
+          `Paid with wallet. Reference: ${response.referenceNumber}`,
+          [{ text: 'View orders', onPress: () => router.replace('/orders') }],
+        );
       } else {
         Alert.alert('Order placed', `Reference number: ${response.referenceNumber}`, [
           { text: 'View orders', onPress: () => router.replace('/orders') },
@@ -399,6 +422,15 @@ const ReviewOrder = () => {
         <Text className="mb-3 text-[15px] font-bold text-gray-950">Payment method</Text>
 
         <View className="flex-row gap-3">
+          {hasWalletBalance && (
+            <PaymentOption
+              method="wallet"
+              selected={paymentMethod === 'wallet'}
+              disabled={false}
+              balance={walletBalance}
+              onPress={() => setPaymentMethod('wallet')}
+            />
+          )}
           <PaymentOption
             method="cod"
             selected={paymentMethod === 'cod'}
@@ -581,9 +613,11 @@ const ReviewOrder = () => {
                 ? 'Delivery not available'
                 : !canPlaceOrder
                   ? 'Complete required fields'
-                  : paymentMethod === 'maya'
-                    ? 'Proceed to Maya'
-                    : 'Place Order'
+                  : paymentMethod === 'wallet'
+                    ? `Pay with Wallet (₱${walletBalance.toLocaleString('en-PH', { minimumFractionDigits: 2 })})`
+                    : paymentMethod === 'maya'
+                      ? 'Proceed to Maya'
+                      : 'Place Order'
         }
         onPress={canPlaceOrder ? handleConfirmOrder : undefined}
         disabled={!canPlaceOrder}
