@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
+import { authClient } from '@/lib/auth-client';
 
 const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
@@ -11,6 +12,8 @@ const INACTIVE_COLOR = '#888';
 export default function TabLayout() {
   const { cartItems, totalItems, clearCart } = useCart();
   const insets = useSafeAreaInsets();
+  const { data: session } = authClient.useSession();
+  const isAuthenticated = Boolean(session?.user);
 
   const { data: orderSummary } = useCustomerOrderSummary();
 
@@ -71,7 +74,7 @@ export default function TabLayout() {
         name="orders"
         options={{
           title: 'My Orders',
-          tabBarBadge: activeOrdersCount >  0 ? activeOrdersCount : undefined,
+          tabBarBadge: isAuthenticated && activeOrdersCount > 0 ? activeOrdersCount : undefined,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'bag-handle' : 'bag-handle-outline'}
@@ -106,10 +109,25 @@ export default function TabLayout() {
         })}
       />
 
+      {/* Auth tab — shows sign-in when not authenticated */}
+      <Tabs.Screen
+        name="auth"
+        options={{
+          title: 'Sign In',
+          href: isAuthenticated ? null : undefined,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'log-in' : 'log-in-outline'} size={size} color={color} />
+          ),
+         headerShown: false
+        }}
+      />
+
+      {/* Profile tab — only visible when authenticated */}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'My Profile',
+          href: isAuthenticated ? undefined : null,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
