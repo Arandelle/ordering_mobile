@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCancelOrder, useOrder } from '@/hooks/useOrders';
-import { formatDate } from '@/helper/formateDate';
+import { formatDate } from '@/helper/formatter/formateDate';
 import { ORDER_STATUSES } from '@/types/orders.type';
 import { FULFILLMENT_TYPE, OrderType } from '@/types/orders.type';
 import { ModifierSelection } from '@/types/menu-types';
@@ -27,7 +27,7 @@ import { getErrorMessage } from './helper/getErrorMessage';
 import { getFulfillmentMeta } from './helper/getFulfillmentMeta';
 import { formatDisplayLabel, getOrderStatusLabel } from './helper/getOrderStatusLabel';
 import { getPaymentMethodLabel, getPaymentStatusMeta } from './helper/getPaymentMeta';
-import { formatMoney } from './helper/formatMoney';
+import { formatMoney } from '@/helper/formatter';
 import DynamicImage from '@/components/ui/DynamicImage';
 
 const BRAND = '#e13e00';
@@ -449,7 +449,7 @@ export default function OrderDetails() {
         <Section icon="receipt-outline" title="Order Summary">
           <View className="gap-2.5">
             <DetailRow label="Vatable sales" value={formatMoney(order.total.vatableSales)} />
-            <DetailRow label="VAT" value={formatMoney(order.total.vatAmount)} />
+            <DetailRow label="VAT" value={formatMoney(Number(order.total.vatAmount))} />
             {!!order.total.deliveryFeeAmount && order.total.deliveryFeeAmount > 0 && (
               <DetailRow label="Delivery fee" value={formatMoney(order.total.deliveryFeeAmount)} />
             )}
