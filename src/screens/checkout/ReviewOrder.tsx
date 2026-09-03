@@ -230,9 +230,11 @@ const ReviewOrder = () => {
   const fullName = `${draft.customer.firstName} ${draft.customer.lastName}`.trim();
 
   // Can place order — no validation errors, branch selected, cart not empty
-  const hasCustomerErrors = Object.keys(errors.customer).length > 0;
-  const hasShippingErrors = isDelivery && Object.keys(errors.shipping).length > 0;
-  const hasReservationErrors = isDineIn && Object.keys(errors.reservation).length > 0;
+  // IMPORTANT: check truthy values, not just key presence — cleared fields leave
+  // stale keys with undefined values from the error-clearing logic in setCustomerField etc.
+  const hasCustomerErrors = Object.values(errors.customer).some(Boolean);
+  const hasShippingErrors = isDelivery && Object.values(errors.shipping).some(Boolean);
+  const hasReservationErrors = isDineIn && Object.values(errors.reservation).some(Boolean);
   const hasPickupError = isPickup && !!errors.pickupTime;
   const deliveryBlocked = isDelivery && deliveryEstimate?.deliveryUnavailable === true;
   const deliveryLoading = isDelivery && isLoadingDeliveryFee;
