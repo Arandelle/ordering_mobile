@@ -25,7 +25,6 @@ const PersonalDetails = () => {
     isReady,
     selectedBranch,
     shouldShowSyncProfileDetails,
-    isCodAvailable,
     setFulfillmentType,
     setCustomerField,
     setReservationField,
