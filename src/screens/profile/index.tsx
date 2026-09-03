@@ -12,19 +12,20 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, Wallet } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useWallet } from '@/hooks/useWallet';
+import { Ionicons } from '@expo/vector-icons';
 import {
   emptyAddressDetails
 } from '@/hooks/useCheckout';
 import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
-import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 import { AddressDetails } from './AddressDetails';
 import { ProfileDetails } from './ProfileDetails';
 import { SecurityDetails } from './SecurityDetails';
-import { SignInForm } from './SignInForm';
+import SignInForm from '@/screens/auth/SignInForm';
 import { ProfileHeader } from './components/ProfileHeader';
 import {
   AddressErrors,
@@ -46,11 +47,11 @@ export default function Profile() {
   const insets = useSafeAreaInsets();
   const { data: session, isPending, refetch } = authClient.useSession();
   const user = session?.user as ProfileUser | undefined;
+  const { data: walletData, isLoading: walletLoading } = useWallet({ enabled: Boolean(user) });
+  const walletBalance = walletData?.balance ?? 0;
   const { data: savedAddress, isLoading: isAddressLoading } = useMyAddress(Boolean(user));
   const updateAddress = useUpdateMyAddress();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loadingAction, setLoadingAction] = useState<LoadingAction>(null);
@@ -97,54 +98,6 @@ export default function Profile() {
   const clearMessages = () => {
     setError('');
     setSuccess('');
-  };
-
-  const handleEmailLogin = async () => {
-    clearMessages();
-
-    if (!isAllowedCustomerDomain(email.trim())) {
-      setError('This email domain is not allowed. Please use an approved email provider.');
-      return;
-    }
-
-    setLoadingAction('email');
-
-    const { error: authError } = await authClient.signIn.email({
-      email: email.trim(),
-      password,
-    });
-
-    setLoadingAction(null);
-
-    if (authError) {
-      setError(getAuthErrorMessage(authError, 'Unable to sign in'));
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
-    queryClient.invalidateQueries({ queryKey: ['order-summary'] });
-    router.replace('/');
-  };
-
-  const handleGoogleLogin = async () => {
-    clearMessages();
-    setLoadingAction('google');
-
-    const { error: authError } = await authClient.signIn.social({
-      provider: 'google',
-      callbackURL: '/profile',
-    });
-
-    setLoadingAction(null);
-
-    if (authError) {
-      setError(getAuthErrorMessage(authError, 'Google sign-in failed'));
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
-    queryClient.invalidateQueries({ queryKey: ['order-summary'] });
-    router.replace('/profile');
   };
 
   const handleSignOut = async () => {
@@ -280,22 +233,8 @@ export default function Profile() {
     }
   };
 
-  const validateAddress = () => {
-    const nextErrors: AddressErrors = {};
-
-    if (!addressForm.line1.trim()) nextErrors.line1 = 'Address line 1 is required';
-    if (!addressForm.city.trim()) nextErrors.city = 'City is required';
-    if (!addressForm.province.trim()) nextErrors.province = 'Province is required';
-    if (!addressForm.country.trim()) nextErrors.country = 'Country is required';
-    setAddressErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
   const handleSaveAddress = async () => {
     clearMessages();
-
-    if (!validateAddress()) return;
-
     setLoadingAction('address');
 
     try {
@@ -351,18 +290,7 @@ export default function Profile() {
   }
 
   if (!user) {
-    return (
-      <SignInForm
-        email={email}
-        password={password}
-        error={error}
-        loadingAction={loadingAction}
-        setEmail={setEmail}
-        setPassword={setPassword}
-        onEmailLogin={handleEmailLogin}
-        onGoogleLogin={handleGoogleLogin}
-      />
-    );
+    return <SignInForm />;
   }
 
   return (
@@ -408,6 +336,31 @@ export default function Profile() {
             onSave={handleSaveProfile}
           />
         </View>
+
+        {/* Wallet Card */}
+        <TouchableOpacity
+          className="mt-6 rounded-3xl bg-white p-5 shadow-sm"
+          activeOpacity={0.8}
+          onPress={() => router.push('/wallet')}>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3">
+              <View className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100">
+                <Wallet size={20} color={BRAND} />
+              </View>
+              <View>
+                <Text className="text-sm font-bold text-gray-950">Wallet</Text>
+                {walletLoading ? (
+                  <ActivityIndicator size="small" color={BRAND} />
+                ) : (
+                  <Text className="text-lg font-extrabold text-[#e13e00]">
+                    ₱{walletBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </View>
+        </TouchableOpacity>
 
         <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
           <AddressDetails

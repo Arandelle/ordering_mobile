@@ -1,7 +1,9 @@
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import { Chrome, LockKeyhole, Mail } from 'lucide-react-native';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,39 +11,92 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constant';
-import { LoadingAction } from './types';
+import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
+import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
-interface SignInFormProps {
-  email: string;
-  password: string;
-  error: string;
-  loadingAction: LoadingAction;
-  setEmail: (value: string) => void;
-  setPassword: (value: string) => void;
-  onEmailLogin: () => void;
-  onGoogleLogin: () => void;
-}
+export default function SignInForm() {
+  const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const { isPending: sessionPending } = authClient.useSession();
 
-export function SignInForm({
-  email,
-  password,
-  error,
-  loadingAction,
-  setEmail,
-  setPassword,
-  onEmailLogin,
-  onGoogleLogin,
-}: SignInFormProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loadingAction, setLoadingAction] = useState<'email' | 'google' | null>(null);
+
+  const handleEmailLogin = async () => {
+    setError('');
+
+    if (!isAllowedCustomerDomain(email.trim())) {
+      setError('This email domain is not allowed. Please use an approved email provider.');
+      return;
+    }
+
+    setLoadingAction('email');
+
+    const { error: authError } = await authClient.signIn.email({
+      email: email.trim(),
+      password,
+    });
+
+    setLoadingAction(null);
+
+    if (authError) {
+      setError(getAuthErrorMessage(authError, 'Unable to sign in'));
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+    queryClient.invalidateQueries({ queryKey: ['order-summary'] });
+    router.replace('/');
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setLoadingAction('google');
+
+    const { error: authError } = await authClient.signIn.social({
+      provider: 'google',
+      callbackURL: '/profile',
+    });
+
+    setLoadingAction(null);
+
+    if (authError) {
+      setError(getAuthErrorMessage(authError, 'Google sign-in failed'));
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
+    queryClient.invalidateQueries({ queryKey: ['order-summary'] });
+    router.replace('/profile');
+  };
+
+  if (sessionPending) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-50">
+        <ActivityIndicator size="large" color="#e13e00" />
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         className="flex-1 bg-gray-50"
-        contentContainerClassName="px-5 py-6"
+        contentContainerStyle={{
+          paddingTop: insets.top + 24,
+          paddingBottom: insets.bottom + 80,
+          paddingLeft: 20,
+          paddingRight: 20,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View className="rounded-3xl bg-white p-5 shadow-sm">
@@ -55,7 +110,10 @@ export function SignInForm({
               label="Email"
               placeholder="juan@email.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(v) => {
+                setEmail(v);
+                setError('');
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               leftIcon={{ icon: Mail }}
@@ -65,9 +123,14 @@ export function SignInForm({
               label="Password"
               placeholder="Password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                setError('');
+              }}
               secureTextEntry
               leftIcon={{ icon: LockKeyhole }}
+              returnKeyType="done"
+              onSubmitEditing={handleEmailLogin}
             />
           </View>
 
@@ -80,7 +143,7 @@ export function SignInForm({
           <Button
             className="mt-5"
             text={loadingAction === 'email' ? 'Signing in...' : 'Sign in'}
-            onPress={onEmailLogin}
+            onPress={handleEmailLogin}
             isLoading={loadingAction === 'email'}
             loadingText="Signing in..."
             disabled={loadingAction !== null}
@@ -100,7 +163,7 @@ export function SignInForm({
               loadingAction === 'google' ? 'opacity-[0.65]' : ''
             }`}
             activeOpacity={0.85}
-            onPress={onGoogleLogin}
+            onPress={handleGoogleLogin}
             disabled={loadingAction !== null}>
             <Chrome size={18} color="#111827" />
             <Text className="text-[15px] font-bold text-gray-950">
