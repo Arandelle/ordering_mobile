@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -204,6 +203,8 @@ async function searchAddress(query: string): Promise<SearchResult[]> {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const INLINE_MAP_HEIGHT = 220;
+
 export function DeliveryLocationPicker({
   value,
   addressQuery,
@@ -217,8 +218,8 @@ export function DeliveryLocationPicker({
   onAddressResolved?: (address: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string }) => void;
   error?: string;
 }) {
-  const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapView>(null);
+  const inlineMapRef = useRef<MapView>(null);
+  const modalMapRef = useRef<MapView>(null);
   const resolveRequestIdRef = useRef(0);
 
   const [searchQuery, setSearchQuery] = useState(addressQuery ?? '');
@@ -306,13 +307,14 @@ export function DeliveryLocationPicker({
       setSearchQuery(result.display_name);
       const coords = { lat: Number(result.lat), lng: Number(result.lon) };
 
-      mapRef.current?.animateToRegion(
+      const activeRef = mapModalOpen ? modalMapRef : inlineMapRef;
+      activeRef.current?.animateToRegion(
         { latitude: coords.lat, longitude: coords.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
         500,
       );
       resolveAddress(coords);
     },
-    [resolveAddress],
+    [resolveAddress, mapModalOpen],
   );
 
   // Use current location
@@ -357,7 +359,8 @@ export function DeliveryLocationPicker({
         return;
       }
 
-      mapRef.current?.animateToRegion(
+      const activeRef = mapModalOpen ? modalMapRef : inlineMapRef;
+      activeRef.current?.animateToRegion(
         { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 },
         500,
       );
@@ -367,20 +370,53 @@ export function DeliveryLocationPicker({
     } finally {
       setIsLocating(false);
     }
-  }, [resolveAddress]);
+  }, [resolveAddress, mapModalOpen]);
 
-  // Animate map when value changes externally
+  // Animate inline map when value changes externally
   useEffect(() => {
-    if (value && mapRef.current) {
-      mapRef.current.animateToRegion(
+    if (value && inlineMapRef.current) {
+      inlineMapRef.current.animateToRegion(
         { latitude: value.lat, longitude: value.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
         400,
       );
     }
   }, [value]);
 
+  // Animate modal map when it opens
+  useEffect(() => {
+    if (mapModalOpen && value && modalMapRef.current) {
+      setTimeout(() => {
+        modalMapRef.current?.animateToRegion(
+          { latitude: value.lat, longitude: value.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+          400,
+        );
+      }, 300);
+    }
+  }, [mapModalOpen]);
+
+  const mapInitialRegion = {
+    latitude: value?.lat ?? METRO_MANILA_CENTER.latitude,
+    longitude: value?.lng ?? METRO_MANILA_CENTER.longitude,
+    latitudeDelta: value ? 0.01 : 0.15,
+    longitudeDelta: value ? 0.01 : 0.15,
+  };
+
+  const renderMarker = () =>
+    value ? (
+      <Marker
+        coordinate={{ latitude: value.lat, longitude: value.lng }}
+        title="Delivery pin"
+        description={resolvedAddress?.placeName || 'Pinned location'}
+        draggable
+        onDragEnd={(e) => {
+          const { latitude, longitude } = e.nativeEvent.coordinate;
+          resolveAddress({ lat: latitude, lng: longitude });
+        }}
+      />
+    ) : null;
+
   return (
-    <View style={{ paddingBottom: insets.bottom }}>
+    <View>
       {/* Search bar */}
       <View className="flex-row gap-2">
         <View className="flex-1 flex-row items-center rounded-xl border border-gray-200 bg-white px-3">
@@ -453,43 +489,79 @@ export function DeliveryLocationPicker({
         </View>
       )}
 
-      {/* Pin button — opens full-screen map modal */}
-      <TouchableOpacity
-        className={`mt-3 flex-row items-start gap-3 rounded-xl border px-4 py-4 ${
-          value ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-        }`}
-        onPress={() => setMapModalOpen(true)}
-        activeOpacity={0.7}>
-        <View className={`mt-0.5 h-10 w-10 items-center justify-center rounded-full ${
-          value ? 'bg-green-100' : 'bg-gray-100'
-        }`}>
-          <Ionicons name={value ? 'map' : 'map-outline'} size={18} color={value ? '#16a34a' : '#6b7280'} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className={`text-sm font-semibold ${value ? 'text-green-700' : 'text-gray-900'}`}>
-            {value ? 'Delivery location pinned' : 'Pin your delivery location'}
-          </Text>
-          <Text className="mt-1 text-xs leading-5 text-gray-600" numberOfLines={2}>
-            {resolvedAddress?.placeName || (value ? 'Coordinates saved' : 'Open the map to search, use current location, or place the pin.')}
-          </Text>
-          {value && (
-            <Text className="mt-2 text-[11px] font-medium text-gray-500">
-              {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
-            </Text>
-          )}
-        </View>
-        <Ionicons name="chevron-forward" size={18} color="#9ca3af" className="mt-2" />
-      </TouchableOpacity>
+      {/* Inline map */}
+      <View className="mt-3 overflow-hidden rounded-xl border border-gray-200" style={{ height: INLINE_MAP_HEIGHT }}>
+        <MapView
+          ref={inlineMapRef}
+          style={{ width: '100%', height: '100%' }}
+          initialRegion={mapInitialRegion}
+          onPress={handleMapPress}
+          scrollEnabled={false}
+          zoomEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+          showsUserLocation
+          showsCompass
+          showsScale>
+          {renderMarker()}
+        </MapView>
 
-      {/* Map modal */}
+        {/* Fullscreen button — top-right overlay */}
+        <TouchableOpacity
+          className="absolute right-2 top-2 items-center justify-center rounded-lg bg-white/90 p-2 shadow-sm"
+          onPress={() => setMapModalOpen(true)}
+          activeOpacity={0.7}
+          style={{ elevation: 3 }}>
+          <Ionicons name="expand" size={18} color="#374151" />
+        </TouchableOpacity>
+
+        {/* Resolving indicator overlay */}
+        {isResolving && (
+          <View className="absolute left-2 top-2 flex-row items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 shadow-sm" style={{ elevation: 3 }}>
+            <ActivityIndicator size="small" color="#e13e00" />
+            <Text className="text-[11px] text-gray-600">Resolving...</Text>
+          </View>
+        )}
+
+        {/* Resolved address bar — bottom overlay */}
+        {resolvedAddress && !isResolving && (
+          <View className="absolute bottom-0 left-0 right-0 flex-row items-center gap-2 bg-white/90 px-3 py-2" style={{ elevation: 3 }}>
+            <Ionicons name="location" size={14} color="#16a34a" />
+            <Text className="flex-1 text-xs text-gray-700" numberOfLines={1}>
+              {resolvedAddress.placeName || 'Pinned location'}
+            </Text>
+          </View>
+        )}
+
+        {/* No pin hint — bottom overlay */}
+        {!value && !isResolving && (
+          <View className="absolute bottom-0 left-0 right-0 bg-white/90 px-3 py-2" style={{ elevation: 3 }}>
+            <Text className="text-center text-xs text-gray-500">
+              Tap the map or drag the pin to set your delivery location
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Coordinates display */}
+      {value && (
+        <View className="mt-2 flex-row items-center gap-1.5">
+          <Ionicons name="navigate" size={12} color="#9ca3af" />
+          <Text className="text-[11px] font-medium text-gray-500">
+            {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
+          </Text>
+        </View>
+      )}
+
+      {/* Fullscreen map modal */}
       <Modal visible={mapModalOpen} animationType="slide" presentationStyle="pageSheet">
         <View className="flex-1 bg-gray-50 px-5 pt-5">
           {/* Header */}
           <View className="mb-3 flex-row items-center justify-between">
-            <View>
+            <View className="flex-1 pr-3">
               <Text className="text-lg font-bold text-gray-950">Pin delivery location</Text>
               <Text className="text-xs text-gray-500">
-                Search, use current location, or tap the map to place the pin.
+                Tap the map, drag the pin, or search for an address.
               </Text>
             </View>
             <TouchableOpacity
@@ -592,34 +664,18 @@ export function DeliveryLocationPicker({
             </View>
           )}
 
-          {/* Map */}
+          {/* Fullscreen map */}
           <View className="flex-1 overflow-hidden rounded-xl border border-gray-200">
             <MapView
-              ref={mapRef}
+              ref={modalMapRef}
               style={{ width: '100%', height: '100%' }}
-              initialRegion={{
-                latitude: value?.lat ?? METRO_MANILA_CENTER.latitude,
-                longitude: value?.lng ?? METRO_MANILA_CENTER.longitude,
-                latitudeDelta: value ? 0.01 : 0.15,
-                longitudeDelta: value ? 0.01 : 0.15,
-              }}
+              initialRegion={mapInitialRegion}
               onPress={handleMapPress}
               showsUserLocation
               showsMyLocationButton
               showsCompass
               showsScale>
-              {value && (
-                <Marker
-                  coordinate={{ latitude: value.lat, longitude: value.lng }}
-                  title="Delivery pin"
-                  description={resolvedAddress?.placeName || 'Pinned location'}
-                  draggable
-                  onDragEnd={(e) => {
-                    const { latitude, longitude } = e.nativeEvent.coordinate;
-                    resolveAddress({ lat: latitude, lng: longitude });
-                  }}
-                />
-              )}
+              {renderMarker()}
             </MapView>
           </View>
 

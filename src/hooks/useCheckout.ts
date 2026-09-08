@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { CreateOrderPayload, CreateOrderResponse } from '@/types/orders.type';
 
+export type { CheckoutAddressDetails } from '@/context/CheckoutContext';
+import type { CheckoutAddressDetails } from '@/context/CheckoutContext';
+
 const CHECKOUT_DRAFT_KEY = 'checkout_draft';
 
 export type CheckoutPaymentMethod = CreateOrderPayload['paymentMethod'];
@@ -13,16 +16,6 @@ export interface CheckoutPersonalDetails {
   email: string;
   phone: string;
   note: string;
-}
-
-export interface CheckoutAddressDetails {
-  line1: string;
-  line2: string;
-  city: string;
-  province: string;
-  zipCode: string;
-  country: string;
-  landmark: string;
 }
 
 export interface CheckoutDraft {
@@ -43,10 +36,19 @@ export const emptyAddressDetails: CheckoutAddressDetails = {
   line1: '',
   line2: '',
   city: '',
+  cityCode: '',
   province: '',
   zipCode: '',
   country: 'Philippines',
   landmark: '',
+  barangayCode: '',
+  subMunicipality: '',
+  subMunicipalityCode: '',
+  region: '',
+  regionCode: '',
+  placeName: '',
+  pinnedCity: '',
+  pinnedLine2: '',
 };
 
 async function getCheckoutDraft(): Promise<CheckoutDraft> {

@@ -1,16 +1,23 @@
 import { apiClient } from '@/lib/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckoutAddressDetails } from './useCheckout';
+import { CheckoutAddressDetails } from '@/context/CheckoutContext';
 
 type AddressApiShape = Partial<{
   line1: string;
   line2: string;
   city: string;
+  cityCode: string;
   province: string;
   zipCode: string;
   postalCode: string;
   country: string;
   landmark: string;
+  barangayCode: string;
+  subMunicipality: string;
+  subMunicipalityCode: string;
+  region: string;
+  regionCode: string;
+  placeName: string;
   coordinates:
     | {
         lat?: number | string;
@@ -37,6 +44,26 @@ function isShippingAddressEnvelope(
   return Boolean(response && typeof response === 'object' && 'shippingAddress' in response);
 }
 
+function normalizeCoordinates(
+  raw: AddressApiShape['coordinates'],
+): { lat: number; lng: number } | undefined {
+  if (!raw) return undefined;
+  if (Array.isArray(raw)) {
+    const [a, b] = raw;
+    if (typeof a === 'number' && typeof b === 'number') {
+      // GeoJSON is [lng, lat]
+      return { lat: b, lng: a };
+    }
+    return undefined;
+  }
+  const lat = typeof raw.lat === 'string' ? parseFloat(raw.lat) : raw.lat;
+  const lng = typeof raw.lng === 'string' ? parseFloat(raw.lng) : raw.lng;
+  if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
+    return { lat, lng };
+  }
+  return undefined;
+}
+
 function normalizeAddressResponse(response: AddressResponse): CheckoutAddressDetails | null {
   if (!response) return null;
 
@@ -51,10 +78,18 @@ function normalizeAddressResponse(response: AddressResponse): CheckoutAddressDet
     line1: address.line1 ?? '',
     line2: address.line2 ?? '',
     city: address.city ?? '',
+    cityCode: address.cityCode ?? '',
     province: address.province ?? '',
     zipCode: address.zipCode ?? address.postalCode ?? '',
     country: address.country ?? 'Philippines',
     landmark: address.landmark ?? '',
+    barangayCode: address.barangayCode ?? '',
+    subMunicipality: address.subMunicipality ?? '',
+    subMunicipalityCode: address.subMunicipalityCode ?? '',
+    region: address.region ?? '',
+    regionCode: address.regionCode ?? '',
+    placeName: address.placeName ?? '',
+    coordinates: normalizeCoordinates(address.coordinates),
   };
 }
 
@@ -63,11 +98,21 @@ function toAddressPayload(address: CheckoutAddressDetails) {
     line1: address.line1.trim(),
     line2: address.line2.trim(),
     city: address.city.trim(),
+    cityCode: address.cityCode?.trim() || '',
     province: address.province.trim(),
     zipCode: address.zipCode.trim(),
     postalCode: address.zipCode.trim(),
     country: address.country.trim(),
     landmark: address.landmark.trim(),
+    barangayCode: address.barangayCode?.trim() || '',
+    subMunicipality: address.subMunicipality?.trim() || '',
+    subMunicipalityCode: address.subMunicipalityCode?.trim() || '',
+    region: address.region?.trim() || '',
+    regionCode: address.regionCode?.trim() || '',
+    placeName: address.placeName?.trim() || '',
+    coordinates: address.coordinates
+      ? { lat: address.coordinates.lat, lng: address.coordinates.lng }
+      : undefined,
   };
 }
 
