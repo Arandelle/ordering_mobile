@@ -1,17 +1,26 @@
 import React from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 import { twMerge } from 'tailwind-merge';
+import { Icon } from './Icon';
 
 export interface ButtonIconProps {
-  icon: React.ComponentType<{ size?: number; color?: string; style?: object }>;
+  name: string | null;
   size?: number;
-  className?: string;
+  color?: string;
+  position?: 'left' | 'right';
+  iconSet?: 'lucide' | 'ionicons';
+}
+
+export interface ButtonLoadingProps {
+  isLoading: boolean;
+  text?: string;
 }
 
 export interface ButtonProps extends TouchableOpacityProps {
-  iconLeft?: ButtonIconProps;
-  iconRight?: ButtonIconProps;
+  icon?: ButtonIconProps;
+  loading?: ButtonLoadingProps;
   text?: string;
+  textClassName?: string;
   variant?:
     | 'primary'
     | 'secondary'
@@ -21,8 +30,6 @@ export interface ButtonProps extends TouchableOpacityProps {
     | 'success'
     | 'disabled'
     | 'underline';
-  isLoading?: boolean;
-  loadingText?: string;
   children?: React.ReactNode;
 }
 
@@ -49,19 +56,21 @@ const textVariantClasses: Record<NonNullable<ButtonProps['variant']>, string> = 
 };
 
 export const Button = ({
-  iconLeft,
-  iconRight,
+  icon,
+  loading,
   text,
+  textClassName,
   variant = 'primary',
-  isLoading = false,
-  loadingText = 'Loading...',
   disabled,
   children,
   className,
   style,
   ...props
 }: ButtonProps) => {
+  const isLoading = loading?.isLoading ?? false;
   const isDisabled = disabled || isLoading;
+  const iconPosition = icon?.position ?? 'left';
+  const iconSize = icon?.size ?? 16;
 
   const containerClass = twMerge(
     'flex-row items-center justify-center gap-2 px-5 py-3.5',
@@ -73,12 +82,31 @@ export const Button = ({
   const textClass = twMerge(
     'text-sm font-bold',
     textVariantClasses[variant],
-    isDisabled && "opacity-60 text-gray-900"
+    isDisabled && 'opacity-60 text-gray-900',
+    textClassName,
   );
 
-  const iconColor = variant === 'primary' || variant === 'danger' || variant === 'success'
-    ? (isDisabled ? '#9ca3af' : '#fff')
-    : isDisabled ? '#9ca3af' : '#374151';
+  const iconColor =
+    icon?.color ??
+    (variant === 'primary' || variant === 'danger' || variant === 'success'
+      ? isDisabled
+        ? '#9ca3af'
+        : '#fff'
+      : isDisabled
+        ? '#9ca3af'
+        : '#374151');
+
+  const renderIcon = () => {
+    if (!icon || !icon.name|| isLoading) return null;
+    return (
+      <Icon
+        name={icon.name}
+        size={iconSize}
+        color={iconColor}
+        iconSet={icon.iconSet}
+      />
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -95,22 +123,14 @@ export const Button = ({
           {isLoading ? (
             <ActivityIndicator size="small" color={iconColor} />
           ) : (
-            iconLeft && (
-              <View className={iconLeft.className}>
-                <iconLeft.icon size={iconLeft.size ?? 16} color={iconColor} />
-              </View>
-            )
+            iconPosition === 'left' && icon?.name && renderIcon()
           )}
           {text && (
             <Text className={textClass}>
-              {isLoading ? loadingText : text}
+              {isLoading ? (loading?.text ?? 'Loading...') : text}
             </Text>
           )}
-          {!isLoading && iconRight && (
-            <View className={iconRight.className}>
-              <iconRight.icon size={iconRight.size ?? 16} color={iconColor} />
-            </View>
-          )}
+          {!isLoading && iconPosition === 'right' && icon?.name && renderIcon()}
         </>
       )}
     </TouchableOpacity>
