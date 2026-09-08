@@ -25,8 +25,11 @@ export function OrderConfirmationModal({
   selectedPayment: 'cod' | 'maya' | 'wallet';
 }) {
   const insets = useSafeAreaInsets();
-  const { cartItems, totalPrice, vatableSales, vatAmount } = useCart();
+  const { selectedItems, selectedTotal } = useCart();
   const { selectedBranch } = useBranchContext();
+
+  const vatableSales = selectedTotal / 1.12;
+  const vatAmount = selectedTotal - vatableSales;
 
   const isDineIn = selectedBranch
     ? false
@@ -55,10 +58,10 @@ export function OrderConfirmationModal({
           {/* Items summary */}
           <View className="mb-4 rounded-xl bg-gray-50 p-3">
             <View className="mb-2 flex-row items-center justify-between">
-              <Text className="text-sm font-bold text-gray-900">Items ({cartItems.length})</Text>
-              <Text className="text-sm font-bold text-gray-900">{formatMoney(totalPrice)}</Text>
+              <Text className="text-sm font-bold text-gray-900">Items ({selectedItems.length})</Text>
+              <Text className="text-sm font-bold text-gray-900">{formatMoney(selectedTotal)}</Text>
             </View>
-            {cartItems.slice(0, 3).map((item) => (
+            {selectedItems.slice(0, 3).map((item) => (
               <View key={String(item._id)} className="flex-row justify-between py-1">
                 <Text className="flex-1 text-xs text-gray-600" numberOfLines={1}>
                   {item.quantity}× {item.name}
@@ -68,8 +71,8 @@ export function OrderConfirmationModal({
                 </Text>
               </View>
             ))}
-            {cartItems.length > 3 && (
-              <Text className="mt-1 text-xs text-gray-400">+{cartItems.length - 3} more items</Text>
+            {selectedItems.length > 3 && (
+              <Text className="mt-1 text-xs text-gray-400">+{selectedItems.length - 3} more items</Text>
             )}
           </View>
 
@@ -95,7 +98,7 @@ export function OrderConfirmationModal({
                     : 'Maya'}
               </Text>
             </View>
-            <Text className="text-sm font-bold text-orange-600">{formatMoney(displayTotalPrice || totalPrice)}</Text>
+            <Text className="text-sm font-bold text-orange-600">{formatMoney(displayTotalPrice)}</Text>
           </View>
 
           {/* Breakdown */}

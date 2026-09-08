@@ -10,7 +10,7 @@ import { useCart } from '@/context/CartContext';
 import { BranchSelector } from '@/components/home/BranchSelector';
 import { useCheckout } from '@/context/CheckoutContext';
 import { CreateOrderPayload, FULFILLMENT_TYPE } from '@/types/orders.type';
-import { QuantityStepper } from '@/components/products/QuantityStepper';
+import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import CheckoutStepper from './CheckoutStepper';
 import { OrderConfirmationModal } from './OrderConfirmationModal';
 import { useDeliveryFeeEstimate } from '@/hooks/useOrders';
@@ -88,15 +88,16 @@ const ReviewOrder = () => {
   const insets = useSafeAreaInsets();
   const { selectedBranch } = useBranchContext();
   const {
-    cartItems,
-    totalItems,
-    vatableSales,
-    vatAmount,
-    totalPrice,
+    selectedItems,
+    selectedTotal,
+    selectedCount,
     updateQuantity,
     removeFromCart,
     clearCart,
   } = useCart();
+
+  const vatableSales = selectedTotal / 1.12;
+  const vatAmount = selectedTotal - vatableSales;
 
   const {
     draft,
@@ -138,7 +139,7 @@ const ReviewOrder = () => {
   const effectiveCodAvailable = isCodAvailable && isDelivery;
 
   // Wallet can cover the full order total
-  const walletCanCover = hasWalletBalance && walletBalance >= totalPrice;
+  const walletCanCover = hasWalletBalance && walletBalance >= selectedTotal;
 
   // Track if user has manually selected a payment method
   const hasUserSelectedPayment = useRef(false);
@@ -170,7 +171,7 @@ const ReviewOrder = () => {
       customerPhone: draft.customer.customerPhone.trim(),
       notes: draft.customer.notes.trim() || undefined,
       paymentMethod,
-      items: cartItems.map((item) => ({
+      items: selectedItems.map((item) => ({
         _id: String(item._id),
         quantity: item.quantity,
       })),
@@ -222,7 +223,7 @@ const ReviewOrder = () => {
       return;
     }
 
-    if (cartItems.length === 0) {
+    if (selectedItems.length === 0) {
       Alert.alert('Empty cart', 'Please add items before checkout.');
       return;
     }
@@ -280,7 +281,7 @@ const ReviewOrder = () => {
   const deliveryNotFetched = isDelivery && (!deliveryCoords || !deliveryCoords.lat || !deliveryCoords.lng);
 
   const canPlaceOrder =
-    cartItems.length > 0 &&
+    selectedItems.length > 0 &&
     !!selectedBranch?._id &&
     !hasCustomerErrors &&
     !hasShippingErrors &&
@@ -424,11 +425,11 @@ const ReviewOrder = () => {
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <View className="mb-3 flex-row items-center justify-between">
           <Text className="text-[15px] font-bold text-gray-950">Items</Text>
-          <Text className="text-xs font-semibold text-gray-500">{totalItems} total</Text>
+          <Text className="text-xs font-semibold text-gray-500">{selectedCount} total</Text>
         </View>
 
         <View className="gap-3">
-          {cartItems.map((item) => (
+          {selectedItems.map((item) => (
             <View key={String(item._id)} className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-sm font-bold text-gray-950" numberOfLines={2}>
@@ -600,7 +601,7 @@ const ReviewOrder = () => {
 
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-extrabold text-gray-950">Total</Text>
-          <Text className="text-xl font-extrabold text-[#e13e00]">{formatMoney(totalPrice)}</Text>
+          <Text className="text-xl font-extrabold text-[#e13e00]">{formatMoney(selectedTotal)}</Text>
         </View>
       </View>
 
@@ -627,7 +628,7 @@ const ReviewOrder = () => {
             {!selectedBranch?._id && (
               <Text className="text-xs text-red-600">• Please select a branch</Text>
             )}
-            {cartItems.length === 0 && (
+            {selectedItems.length === 0 && (
               <Text className="text-xs text-red-600">• Your cart is empty</Text>
             )}
             {deliveryBlocked && (
@@ -663,8 +664,7 @@ const ReviewOrder = () => {
         }
         onPress={canPlaceOrder ? handleConfirmOrder : undefined}
         disabled={!canPlaceOrder}
-        isLoading={isPlacingOrder}
-        loadingText="Placing Order..."
+        loading={{ isLoading: isPlacingOrder, text: 'Placing Order...' }}
       />
 
       {/* Confirmation modal */}
@@ -673,7 +673,7 @@ const ReviewOrder = () => {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handlePlaceOrder}
         isPlacingOrder={isPlacingOrder}
-        displayTotalPrice={totalPrice}
+        displayTotalPrice={selectedTotal}
         selectedPayment={paymentMethod}
       />
     </ScrollView>
