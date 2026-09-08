@@ -73,6 +73,7 @@ export const Button = ({
   const textClass = twMerge(
     'text-sm font-bold',
     textVariantClasses[variant],
+    isDisabled && "opacity-60 text-gray-900"
   );
 
   const iconColor = variant === 'primary' || variant === 'danger' || variant === 'success'
