@@ -27,6 +27,14 @@ interface CartContextType {
   vatableSales: number;
   vatAmount: number;
   totalPrice: number;
+  selectedItemIds: Set<string>;
+  selectedItems: CartItem[];
+  selectedTotal: number;
+  selectedCount: number;
+  isAllSelected: boolean;
+  toggleItemSelection: (id: string) => void;
+  selectAll: () => void;
+  deselectAll: () => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   isSyncing: boolean;
@@ -63,6 +71,7 @@ export const CartProvider: React.FC<{
   children: ReactNode;
 }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -116,6 +125,14 @@ export const CartProvider: React.FC<{
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]); // re-run when userId changes (e.g. login / logout) // CHANGE BACK TO SESSION?.USER ONCE AUTH IS OK
+
+  // ─── Auto-select all items when cart loads or changes ──────────────────────
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    setSelectedItemIds(new Set(cartItems.map((item) => String(item._id))));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItems.length, isHydrated]);
 
   // ─── Sync: persist cart whenever it changes ─────────────────────────────────
 
@@ -189,6 +206,7 @@ export const CartProvider: React.FC<{
 
   const clearCart = useCallback(async () => {
     setCartItems([]);
+    setSelectedItemIds(new Set());
 
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
 
@@ -200,6 +218,28 @@ export const CartProvider: React.FC<{
     }
   }, [syncToDb, cartItems, isAuthenticated]);
 
+  // ─── Selection actions ─────────────────────────────────────────────────────
+
+  const toggleItemSelection = useCallback((id: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedItemIds(new Set(cartItems.map((item) => String(item._id))));
+  }, [cartItems]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedItemIds(new Set());
+  }, []);
+
   // ─── Derived values ──────────────────────────────────────────────────────────
 
   const totalProducts = cartItems.length;
@@ -207,6 +247,11 @@ export const CartProvider: React.FC<{
   const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const vatableSales = totalPrice / 1.12;
   const vatAmount = totalPrice - vatableSales;
+
+  const selectedItems = cartItems.filter((item) => selectedItemIds.has(String(item._id)));
+  const selectedTotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const isAllSelected = cartItems.length > 0 && selectedItems.length === cartItems.length;
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -223,6 +268,14 @@ export const CartProvider: React.FC<{
         vatableSales,
         vatAmount,
         totalPrice,
+        selectedItemIds,
+        selectedItems,
+        selectedTotal,
+        selectedCount,
+        isAllSelected,
+        toggleItemSelection,
+        selectAll,
+        deselectAll,
         isCartOpen,
         setIsCartOpen,
         isSyncing,
