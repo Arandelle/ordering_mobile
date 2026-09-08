@@ -100,10 +100,9 @@ export function SecurityDetails({
 
             <Button
               className="flex-1"
-              text={loadingAction === 'password' ? 'Saving...' : 'Save'}
+              text="Save"
               onPress={onSave}
-              isLoading={loadingAction === 'password'}
-              loadingText="Saving..."
+              loading={{ isLoading: loadingAction === 'password', text: 'Saving...' }}
               disabled={isBusy}
             />
           </View>

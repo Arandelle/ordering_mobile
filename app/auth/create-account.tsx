@@ -129,10 +129,9 @@ export default function CreateAccount() {
 
           <Button
             className="mt-5"
-            text={loadingAction === 'email' ? 'Creating...' : 'Create Account'}
+            text="Create Account"
             onPress={handleCreateAccount}
-            isLoading={loadingAction === 'email'}
-            loadingText="Creating..."
+            loading={{ isLoading: loadingAction === 'email', text: 'Creating...' }}
             disabled={loadingAction !== null}
           />
 

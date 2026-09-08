@@ -1,4 +1,4 @@
-import { Phone, Save } from 'lucide-react-native';
+import { Phone } from 'lucide-react-native';
 import { Dispatch, SetStateAction } from 'react';
 import { View } from 'react-native';
 import { InfoRow } from './components/InfoRow';
@@ -79,10 +79,9 @@ export function ProfileDetails({
               className="flex-1"
               text={'Save'}
               onPress={onSave}
-              isLoading={loadingAction === 'profile'}
-              loadingText="Saving..."
+              loading={{ isLoading: loadingAction === 'profile', text: 'Saving...' }}
               disabled={isBusy}
-              iconLeft={{ icon: Save, size: 16 }}
+              icon={{ name: 'save', size: 16 }}
             />
           </View>
         </View>

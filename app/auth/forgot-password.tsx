@@ -82,10 +82,9 @@ export default function ForgotPassword() {
 
           <Button
             className="mt-5"
-            text={isSubmitting ? 'Sending...' : 'Send Reset Link'}
+            text="Send Reset Link"
             onPress={handleResetRequest}
-            isLoading={isSubmitting}
-            loadingText="Sending..."
+            loading={{ isLoading: isSubmitting, text: 'Sending...' }}
           />
         </View>
       </ScrollView>

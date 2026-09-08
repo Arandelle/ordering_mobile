@@ -1,5 +1,4 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
-import { Save } from 'lucide-react-native';
 import { CheckoutAddressDetails } from '@/hooks/useCheckout';
 import { SectionHeader } from './components/SectionHeader';
 import { formatAddress } from './utils';
@@ -124,12 +123,11 @@ export function AddressDetails({
 
             <Button
               className="flex-1"
-              text={loadingAction === 'address' ? 'Saving...' : 'Save'}
+              text="Save"
               onPress={onSave}
-              isLoading={loadingAction === 'address'}
-              loadingText="Saving..."
+              loading={{ isLoading: loadingAction === 'address', text: 'Saving...' }}
               disabled={isBusy}
-              iconRight={{ icon: Save, size: 16 }}
+              icon={{ name: 'save', size: 16, position: 'right' }}
             />
           </View>
         </View>

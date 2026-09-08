@@ -109,10 +109,9 @@ export default function ResetPassword() {
           )}
 
           <Button
-            text={isSubmitting ? 'Saving...' : 'Reset Password'}
+            text="Reset Password"
             onPress={handleResetPassword}
-            isLoading={isSubmitting}
-            loadingText="Saving..."
+            loading={{ isLoading: isSubmitting, text: 'Saving...' }}
           />
         </View>
       </ScrollView>

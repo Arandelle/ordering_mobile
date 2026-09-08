@@ -20,7 +20,7 @@ import { useCart } from '@/context/CartContext';
 import { SCREEN_HEIGHT } from '@/constant';
 import { Badge } from '../../src/components/products/Badge';
 import { IncludedItemCard } from '../../src/components/products/IncludedItemCard';
-import { QuantityStepper } from '../../src/components/products/QuantityStepper';
+import { QuantityStepper } from '../../src/components/ui/QuantityStepper';
 import { useSettings } from '@/hooks/useSettings';
 import { getStoreStatus } from '@/services/store-status.service';
 import { useBranchContext } from '@/context/BranchContext';

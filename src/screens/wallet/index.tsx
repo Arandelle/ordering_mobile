@@ -120,8 +120,7 @@ function TopupConfirmationModal({
               text="Continue"
               variant="success"
               onPress={onConfirm}
-              isLoading={isPending}
-              loadingText="Redirecting..."
+              loading={{ isLoading: isPending, text: 'Redirecting...' }}
               className="flex-1 rounded-2xl"
             />
           </View>

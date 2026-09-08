@@ -142,10 +142,9 @@ export default function SignInForm() {
 
           <Button
             className="mt-5"
-            text={loadingAction === 'email' ? 'Signing in...' : 'Sign in'}
+            text="Sign in"
             onPress={handleEmailLogin}
-            isLoading={loadingAction === 'email'}
-            loadingText="Signing in..."
+            loading={{ isLoading: loadingAction === 'email', text: 'Signing in...' }}
             disabled={loadingAction !== null}
           />
 
