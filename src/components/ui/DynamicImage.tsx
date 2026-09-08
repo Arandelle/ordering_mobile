@@ -51,31 +51,14 @@ const FALLBACK_ICON: Record<DynamicImageVariant, string> = {
   generic: "FileX",
 };
 
-const FALLBACK_BG: Record<DynamicImageVariant, string> = {
-  product: "#fff3ee",
-  profile: "#fff7ed",
-  banner: "#f5f0ed",
-  logo: "#f9f5f2",
-  order: "#fff7ed",
-  generic: "#f9fafb",
-};
 
 const ICON_SIZE: Record<DynamicImageVariant, number> = {
-  product: 22,
-  profile: 24,
-  banner: 20,
+  product: 32,
+  profile: 28,
+  banner: 24,
   logo: 18,
-  order: 22,
+  order: 32,
   generic: 20,
-};
-
-const ICON_COLOR: Record<DynamicImageVariant, string> = {
-  product: "#fdba74",
-  profile: "#e13e00",
-  banner: "#d1d5db",
-  logo: "#9ca3af",
-  order: "#fdba74",
-  generic: "#d1d5db",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -98,14 +81,11 @@ function FallbackPlaceholder({
 }) {
   const icon = fallbackIcon ?? FALLBACK_ICON[variant];
   const size = ICON_SIZE[variant];
-  const color = ICON_COLOR[variant];
-  const bg = FALLBACK_BG[variant];
 
   return (
     <View
-      style={{ backgroundColor: bg }}
-      className="absolute inset-0 items-center justify-center">
-      <Icon name={icon} size={size} color={color} />
+      className="absolute inset-0 items-center justify-center bg-gray-100">
+      <Icon name={icon} size={size} color={"#9ca3af"} />
     </View>
   );
 }
@@ -165,7 +145,6 @@ export const DynamicImage = forwardRef<View, DynamicImageProps>(
         {/* Loading overlay */}
         {!isLoaded && (
           <View
-            style={{ backgroundColor: FALLBACK_BG[variant] }}
             className="absolute inset-0 items-center justify-center">
             <ActivityIndicator size="small" color={tintColor} />
           </View>
