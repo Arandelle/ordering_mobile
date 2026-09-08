@@ -2,7 +2,7 @@ import { Banknote, ChevronRight, CreditCard, Wallet } from 'lucide-react-native'
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBranchContext } from '@/context/BranchContext';
@@ -140,13 +140,25 @@ const ReviewOrder = () => {
   // Wallet can cover the full order total
   const walletCanCover = hasWalletBalance && walletBalance >= totalPrice;
 
-  // Ensure payment method defaults appropriately
-  // Priority: wallet (if can cover) > maya (fallback when COD unavailable)
-  if (walletCanCover && paymentMethod !== 'wallet') {
-    setPaymentMethod('wallet');
-  } else if (!effectiveCodAvailable && paymentMethod === 'cod') {
-    setPaymentMethod('maya');
-  }
+  // Track if user has manually selected a payment method
+  const hasUserSelectedPayment = useRef(false);
+
+  // Auto-select payment method only on initial load (not after user manually changes)
+  useEffect(() => {
+    if (hasUserSelectedPayment.current) return;
+
+    if (walletCanCover && paymentMethod !== 'wallet') {
+      setPaymentMethod('wallet');
+    } else if (!effectiveCodAvailable && paymentMethod === 'cod') {
+      setPaymentMethod('maya');
+    }
+  }, [walletCanCover, effectiveCodAvailable, paymentMethod, setPaymentMethod]);
+
+  // Mark when user manually selects a payment method
+  const handlePaymentMethodChange = (method: 'cod' | 'maya' | 'wallet') => {
+    hasUserSelectedPayment.current = true;
+    setPaymentMethod(method);
+  };
 
   const buildPayload = (): CreateOrderPayload => {
     const base: CreateOrderPayload = {
@@ -173,6 +185,10 @@ const ReviewOrder = () => {
         zipCode: draft.shippingAddress.zipCode,
         country: 'Philippines',
         landmark: draft.shippingAddress.landmark || undefined,
+        coordinates: draft.shippingAddress.coordinates || undefined,
+        cityCode: draft.shippingAddress.cityCode || undefined,
+        barangayCode: draft.shippingAddress.barangayCode || undefined,
+        placeName: draft.shippingAddress.placeName || undefined,
       };
     }
 
@@ -261,7 +277,7 @@ const ReviewOrder = () => {
   const hasPickupError = isPickup && !!errors.pickupTime;
   const deliveryBlocked = isDelivery && deliveryEstimate?.deliveryUnavailable === true;
   const deliveryLoading = isDelivery && isLoadingDeliveryFee;
-  const deliveryNotFetched = isDelivery && !deliveryCoords;
+  const deliveryNotFetched = isDelivery && (!deliveryCoords || !deliveryCoords.lat || !deliveryCoords.lng);
 
   const canPlaceOrder =
     cartItems.length > 0 &&
@@ -313,30 +329,20 @@ const ReviewOrder = () => {
         )}
       </View>
 
-      {/* Summary card (editable) */}
+      {/* Personal Details card (editable) */}
       <TouchableOpacity
         className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
         activeOpacity={0.86}
         onPress={() => router.push('/checkout')}>
         <View className="mb-2 flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-base font-extrabold text-gray-950">{display(fullName)}</Text>
-            <Text className="mt-1 text-sm leading-5 text-gray-600">
-              {display(draft.customer.customerEmail)} - {display(draft.customer.customerPhone)}
+            <Text className="text-xs font-bold uppercase tracking-wide text-gray-500">
+              Personal Details
             </Text>
-
-            {isDelivery && draft.shippingAddress.line1 && (
-              <Text className="mt-2 text-sm leading-5 text-gray-800">
-                {[
-                  draft.shippingAddress.line1,
-                  draft.shippingAddress.line2,
-                  draft.shippingAddress.city,
-                  draft.shippingAddress.province,
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
-              </Text>
-            )}
+            <Text className="mt-1 text-base font-extrabold text-gray-950">{display(fullName)}</Text>
+            <Text className="mt-1 text-sm leading-5 text-gray-600">
+              {display(draft.customer.customerEmail)} · {display(draft.customer.customerPhone)}
+            </Text>
 
             {isDineIn && (
               <Text className="mt-2 text-sm text-gray-700">
@@ -370,13 +376,49 @@ const ReviewOrder = () => {
           </View>
         </View>
 
-        {!!draft.shippingAddress.landmark?.trim() && (
-          <Text className="mt-2 text-xs text-gray-500">Landmark: {draft.shippingAddress.landmark}</Text>
-        )}
         {!!draft.customer.notes?.trim() && (
           <Text className="mt-2 text-xs text-gray-500">Note: {draft.customer.notes}</Text>
         )}
       </TouchableOpacity>
+
+      {/* Delivery Address card (editable) — delivery only */}
+      {isDelivery && (
+        <TouchableOpacity
+          className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
+          activeOpacity={0.86}
+          onPress={() => router.push('/checkout/address')}>
+          <View className="mb-2 flex-row items-start justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                Delivery Address
+              </Text>
+              {draft.shippingAddress.line1 ? (
+                <Text className="mt-1 text-sm leading-5 text-gray-800">
+                  {[
+                    draft.shippingAddress.line1,
+                    draft.shippingAddress.line2,
+                    draft.shippingAddress.city,
+                    draft.shippingAddress.province,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </Text>
+              ) : (
+                <Text className="mt-1 text-sm italic text-gray-400">No address pinned yet</Text>
+              )}
+            </View>
+
+            <View className="flex-row items-center gap-1">
+              <Text className="text-xs font-bold text-[#e13e00]">Edit</Text>
+              <ChevronRight size={16} color="#e13e00" />
+            </View>
+          </View>
+
+          {!!draft.shippingAddress.landmark?.trim() && (
+            <Text className="mt-2 text-xs text-gray-500">Landmark: {draft.shippingAddress.landmark}</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* Items */}
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
@@ -428,20 +470,20 @@ const ReviewOrder = () => {
               selected={paymentMethod === 'wallet'}
               disabled={false}
               balance={walletBalance}
-              onPress={() => setPaymentMethod('wallet')}
+              onPress={() => handlePaymentMethodChange('wallet')}
             />
           )}
           <PaymentOption
             method="cod"
             selected={paymentMethod === 'cod'}
             disabled={!effectiveCodAvailable}
-            onPress={() => setPaymentMethod('cod')}
+            onPress={() => handlePaymentMethodChange('cod')}
           />
           <PaymentOption
             method="maya"
             selected={paymentMethod === 'maya'}
             disabled={false}
-            onPress={() => setPaymentMethod('maya')}
+            onPress={() => handlePaymentMethodChange('maya')}
           />
         </View>
 
