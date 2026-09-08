@@ -1,19 +1,22 @@
 import { useCart } from '@/context/CartContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Text, TouchableOpacity } from 'react-native';
+import { Image, Platform, Text, TouchableOpacity } from 'react-native';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
 import { authClient } from '@/lib/auth-client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
 
-const TAB_BAR_TOP_PADDING = 6;
+const TAB_BAR_CONTENT_HEIGHT = 56; // icon + label area, excluding safe area
 
 export default function TabLayout() {
   const { cartItems, totalItems, clearCart } = useCart();
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
+
+  const insets = useSafeAreaInsets();
 
   const { data: orderSummary } = useCustomerOrderSummary();
 
@@ -23,6 +26,8 @@ export default function TabLayout() {
     (orderSummary?.dispatched ?? 0) +
     (orderSummary?.completed ?? 0);
 
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
+
   return (
     <Tabs
       screenOptions={{
@@ -31,14 +36,16 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '100',
-          marginBottom: 2,
+          marginBottom: Platform.OS === 'ios' ? 0 : 4,
         },
         tabBarStyle: {
-          paddingTop: TAB_BAR_TOP_PADDING,
-          backgroundColor: '#fff',
+          backgroundColor: '#fff', // was 'green' — likely leftover debug color
           borderTopWidth: 1,
           borderTopColor: '#f0f0f0',
           elevation: 12,
+          height: TAB_BAR_CONTENT_HEIGHT + bottomInset,
+          paddingTop: 8,
+          paddingBottom: bottomInset,
         },
         tabBarHideOnKeyboard: true,
         headerStyle: {
