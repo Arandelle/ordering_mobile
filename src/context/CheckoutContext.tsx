@@ -357,6 +357,11 @@ export function CheckoutProvider({
       ...prev,
       shippingAddress: { ...prev.shippingAddress, coordinates: coords },
     }));
+    // Clear the "pin your location" error when coordinates are set
+    setErrors((prev) => ({
+      ...prev,
+      shipping: { ...prev.shipping, line1: undefined },
+    }));
   }, []);
 
   const setReservationField = useCallback((field: keyof CheckoutReservation, value: string | number) => {
