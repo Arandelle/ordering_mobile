@@ -2,16 +2,16 @@ import { useCart } from '@/context/CartContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Text, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
 import { authClient } from '@/lib/auth-client';
 
 const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
 
+const TAB_BAR_TOP_PADDING = 6;
+
 export default function TabLayout() {
   const { cartItems, totalItems, clearCart } = useCart();
-  const insets = useSafeAreaInsets();
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
 
@@ -34,13 +34,13 @@ export default function TabLayout() {
           marginBottom: 2,
         },
         tabBarStyle: {
-          paddingBottom: 8 + Math.max(insets.bottom, 8),
-          paddingTop: 6,
+          paddingTop: TAB_BAR_TOP_PADDING,
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#f0f0f0',
           elevation: 12,
         },
+        tabBarHideOnKeyboard: true,
         headerStyle: {
           backgroundColor: '#fff',
           elevation: 0,
@@ -118,7 +118,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'log-in' : 'log-in-outline'} size={size} color={color} />
           ),
-         headerShown: false
+          headerShown: false,
         }}
       />
 
