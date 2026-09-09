@@ -33,6 +33,8 @@ interface CartContextType {
   selectedCount: number;
   isAllSelected: boolean;
   toggleItemSelection: (id: string) => void;
+  toggleCategorySelection: (categoryId: string) => void;
+  isCategorySelected: (categoryId: string) => boolean;
   selectAll: () => void;
   deselectAll: () => void;
   isCartOpen: boolean;
@@ -232,6 +234,38 @@ export const CartProvider: React.FC<{
     });
   }, []);
 
+  const toggleCategorySelection = useCallback(
+    (categoryId: string) => {
+      setSelectedItemIds((prev) => {
+        const categoryItemIds = cartItems
+          .filter((item) => item.category?._id === categoryId)
+          .map((item) => String(item._id));
+
+        const allSelected = categoryItemIds.every((id) => prev.has(id));
+        const next = new Set(prev);
+
+        if (allSelected) {
+          categoryItemIds.forEach((id) => next.delete(id));
+        } else {
+          categoryItemIds.forEach((id) => next.add(id));
+        }
+
+        return next;
+      });
+    },
+    [cartItems]
+  );
+
+  const isCategorySelected = useCallback(
+    (categoryId: string) => {
+      const categoryItemIds = cartItems
+        .filter((item) => item.category?._id === categoryId)
+        .map((item) => String(item._id));
+      return categoryItemIds.length > 0 && categoryItemIds.every((id) => selectedItemIds.has(id));
+    },
+    [cartItems, selectedItemIds]
+  );
+
   const selectAll = useCallback(() => {
     setSelectedItemIds(new Set(cartItems.map((item) => String(item._id))));
   }, [cartItems]);
@@ -274,6 +308,8 @@ export const CartProvider: React.FC<{
         selectedCount,
         isAllSelected,
         toggleItemSelection,
+        toggleCategorySelection,
+        isCategorySelected,
         selectAll,
         deselectAll,
         isCartOpen,

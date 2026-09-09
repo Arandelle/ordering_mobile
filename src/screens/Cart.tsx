@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { FlatList, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ScrollView, SectionList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
 import { CartItem, ModifierSelection } from '@/types/menu-types';
@@ -59,7 +59,7 @@ function ModifierDetailsSheet({
           onPress={onClose}
           variant="ghost"
           className="h-8 w-8 rounded-full bg-gray-100 p-0"
-          icon={{ name: 'x', size: 16, color: '#6b7280' }}
+          icon={{ name: 'X', size: 16, color: '#6b7280' }}
         />
       </View>
 
@@ -154,24 +154,22 @@ function CartItemCard({
 
   return (
     <View className="bg-white p-3">
-      {/* Category badge */}
-      <View className="flex-row items-center gap-2 px-3">
-        <Button
-          onPress={onToggleSelect}
-          variant={isSelected ? 'primary' : 'outline'}
-          className="h-5 w-5 rounded p-0"
-          icon={{ name: isSelected ? 'Check' : '', size: 12 }}
-        />
-        <Text className="text-base font-bold">{item.category?.name}</Text>
-      </View>
       <View className="flex-row gap-4 p-3">
-        {/* Image */}
-        <DynamicImage
-          src={item.image}
-          variant="product"
-          alt={item.name}
-          containerClassName="h-32 w-32 rounded-lg border border-gray-200"
-        />
+        <View className='flex flex-row items-center gap-4'>
+          <Button
+            onPress={onToggleSelect}
+            variant={isSelected ? 'primary' : 'outline'}
+            className="h-5 w-5 rounded-full p-0"
+            icon={{ name: isSelected ? 'Check' : '', size: 12 }}
+          />
+          {/* Image */}
+          <DynamicImage
+            src={item.image}
+            variant="product"
+            alt={item.name}
+            containerClassName="h-32 w-32 rounded-lg border border-gray-200"
+          />
+        </View>
         {/* Details */}
         <View className="flex-1 justify-between gap-1">
           <View>
@@ -209,7 +207,7 @@ function CartItemCard({
           onPress={() => removeFromCart(item._id)}
           variant="ghost"
           className="absolute right-3 top-3 h-7 w-7 rounded-full bg-gray-100 p-0"
-          icon={{ name: 'x', size: 14, color: '#6b7280' }}
+          icon={{ name: 'X', size: 14, color: '#6b7280' }}
         />
       </View>
     </View>
@@ -226,10 +224,30 @@ export default function CartScreen() {
     selectedCount,
     isAllSelected,
     toggleItemSelection,
+    toggleCategorySelection,
+    isCategorySelected,
     selectAll,
     deselectAll,
   } = useCart();
   const insets = useSafeAreaInsets();
+
+  const sections = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { categoryId: string; categoryName: string; data: CartItem[] }
+    >();
+    for (const item of cartItems) {
+      const categoryId = item.category?._id ?? 'uncategorized';
+      const categoryName = item.category?.name ?? 'Other';
+      let group = grouped.get(categoryId);
+      if (!group) {
+        group = { categoryId, categoryName, data: [] };
+        grouped.set(categoryId, group);
+      }
+      group.data.push(item);
+    }
+    return Array.from(grouped.values());
+  }, [cartItems]);
 
   const isEmpty = cartItems.length === 0;
 
@@ -239,12 +257,26 @@ export default function CartScreen() {
       {isEmpty ? (
         <EmptyCart />
       ) : (
-        <FlatList
-          data={cartItems}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => String(item._id)}
-          contentContainerStyle={{ gap: 12, paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 80 }}
+          contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 80 }}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => {
+            const selected = isCategorySelected(section.categoryId);
+            return (
+              <View className="flex-row items-center gap-2 bg-white px-3 py-2">
+                <Button
+                  onPress={() => toggleCategorySelection(section.categoryId)}
+                  variant={selected ? 'primary' : 'outline'}
+                  className="h-5 w-5 rounded p-0"
+                  icon={{ name: selected ? 'Check' : '', size: 12 }}
+                />
+                <Text className="text-base font-bold">{section.categoryName}</Text>
+              </View>
+            );
+          }}
           renderItem={({ item }) => (
             <CartItemCard
               item={item}
@@ -252,6 +284,7 @@ export default function CartScreen() {
               onToggleSelect={() => toggleItemSelection(String(item._id))}
             />
           )}
+          renderSectionFooter={() => <View style={{ height: 12 }} />}
         />
       )}
 
