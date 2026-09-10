@@ -5,13 +5,13 @@ import { BranchSelector } from '@/components/home/BranchSelector';
 import { useCheckout } from '@/context/CheckoutContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CheckoutStepper from './CheckoutStepper';
-import CheckoutTextField from './CheckoutTextField';
 import { FulfillmentSelector } from './FulfillmentSelector';
 import { ReservationPicker } from './ReservationPicker';
 import { PickupTimePicker } from './PickupTimePicker';
 import { useSettings } from '@/hooks/useSettings';
 import { FULFILLMENT_TYPE } from '@/types/orders.type';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 const PersonalDetails = () => {
   const router = useRouter();
@@ -88,14 +88,18 @@ const PersonalDetails = () => {
         <CheckoutStepper currentStep={1} />
 
         {/* Branch selector */}
-        <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-          <Text className="mb-3 text-[15px] font-bold text-gray-950">Pickup branch</Text>
+        <View className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
+          <Text className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+            Pickup Branch
+          </Text>
           <BranchSelector className="mt-0 px-0" />
         </View>
 
         {/* Fulfillment type selector */}
-        <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-          <Text className="mb-3 text-[15px] font-bold text-gray-950">Order type</Text>
+        <View className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
+          <Text className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+            Order Type
+          </Text>
           <FulfillmentSelector
             value={draft.fulfillmentType}
             onChange={setFulfillmentType}
@@ -103,10 +107,10 @@ const PersonalDetails = () => {
         </View>
 
         {/* Customer details */}
-        <View className="rounded-2xl bg-white p-4 shadow-sm">
-          <View className="mb-1">
-            <Text className="text-xl font-bold text-gray-950">Personal Details</Text>
-            <Text className="mb-1 text-[13px] text-gray-500">
+        <View className="rounded-2xl bg-white p-5 shadow-sm">
+          <View className="mb-5">
+            <Text className="text-lg font-bold text-gray-900">Personal Details</Text>
+            <Text className="mt-0.5 text-sm text-gray-400">
               We&apos;ll use this to process and contact you about your order.
             </Text>
           </View>
@@ -114,70 +118,73 @@ const PersonalDetails = () => {
           {/* Sync from profile button */}
           {shouldShowSyncProfileDetails && (
             <TouchableOpacity
-              className="mb-3 self-end rounded-lg border border-gray-200 bg-white px-3 py-1.5"
+              className="mb-4 self-end rounded-full bg-orange-50 px-3.5 py-1.5"
               onPress={syncProfileDetails}>
-              <Text className="text-xs font-bold text-[#e13e00]">Sync from profile</Text>
+              <Text className="text-xs font-semibold text-[#e13e00]">Sync from profile</Text>
             </TouchableOpacity>
           )}
 
           {/* Authenticated hint */}
           {session?.user && (
-            <Text className="mb-3 text-xs text-gray-400">
+            <Text className="mb-4 text-xs text-gray-400">
               Prefilled from your saved profile.
             </Text>
           )}
 
-          <View className="flex-row gap-3">
-            <CheckoutTextField
-              fieldClassName="mb-4 flex-1"
-              label="First name"
-              placeholder="Juan"
-              value={draft.customer.firstName}
-              onChangeText={(v) => setCustomerField('firstName', v)}
-              autoCapitalize="words"
-              error={errors.customer.firstName}
+          <View className="gap-4">
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Input
+                  label="First name"
+                  placeholder="Juan"
+                  value={draft.customer.firstName}
+                  onChangeText={(v) => setCustomerField('firstName', v)}
+                  autoCapitalize="words"
+                  error={errors.customer.firstName}
+                />
+              </View>
+              <View className="flex-1">
+                <Input
+                  label="Last name"
+                  placeholder="Dela Cruz"
+                  value={draft.customer.lastName}
+                  onChangeText={(v) => setCustomerField('lastName', v)}
+                  autoCapitalize="words"
+                  error={errors.customer.lastName}
+                />
+              </View>
+            </View>
+
+            <Input
+              label="Email"
+              placeholder="juan@example.com"
+              value={draft.customer.customerEmail}
+              onChangeText={(v) => setCustomerField('customerEmail', v)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              error={errors.customer.customerEmail}
             />
 
-            <CheckoutTextField
-              fieldClassName="mb-4 flex-1"
-              label="Last name"
-              placeholder="Dela Cruz"
-              value={draft.customer.lastName}
-              onChangeText={(v) => setCustomerField('lastName', v)}
-              autoCapitalize="words"
-              error={errors.customer.lastName}
+            <Input
+              label="Phone number"
+              placeholder="+63 912 345 6789"
+              value={draft.customer.customerPhone}
+              onChangeText={(v) => setCustomerField('customerPhone', v)}
+              keyboardType="phone-pad"
+              error={errors.customer.customerPhone}
+            />
+
+            <Input
+              label="Order note (optional)"
+              inputClassName="h-[88px] pt-3"
+              placeholder="Any special instructions for your order..."
+              value={draft.customer.notes}
+              onChangeText={(v) => setCustomerField('notes', v)}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
             />
           </View>
-
-          <CheckoutTextField
-            label="Email"
-            placeholder="juan@example.com"
-            value={draft.customer.customerEmail}
-            onChangeText={(v) => setCustomerField('customerEmail', v)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={errors.customer.customerEmail}
-          />
-
-          <CheckoutTextField
-            label="Phone number"
-            placeholder="+63 912 345 6789"
-            value={draft.customer.customerPhone}
-            onChangeText={(v) => setCustomerField('customerPhone', v)}
-            keyboardType="phone-pad"
-            error={errors.customer.customerPhone}
-          />
-
-          <CheckoutTextField
-            label="Order note (optional)"
-            inputClassName="h-[88px] pt-3"
-            placeholder="Any special instructions for your order..."
-            value={draft.customer.notes}
-            onChangeText={(v) => setCustomerField('notes', v)}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
 
           {/* Reservation picker for dine-in */}
           {isDineIn && (
@@ -203,13 +210,13 @@ const PersonalDetails = () => {
 
           {/* Delivery hint */}
           {isDelivery && (
-            <Text className="mt-2 text-xs text-gray-400">
+            <Text className="mt-4 text-sm text-gray-400">
               Delivery address will be collected on the next step.
             </Text>
           )}
 
           <Button
-            className="mt-4"
+            className="mt-6"
             text={
               !selectedBranch?._id
                 ? 'Select a branch'

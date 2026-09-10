@@ -20,7 +20,7 @@ import CheckoutStepper from './CheckoutStepper';
 import { DeliveryLocationPicker } from './DeliveryLocationPicker';
 import type { ResolvedDeliveryAddress } from './DeliveryLocationPicker';
 import { PsgcAddressFields } from './PsgcAddressFields';
-import CheckoutTextField from './CheckoutTextField';
+import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
 const AddressDetails = () => {
@@ -216,7 +216,7 @@ const AddressDetails = () => {
 
           <Text className="mb-3 text-sm font-bold text-gray-900">Delivery Address</Text>
 
-          <CheckoutTextField
+          <Input
             label="Address Line 1"
             placeholder="House number, street"
             value={draft.shippingAddress.line1}
@@ -230,26 +230,28 @@ const AddressDetails = () => {
           {/* Cascading PSGC address selects: Region → City → (Manila Area) → Barangay */}
           <PsgcAddressFields />
 
-          <View className="flex-row gap-3">
-            <CheckoutTextField
-              fieldClassName="mb-4 flex-1"
-              label="ZIP Code (optional)"
-              placeholder="1100"
-              value={draft.shippingAddress.zipCode}
-              onChangeText={(v) => setShippingField('zipCode', v)}
-              keyboardType="number-pad"
-            />
+          <View className="mb-4 flex-row gap-3">
+            <View className="flex-1">
+              <Input
+                label="ZIP Code (optional)"
+                placeholder="1100"
+                value={draft.shippingAddress.zipCode}
+                onChangeText={(v) => setShippingField('zipCode', v)}
+                keyboardType="number-pad"
+              />
+            </View>
 
-            <CheckoutTextField
-              fieldClassName="mb-4 flex-1"
-              label="Country"
-              placeholder="Philippines"
-              value={draft.shippingAddress.country}
-              editable={false}
-            />
+            <View className="flex-1">
+              <Input
+                label="Country"
+                placeholder="Philippines"
+                value={draft.shippingAddress.country}
+                editable={false}
+              />
+            </View>
           </View>
 
-          <CheckoutTextField
+          <Input
             label="Landmark (optional)"
             placeholder="Near the main gate"
             value={draft.shippingAddress.landmark}

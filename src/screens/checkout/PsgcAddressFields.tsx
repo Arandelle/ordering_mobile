@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import CheckoutTextField from './CheckoutTextField';
+import { Input } from '@/components/ui/Input';
 import { useCheckout } from '@/context/CheckoutContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -411,7 +411,7 @@ export function PsgcAddressFields() {
       />
 
       {/* Province — locked */}
-      <CheckoutTextField
+      <Input
         label="Province"
         value={NCR_REGION.displayName}
         editable={false}
