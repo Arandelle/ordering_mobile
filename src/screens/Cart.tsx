@@ -1,8 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { ScrollView, SectionList, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Swipeable } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useCart } from '@/context/CartContext';
 import { CartItem, ModifierSelection } from '@/types/menu-types';
 import BottomSheet from '@/components/BottomSheet';
@@ -119,16 +125,24 @@ function ModifierSummary({ modifiers }: { modifiers: ModifierSelection[] }) {
 
   if (!modifiers || modifiers.length === 0) return null;
 
+  const totalExtras = modifiers.reduce((sum, group) => {
+    return sum + group.items.reduce((g, item) => g + item.upgradePrice * item.quantity, 0);
+  }, 0);
+
   return (
     <>
-      <Button
+      <TouchableOpacity
         onPress={() => setShowModal(true)}
-        variant="ghost"
-        text="See details"
-        icon={{ name: 'ChevronRight', position: 'right' }}
-        className="flex justify-start px-0 text-brand-500"
-        textClassName="text-[#ef4501]"
-      />
+        activeOpacity={0.7}
+        className="self-start flex-row items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1"
+      >
+        <Ionicons name="layers-outline" size={12} color="#ef4501" />
+        <Text className="text-[11px] font-medium text-brand-500">
+          {modifiers.length} option{modifiers.length !== 1 ? 's' : ''}
+          {totalExtras > 0 ? ` · +${formatMoney(totalExtras)}` : ''}
+        </Text>
+        <Ionicons name="chevron-forward" size={10} color="#ef4501" />
+      </TouchableOpacity>
 
       <ModifierDetailsSheet
         visible={showModal}
@@ -141,76 +155,175 @@ function ModifierSummary({ modifiers }: { modifiers: ModifierSelection[] }) {
 
 // ─── Cart Item Card ───────────────────────────────────────────────────────────
 
+const SWIPE_THRESHOLD = 80;
+
 function CartItemCard({
   item,
   isSelected,
   onToggleSelect,
+  onSwipeOpen,
+  onRemove,
+  isLast,
 }: {
   item: CartItem;
   isSelected: boolean;
   onToggleSelect: () => void;
+  onSwipeOpen: (close: () => void) => void;
+  onRemove: (item: CartItem) => void;
+  isLast: boolean;
 }) {
-  const { updateQuantity, removeFromCart } = useCart();
+  const { updateQuantity } = useCart();
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const renderRightAction = () => {
+    return (
+      <View
+        className="ml-2 flex-row items-center justify-center rounded-2xl bg-red-500"
+        style={{ width: SWIPE_THRESHOLD }}
+      >
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-red-600">
+          <Ionicons name="trash-outline" size={20} color="#fff" />
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <View className="bg-white p-3">
-      <View className="flex-row gap-4 p-3">
-        <View className='flex flex-row items-center gap-4'>
-          <Button
-            onPress={onToggleSelect}
-            variant={isSelected ? 'primary' : 'outline'}
-            className="h-5 w-5 rounded-full p-0"
-            icon={{ name: isSelected ? 'Check' : '', size: 12 }}
-          />
-          {/* Image */}
-          <DynamicImage
-            src={item.image}
-            variant="product"
-            alt={item.name}
-            containerClassName="h-32 w-32 rounded-lg border border-gray-200"
-          />
-        </View>
-        {/* Details */}
-        <View className="flex-1 justify-between gap-1">
-          <View>
-            {/* Name */}
-            <Text className="text-2xl font-light leading-snug text-gray-900" numberOfLines={2}>
-              {item.name}
-            </Text>
-            {/* Unit price */}
-            <Text className="text-xs text-gray-400">{formatMoney(item.price)} each</Text>
-          </View>
+    <View style={{ marginBottom: isLast ? 0 : 8 }}>
+      <Swipeable
+        ref={swipeableRef}
+        friction={2}
+        rightThreshold={40}
+        overshootRight={false}
+        renderRightActions={renderRightAction}
+        onSwipeableOpen={() => {
+          onSwipeOpen(() => swipeableRef.current?.close());
+        }}
+        onSwipeableRightOpen={() => {
+          swipeableRef.current?.close();
+          onRemove(item);
+        }}
+      >
+        <View className="mx-3 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <View className="flex-row p-3">
+            {/* Checkbox */}
+            <View className="mr-2.5 pt-0.5">
+              <Button
+                onPress={onToggleSelect}
+                variant={isSelected ? 'primary' : 'outline'}
+                className="h-6 w-6 rounded-lg p-0"
+                icon={{ name: isSelected ? 'Check' : '', size: 12 }}
+              />
+            </View>
 
-          {/* Modifier details */}
-          {item.modifierSelections && item.modifierSelections.length > 0 && (
-            <ModifierSummary modifiers={item.modifierSelections} />
-          )}
-          {/* Bottom row: stepper + subtotal */}
-          <View className="mt-1 flex-row items-center justify-between">
-            {/* Subtotal */}
-            <Text className="text-2xl font-semibold text-gray-600">
-              {formatMoney(item.price * item.quantity)}
-            </Text>
-
-            {/* Quantity stepper */}
-            <QuantityStepper
-              value={item.quantity}
-              min={1}
-              variant="compact"
-              onDecrement={() => updateQuantity(item._id, item.quantity - 1)}
-              onIncrement={() => updateQuantity(item._id, item.quantity + 1)}
+            {/* Image */}
+            <DynamicImage
+              src={item.image}
+              variant="product"
+              alt={item.name}
+              containerClassName="h-20 w-20 rounded-xl"
             />
+
+            {/* Details */}
+            <View className="ml-3 flex-1 justify-between">
+              <View>
+                <Text className="text-[15px] font-semibold text-gray-900" numberOfLines={2}>
+                  {item.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-gray-400">
+                  {formatMoney(item.price)} each
+                </Text>
+              </View>
+
+              {item.modifierSelections && item.modifierSelections.length > 0 && (
+                <View className="mt-1.5">
+                  <ModifierSummary modifiers={item.modifierSelections} />
+                </View>
+              )}
+
+              <View className="mt-2 flex-row items-center justify-between">
+                <Text className="text-base font-bold text-brand-500">
+                  {formatMoney(item.price * item.quantity)}
+                </Text>
+                <QuantityStepper
+                  value={item.quantity}
+                  min={1}
+                  variant="compact"
+                  onDecrement={() => updateQuantity(item._id, item.quantity - 1)}
+                  onIncrement={() => updateQuantity(item._id, item.quantity + 1)}
+                />
+              </View>
+            </View>
           </View>
         </View>
-        {/* Remove button */}
+      </Swipeable>
+    </View>
+  );
+}
+
+// ─── Undo Banner ─────────────────────────────────────────────────────────────
+
+const UNDO_DURATION = 5;
+
+function UndoBanner({
+  itemName,
+  secondsLeft,
+  onUndo,
+}: {
+  itemName: string;
+  secondsLeft: number;
+  onUndo: () => void;
+}) {
+  const translateY = useSharedValue(80);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    translateY.value = withTiming(0, { duration: 250 });
+    opacity.value = withTiming(1, { duration: 200 });
+  }, [translateY, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
+
+  const progressWidth = (secondsLeft / UNDO_DURATION) * 100;
+
+  return (
+    <Animated.View
+      style={animatedStyle}
+      className="mx-3 mb-2 overflow-hidden rounded-2xl bg-gray-900 shadow-lg"
+    >
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <View className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-red-500/20">
+          <Ionicons name="trash-outline" size={16} color="#f87171" />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm text-white" numberOfLines={1}>
+            Removed <Text className="font-semibold">{itemName}</Text>
+          </Text>
+          <Text className="mt-0.5 text-[11px] text-gray-400">
+            Undo within {secondsLeft}s
+          </Text>
+        </View>
         <Button
-          onPress={() => removeFromCart(item._id)}
-          variant="ghost"
-          className="absolute right-3 top-3 h-7 w-7 rounded-full bg-gray-100 p-0"
-          icon={{ name: 'X', size: 14, color: '#6b7280' }}
+          onPress={onUndo}
+          text="Undo"
+          variant='outline'
         />
       </View>
-    </View>
+
+      {/* Progress bar at bottom */}
+      <View className="h-1 w-full bg-gray-800">
+        <Animated.View
+          style={{
+            width: `${progressWidth}%`,
+            height: '100%',
+            backgroundColor: '#f97316',
+          }}
+        />
+      </View>
+    </Animated.View>
   );
 }
 
@@ -228,8 +341,63 @@ export default function CartScreen() {
     isCategorySelected,
     selectAll,
     deselectAll,
+    addToCart,
+    removeFromCart,
   } = useCart();
   const insets = useSafeAreaInsets();
+  const openCloseRef = useRef<(() => void) | null>(null);
+
+  const [pendingRemoval, setPendingRemoval] = useState<CartItem | null>(null);
+  const [undoSeconds, setUndoSeconds] = useState(UNDO_DURATION);
+  const undoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearUndoTimer = useCallback(() => {
+    if (undoTimerRef.current) {
+      clearInterval(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+  }, []);
+
+  const handleRemove = useCallback(
+    (item: CartItem) => {
+      clearUndoTimer();
+      removeFromCart(item._id);
+      setPendingRemoval(item);
+      setUndoSeconds(UNDO_DURATION);
+
+      undoTimerRef.current = setInterval(() => {
+        setUndoSeconds((prev) => {
+          if (prev <= 1) {
+            clearUndoTimer();
+            setPendingRemoval(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    },
+    [removeFromCart, clearUndoTimer],
+  );
+
+  const handleUndo = useCallback(() => {
+    if (pendingRemoval) {
+      addToCart(pendingRemoval);
+      clearUndoTimer();
+      setPendingRemoval(null);
+      setUndoSeconds(0);
+    }
+  }, [pendingRemoval, addToCart, clearUndoTimer]);
+
+  useEffect(() => {
+    return () => clearUndoTimer();
+  }, [clearUndoTimer]);
+
+  const handleSwipeOpen = (close: () => void) => {
+    if (openCloseRef.current) {
+      openCloseRef.current();
+    }
+    openCloseRef.current = close;
+  };
 
   const sections = useMemo(() => {
     const grouped = new Map<
@@ -254,59 +422,93 @@ export default function CartScreen() {
   return (
     <View className="flex-1 bg-gray-50">
       {/* ── Content ── */}
-      {isEmpty ? (
+      {isEmpty && !pendingRemoval ? (
         <EmptyCart />
       ) : (
         <SectionList
           sections={sections}
           keyExtractor={(item) => String(item._id)}
-          contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 80 }}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 80 }}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
+          onScrollBeginDrag={() => {
+            if (openCloseRef.current) {
+              openCloseRef.current();
+              openCloseRef.current = null;
+            }
+          }}
           renderSectionHeader={({ section }) => {
             const selected = isCategorySelected(section.categoryId);
+            const itemCount = section.data.length;
             return (
-              <View className="flex-row items-center gap-2 bg-white px-3 py-2">
-                <Button
-                  onPress={() => toggleCategorySelection(section.categoryId)}
-                  variant={selected ? 'primary' : 'outline'}
-                  className="h-5 w-5 rounded p-0"
-                  icon={{ name: selected ? 'Check' : '', size: 12 }}
-                />
-                <Text className="text-base font-bold">{section.categoryName}</Text>
+              <View className="flex-row items-center justify-between px-4 pb-1 pt-3">
+                <View className="flex-row items-center gap-2.5">
+                  <Button
+                    onPress={() => toggleCategorySelection(section.categoryId)}
+                    variant={selected ? 'primary' : 'outline'}
+                    className="h-5 w-5 rounded-md p-0"
+                    icon={{ name: selected ? 'Check' : '', size: 11 }}
+                  />
+                  <Text className="text-base font-bold text-gray-900">
+                    {section.categoryName}
+                  </Text>
+                </View>
+                <View className="rounded-full bg-gray-100 px-2.5 py-0.5">
+                  <Text className="text-xs font-medium text-gray-500">
+                    {itemCount} item{itemCount !== 1 ? 's' : ''}
+                  </Text>
+                </View>
               </View>
             );
           }}
-          renderItem={({ item }) => (
+          renderItem={({ item, section, index }) => (
             <CartItemCard
               item={item}
               isSelected={selectedItemIds.has(String(item._id))}
               onToggleSelect={() => toggleItemSelection(String(item._id))}
+              onSwipeOpen={handleSwipeOpen}
+              onRemove={handleRemove}
+              isLast={index === section.data.length - 1}
             />
           )}
-          renderSectionFooter={() => <View style={{ height: 12 }} />}
+          renderSectionFooter={() => <View style={{ height: 8 }} />}
+        />
+      )}
+
+      {/* ── Undo Banner ── */}
+      {pendingRemoval && (
+        <UndoBanner
+          itemName={pendingRemoval.name}
+          secondsLeft={undoSeconds}
+          onUndo={handleUndo}
         />
       )}
 
       {/* ── Bottom bar: Select All + Total + Checkout ── */}
       {!isEmpty && (
-        <View className=" border-gray-100 bg-white p-5">
-          <View className="flex-row items-center justify-between gap-3">
+        <View className="mx-3 mb-2 overflow-hidden rounded-2xl bg-white shadow-md">
+          <View className="flex-row items-center justify-between px-4 py-3.5">
             {/* Select All */}
-            <View className="flex flex-row items-center gap-2">
+            <View className="flex-row items-center gap-2">
               <Button
                 onPress={isAllSelected ? deselectAll : selectAll}
                 variant={isAllSelected ? 'primary' : 'outline'}
-                className="h-8 w-8 rounded-full p-0"
-                icon={{ name: isAllSelected ? 'Check' : '', size: 14 }}
+                className="h-7 w-7 rounded-lg p-0"
+                icon={{ name: isAllSelected ? 'Check' : '', size: 13 }}
               />
-              <Text className="text-xs font-medium text-gray-500">All</Text>
+              <View>
+                <Text className="text-xs font-medium text-gray-500">Select</Text>
+                <Text className="text-xs font-bold text-gray-800">All</Text>
+              </View>
             </View>
 
-            <View className="flex flex-row items-center justify-between gap-4">
-              {/* Total */}
+            {/* Divider */}
+            <View className="h-8 w-px bg-gray-200" />
+
+            {/* Total + Checkout */}
+            <View className="flex-row items-center gap-4">
               <View className="items-end">
-                <Text className="text-xs text-gray-400">
+                <Text className="text-[11px] text-gray-400">
                   {selectedCount} item{selectedCount !== 1 ? 's' : ''}
                 </Text>
                 <Text className="text-lg font-bold text-gray-900">
@@ -317,8 +519,8 @@ export default function CartScreen() {
                 onPress={() => router.push('/checkout')}
                 disabled={selectedCount === 0}
                 text="Checkout"
-                className="rounded-xl px-8"
-                textClassName="text-xl"
+                className="rounded-xl px-6 py-3.5"
+                textClassName="text-base font-bold"
               />
             </View>
           </View>
