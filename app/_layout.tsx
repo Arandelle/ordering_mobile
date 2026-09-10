@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 import { CartProvider } from '@/context/CartContext';
 import { BranchProvider } from '@/context/BranchContext';
@@ -11,6 +12,7 @@ const queryClient = new QueryClient();
 // Register here all route
 export default function RootLayout() {
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <BranchProvider>
@@ -51,5 +53,6 @@ export default function RootLayout() {
         </BranchProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
