@@ -41,14 +41,30 @@ app/
 ├── checkout/
 │   └── index.tsx
 src/
-├── components/
-├── hooks/
+├── components/        # Shared/reusable UI components
+│   ├── UndoBanner.tsx
+│   ├── BottomSheet.tsx
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Icon.tsx
+│       ├── Input.tsx
+│       ├── DynamicImage.tsx
+│       └── QuantityStepper.tsx
+├── hooks/             # Shared hooks (useUndo, useProducts, etc.)
+├── screens/           # Screen-specific components
+│   ├── cart/          # Cart screen + sub-components
+│   │   ├── index.tsx       # Screen entry (layout + state wiring)
+│   │   ├── CartItemCard.tsx
+│   │   └── ModifierSummary.tsx
+│   └── ...
 ├── services/
 ├── context/
 ├── constants/
 ├── types/
 ├── utils/
 ```
+
+**Screen folder convention:** When a screen grows beyond ~200 lines, extract sub-components into a co-located folder (e.g. `screens/cart/`). The `index.tsx` inside the folder is the screen entry — just layout, state wiring, and composition. Shared components that are useful across screens belong in `src/components/`.
 
 ---
 
@@ -349,11 +365,43 @@ Or for brand-tinted chips:
 
 ### Undo Banner Pattern
 
-- Slide in from bottom using `react-native-reanimated` (`withTiming`, `useSharedValue`)
-- Dark surface: `rounded-2xl bg-gray-900 shadow-lg`
-- Icon in tinted circle: `rounded-full bg-red-500/20`
-- Progress bar at bottom edge: `h-1 bg-gray-800` with animated orange fill (`#f97316`)
-- Auto-dismiss with countdown timer (default 5s)
+The undo system is split into two **generic, reusable** pieces:
+
+1. **`src/hooks/useUndo.ts`** — manages countdown timer + pending item state.
+2. **`src/components/UndoBanner.tsx`** — animated banner UI with progress bar.
+
+**Hook usage:**
+```ts
+const { pendingItem, secondsLeft, trigger, undo, isActive } = useUndo<CartItem>({
+  duration: 5,
+});
+
+// Perform the destructive action, then trigger:
+removeFromCart(item._id);
+trigger(item);
+
+// Restore on undo:
+if (pendingItem) addToCart(pendingItem);
+undo();
+```
+
+**Banner usage:**
+```tsx
+{pendingItem && (
+  <UndoBanner
+    message={<>Removed <Text className="font-semibold">{pendingItem.name}</Text></>}
+    secondsLeft={secondsLeft}
+    duration={5}
+    onUndo={handleUndo}
+    actionLabel="Undo"        // optional, defaults to "Undo"
+    iconName="trash-outline"  // optional, defaults to "trash-outline"
+  />
+)}
+```
+
+**Props:** `message` (ReactNode), `secondsLeft`, `duration`, `onUndo`, `actionLabel?`, `iconName?`, `iconTint?`, `iconColor?`
+
+This is **not cart-specific** — reuse it anywhere a destructive action needs an undo window (order cancellation, list deletion, etc.).
 
 ### Section Header Pattern
 
