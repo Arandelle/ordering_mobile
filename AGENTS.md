@@ -204,3 +204,227 @@ Before changing code, identify:
 ## Important Rule
 
 Act like a senior React Native engineer building a production ordering app, not just generating UI.
+
+---
+
+## Design System & UI Patterns
+
+When building or redesigning any screen, follow these visual conventions to maintain consistency.
+
+### Brand Colors
+
+| Token | Hex | Usage |
+|---|---|---|
+| `brand-500` | `#ef4501` | Primary accent, prices, active states |
+| `brand-50` | `#fff4ee` | Light tinted backgrounds (chips, badges) |
+| Hard-coded `#e13e00` | — | Used in Button primary, Input focus, QuantityStepper increment |
+| `gray-50` | — | Screen backgrounds |
+| `gray-100` | — | Dividers, pill badge backgrounds, secondary surfaces |
+| `gray-200` | — | Borders, hairline separators |
+| `gray-400` | — | Muted text (unit prices, helper text) |
+| `gray-500` | — | Secondary labels, item counts |
+| `gray-800` / `gray-900` | — | Headings, primary text, dark surfaces |
+| `red-500` | — | Destructive actions (delete swipe, error states) |
+| `orange-400` / `orange-500` | — | Progress indicators, undo banner accents |
+
+**Rule:** Prefer Tailwind tokens (`brand-500`, `gray-400`) over hard-coded hex. Use `#e13e00` or `#ef4501` only when a Tailwind token does not exist for the exact shade needed.
+
+### Typography
+
+No custom fonts. Use the system font stack (San Francisco / Roboto) with weight classes.
+
+| Context | Classes |
+|---|---|
+| Screen headings / empty state titles | `text-xl font-semibold text-gray-900` |
+| Section headers / card titles | `text-base font-bold text-gray-900` |
+| Item name in cards | `text-[15px] font-semibold text-gray-900` (2-line max) |
+| Body text | `text-sm text-gray-700` |
+| Prices (total, emphasized) | `text-base font-bold text-brand-500` |
+| Unit price / helper | `text-xs text-gray-400` |
+| Pill badge text / chip labels | `text-[11px] font-medium text-brand-500` or `text-gray-500` |
+| Button text | `text-sm font-bold` (inherited from Button component) |
+| Count badges | `text-xs font-medium text-gray-500` |
+
+**Rule:** Use `font-bold` for headings and prices, `font-semibold` for item names, `font-medium` for labels and badges. Never use `font-light` or `font-extrabold`.
+
+### Border Radius Scale
+
+| Token | Value | Usage |
+|---|---|---|
+| `rounded-2xl` | 16px | Cards, floating bottom bars, undo banners, large buttons |
+| `rounded-xl` | 12px | Product images, checkout buttons, inner containers |
+| `rounded-lg` | 8px | Checkboxes, small buttons, undo action buttons |
+| `rounded-md` | 6px | Category checkboxes, compact controls |
+| `rounded-full` | 999px | Pill badges, circular icon containers, avatar-style elements |
+
+**Rule:** Cards and floating containers use `rounded-2xl`. Images use `rounded-xl`. Buttons and interactive controls use `rounded-lg` or `rounded-xl`. Pill-style badges use `rounded-full`.
+
+### Elevation & Shadows
+
+| Pattern | Usage |
+|---|---|
+| `shadow-sm` | Item cards (subtle lift from background) |
+| `shadow-md` | Floating bottom bars (checkout bar) |
+| `shadow-lg` | Overlays, undo banners, bottom sheets |
+| No shadow | Flat surfaces, section headers, inline elements |
+
+**Rule:** Use shadows sparingly to create depth layers. Cards get `shadow-sm`, floating bars get `shadow-md`, overlays get `shadow-lg`. Never stack shadows.
+
+### Spacing Conventions
+
+| Pattern | Value | Usage |
+|---|---|---|
+| Card horizontal margin | `mx-3` (12px) | Cards inset from screen edges |
+| Card internal padding | `p-3` (12px) | Content inside cards |
+| Gap between cards | `marginBottom: 8` | Vertical spacing between list items |
+| Section footer gap | `height: 8` | Space between category sections |
+| Inner element gaps | `gap-2` to `gap-4` | Between related elements in a row |
+| Bottom bar padding | `px-4 py-3.5` | Floating bottom bars |
+| Screen padding | `px-4` or `px-8` | Content areas, empty states |
+| List top padding | `paddingTop: 4` | Breathing room above first item |
+
+### Card Pattern
+
+Every list item card follows this structure:
+
+```
+<View className="mx-3 overflow-hidden rounded-2xl bg-white shadow-sm">
+  <View className="flex-row p-3">
+    <!-- leading element (checkbox, image, icon) -->
+    <!-- content column (flex-1, justify-between) -->
+  </View>
+</View>
+```
+
+- Outer wrapper: `mx-3 rounded-2xl bg-white shadow-sm overflow-hidden`
+- Inner content: `flex-row p-3` with leading element + `flex-1 justify-between` content column
+- Use `justify-between` on the content column to spread name (top) and price/actions (bottom)
+- Product images: `h-20 w-20 rounded-xl` (80×80)
+
+### Floating Bottom Bar Pattern
+
+```
+<View className="mx-3 mb-2 overflow-hidden rounded-2xl bg-white shadow-md">
+  <View className="flex-row items-center justify-between px-4 py-3.5">
+    <!-- left section -->
+    <View className="h-8 w-px bg-gray-200" />  <!-- divider -->
+    <!-- right section -->
+  </View>
+</View>
+```
+
+- Floating card with rounded corners, not edge-to-edge
+- Vertical divider (`h-8 w-px bg-gray-200`) separates logical groups
+- Use `justify-between` to push groups to edges
+
+### Pill Badge / Chip Pattern
+
+```
+<View className="rounded-full bg-gray-100 px-2.5 py-0.5">
+  <Text className="text-xs font-medium text-gray-500">...</Text>
+</View>
+```
+
+Or for brand-tinted chips:
+
+```
+<TouchableOpacity className="self-start flex-row items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1">
+  <Ionicons name="..." size={12} color="#ef4501" />
+  <Text className="text-[11px] font-medium text-brand-500">...</Text>
+</TouchableOpacity>
+```
+
+### Swipe-to-Delete Pattern
+
+```
+<Swipeable friction={2} rightThreshold={40} overshootRight={false}>
+  <!-- card content -->
+</Swipeable>
+```
+
+- Right action: `rounded-2xl bg-red-500` container with a `rounded-full bg-red-600` circular icon button
+- Only one swipeable open at a time (track via ref callback)
+- Close on scroll (`onScrollBeginDrag`)
+- Show undo banner with countdown after removal
+
+### Undo Banner Pattern
+
+- Slide in from bottom using `react-native-reanimated` (`withTiming`, `useSharedValue`)
+- Dark surface: `rounded-2xl bg-gray-900 shadow-lg`
+- Icon in tinted circle: `rounded-full bg-red-500/20`
+- Progress bar at bottom edge: `h-1 bg-gray-800` with animated orange fill (`#f97316`)
+- Auto-dismiss with countdown timer (default 5s)
+
+### Section Header Pattern
+
+```
+<View className="flex-row items-center justify-between px-4 pb-1 pt-3">
+  <View className="flex-row items-center gap-2.5">
+    <!-- checkbox -->
+    <Text className="text-base font-bold text-gray-900">{categoryName}</Text>
+  </View>
+  <View className="rounded-full bg-gray-100 px-2.5 py-0.5">
+    <Text className="text-xs font-medium text-gray-500">{count} items</Text>
+  </View>
+</View>
+```
+
+- Transparent background (inherits screen `bg-gray-50`)
+- Category name: `text-base font-bold`
+- Item count pill badge on the right
+
+### Empty State Pattern
+
+```
+<View className="flex-1 items-center justify-center gap-4 px-8">
+  <View className="h-24 w-24 items-center justify-center rounded-full bg-orange-50">
+    <Ionicons name="..." size={44} color="#e13e00" />
+  </View>
+  <View className="items-center gap-1">
+    <Text className="text-xl font-semibold text-gray-900">Title</Text>
+    <Text className="text-center text-sm leading-relaxed text-gray-400">Subtitle</Text>
+  </View>
+  <Button ... className="mt-2 rounded-2xl px-6" />
+</View>
+```
+
+- Centered layout with generous vertical gaps
+- Icon inside a tinted circle (`rounded-full bg-orange-50`)
+- Title + subtitle stack
+- Primary action button below
+
+### Icon Conventions
+
+- **Ionicons** (`@expo/vector-icons`): UI chrome icons (trash, cart, layers, chevron, close)
+- **Lucide** (`lucide-react-native`): Product and feature icons (via `Icon` component)
+- Default icon size: 16px. Badge/chip icons: 10-12px. Empty state icons: 32-44px.
+- Icon colors match the text color of their context (gray-400 for muted, brand-500 for accent, white for on-dark)
+
+### Animation Conventions
+
+- Use `react-native-reanimated` for UI animations
+- Entry animations: `withTiming(value, { duration: 200-250 })`
+- Use `useSharedValue` + `useAnimatedStyle` pattern
+- Keep animations subtle and fast (200-300ms)
+- Progress indicators: animate `width` percentage
+
+### Libraries Available
+
+These are already installed — do not add new animation/gesture/UI-kit packages:
+
+- `react-native-gesture-handler` — Swipeable, gesture handling
+- `react-native-reanimated` — UI animations, shared values
+- `@expo/vector-icons` — Ionicons, MaterialIcons, etc.
+- `lucide-react-native` — Lucide icon set
+- `nativewind` + `tailwind-merge` — Tailwind classes in React Native
+- `react-native-safe-area-context` — Safe area insets
+
+### Before Redesigning a Screen
+
+1. Read the existing screen to understand current behavior and state handling.
+2. Read the UI components in `src/components/ui/` to understand available variants.
+3. Check `tailwind.config.js` for the color palette.
+4. Apply the patterns above consistently.
+5. Preserve all existing UX states: loading, empty, disabled, error.
+6. Do not install new packages for styling — use what is already available.
+7. Run `npm run typecheck` after changes to verify.
