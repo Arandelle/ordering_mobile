@@ -50,14 +50,18 @@ export const Input = forwardRef<React.ComponentRef<typeof TextInput>, InputField
     const RightIcon = rightIcon?.icon;
 
     const inputClass = twMerge(
-      'flex-1 py-3 text-sm',
-      editable ? 'text-gray-950' : 'text-gray-400',
+      'flex-1 py-3.5 text-base',
+      editable ? 'text-gray-900' : 'text-gray-400',
       inputClassName,
     );
 
     const containerClass = twMerge(
-      'flex-row items-center border bg-white px-1',
-      error ? 'border-red-500' : focused ? 'border-[#e13e00]' : 'border-gray-200',
+      'flex-row items-center rounded-xl border px-4',
+      error
+        ? 'border-red-400 bg-red-50'
+        : focused
+          ? 'border-[#e13e00] bg-white'
+          : 'border-gray-200 bg-gray-50',
       !editable && 'bg-gray-100',
       className,
     );
@@ -67,12 +71,12 @@ export const Input = forwardRef<React.ComponentRef<typeof TextInput>, InputField
         {(label || subLabel) && (
           <View className="m-0">
             {label && (
-              <Text nativeID={props.nativeID} className="text-sm font-semibold text-gray-700">
+              <Text nativeID={props.nativeID} className="text-xs font-medium tracking-wide text-gray-500">
                 {label}
                 {required && <Text className="ml-1 text-red-500">*</Text>}
               </Text>
             )}
-            {subLabel && <Text className="text-xs text-gray-500">{subLabel}</Text>}
+            {subLabel && <Text className="text-xs text-gray-400">{subLabel}</Text>}
           </View>
         )}
 
@@ -105,7 +109,7 @@ export const Input = forwardRef<React.ComponentRef<typeof TextInput>, InputField
           )}
         </View>
 
-        {error && <Text className="text-xs text-red-500">{error}</Text>}
+        {error && <Text className="text-xs font-medium text-red-500">{error}</Text>}
       </View>
     );
   },
