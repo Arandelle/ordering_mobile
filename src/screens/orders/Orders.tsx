@@ -647,7 +647,7 @@ export default function Orders() {
               )}
             </View>
 
-            {!isAuthenticated && (
+            {!isAuthenticated && !activeQuery.isLoading && (
               <View className="mt-5 rounded-3xl bg-white p-4" style={cardShadow.card}>
                 <View className="flex-row items-center gap-2.5">
                   <View className="h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
