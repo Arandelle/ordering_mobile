@@ -6,8 +6,31 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 import { CartProvider } from '@/context/CartContext';
 import { BranchProvider } from '@/context/BranchContext';
+import { isApiError } from '@/lib/apiClient';
+import { isTimeoutError } from '@/lib/fetchWithTimeout';
 
-const queryClient = new QueryClient();
+/**
+ * TanStack Query's default retries failed queries 3 times with exponential
+ * backoff, which keeps screens "loading" for a very long time when the
+ * backend is unreachable. Fail fast instead: timeouts never retry (the
+ * backend is likely down), network errors retry once (flaky connections),
+ * and 4xx responses won't change on retry either.
+ */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: unknown) => {
+        if (isTimeoutError(error)) return false;
+        if (isApiError(error)) {
+          if (error.code === 'TIMEOUT') return false;
+          if (error.code === 'NETWORK') return failureCount < 1;
+          if (error.status !== undefined && error.status < 500) return false;
+        }
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 // Register here all route
 export default function RootLayout() {

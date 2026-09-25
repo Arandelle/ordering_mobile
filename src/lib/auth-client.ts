@@ -3,11 +3,18 @@ import { createAuthClient } from 'better-auth/react';
 import * as SecureStore from 'expo-secure-store';
 import { APP_URL } from '@/constant';
 import { Platform } from 'react-native';
+import { DEFAULT_TIMEOUT_MS } from './fetchWithTimeout';
 
 const AUTH_BASE_URL = APP_URL;
 
 export const authClient = createAuthClient({
   baseURL: AUTH_BASE_URL,
+  // better-fetch built-in timeout (AbortController under the hood) so auth
+  // calls fail with an error when the backend is unreachable instead of
+  // leaving buttons stuck on loading forever.
+  fetchOptions: {
+    timeout: DEFAULT_TIMEOUT_MS,
+  },
   plugins: [
     ...(Platform.OS !== 'web'
       ? [expoClient({ scheme: 'harrison', storagePrefix: 'harrison-auth', storage: SecureStore })]

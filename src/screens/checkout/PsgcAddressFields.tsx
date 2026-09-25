@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '@/components/ui/Input';
 import { useCheckout } from '@/context/CheckoutContext';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ export const findBarangayByName = (
 };
 
 const fetchPsgcOptions = async (path: string): Promise<PsgcOption[]> => {
-  const response = await fetch(`${PSGC_API_BASE_URL}${path}`);
+  const response = await fetchWithTimeout(`${PSGC_API_BASE_URL}${path}`);
   if (!response.ok) {
     throw new Error('Unable to load address options. Please try again.');
   }

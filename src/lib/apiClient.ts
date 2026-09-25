@@ -1,10 +1,35 @@
 import { APP_URL } from '@/constant';
 import * as SecureStore from 'expo-secure-store';
+import {
+  DEFAULT_TIMEOUT_MS,
+  TIMEOUT_MESSAGE,
+  fetchWithTimeout,
+  isTimeoutError,
+} from './fetchWithTimeout';
 
-type ApiError = {
+type ApiErrorCode = 'TIMEOUT' | 'NETWORK' | 'INVALID_JSON' | 'HTTP';
+
+export type ApiError = {
   message: string;
+  code?: ApiErrorCode;
+  status?: number;
   details?: any;
 };
+
+/** Per-call options accepted by every apiClient method. */
+export type RequestOptions = {
+  /** Timeout override in milliseconds (`0` disables, e.g. for known-slow endpoints). */
+  timeoutMs?: number;
+};
+
+export function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    'code' in error
+  );
+}
 
 const STORAGE_PREFIX = 'harrison-auth';
 
@@ -26,7 +51,12 @@ async function getCookieHeader(): Promise<string | null> {
   }
 }
 
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
+async function request<T>(
+  url: string,
+  options?: RequestInit,
+  requestOptions?: RequestOptions,
+): Promise<T> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS } = requestOptions ?? {};
   const headers = new Headers(options?.headers);
   const cookie = await getCookieHeader();
 
@@ -43,15 +73,21 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
   let response;
   try {
-    response = await fetch(fullUrl, {
-      ...options,
-      headers,
-    });
+    response = await fetchWithTimeout(fullUrl, { ...options, headers }, timeoutMs);
   } catch (err: any) {
+    if (isTimeoutError(err)) {
+      throw {
+        message: TIMEOUT_MESSAGE,
+        code: 'TIMEOUT',
+        details: { url: fullUrl, timeoutMs },
+      } as ApiError;
+    }
     console.error('[apiClient] Network error:', err?.message ?? err);
     console.error('[apiClient] URL:', fullUrl);
     throw {
-      message: 'Network error — is the backend running?',
+      message:
+        'Network error — unable to reach the server. Please check your connection and try again.',
+      code: 'NETWORK',
       details: { url: fullUrl, error: err?.message },
     } as ApiError;
   }
@@ -67,6 +103,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     console.error('[apiClient] JSON parse error:', err?.message ?? err);
     throw {
       message: 'Invalid JSON from server',
+      code: 'INVALID_JSON',
       details: { url: fullUrl, status: response.status },
     } as ApiError;
   }
@@ -75,6 +112,8 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     console.error('[apiClient] HTTP error:', response.status, data?.error ?? data);
     throw {
       message: data?.error || 'Request failed',
+      code: 'HTTP',
+      status: response.status,
       details: data,
     } as ApiError;
   }
@@ -83,23 +122,26 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const apiClient = {
-  get: <T>(url: string) => request<T>(url, { method: 'GET' }),
+  get: <T>(url: string, requestOptions?: RequestOptions) =>
+    request<T>(url, { method: 'GET' }, requestOptions),
 
-  post: <T, B = unknown>(url: string, body?: B) =>
-    request<T>(url, {
-      method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
-    }),
+  post: <T, B = unknown>(url: string, body?: B, requestOptions?: RequestOptions) =>
+    request<T>(
+      url,
+      { method: 'POST', body: body ? JSON.stringify(body) : undefined },
+      requestOptions,
+    ),
 
-  put: <T>(url: string, body?: unknown) =>
-    request<T>(url, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    }),
-  patch: <T>(url: string, body?: unknown) =>
-    request<T>(url, {
-      method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
-    }),
-  delete: <T>(url: string) => request<T>(url, { method: 'DELETE' }),
+  put: <T>(url: string, body?: unknown, requestOptions?: RequestOptions) =>
+    request<T>(url, { method: 'PUT', body: JSON.stringify(body) }, requestOptions),
+
+  patch: <T>(url: string, body?: unknown, requestOptions?: RequestOptions) =>
+    request<T>(
+      url,
+      { method: 'PATCH', body: body ? JSON.stringify(body) : undefined },
+      requestOptions,
+    ),
+
+  delete: <T>(url: string, requestOptions?: RequestOptions) =>
+    request<T>(url, { method: 'DELETE' }, requestOptions),
 };
