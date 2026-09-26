@@ -66,11 +66,6 @@ export default function TabLayout() {
               resizeMode="contain"
             />
           ),
-          headerRight: () => (
-            <TouchableOpacity style={{ marginRight: 16 }}>
-              <Ionicons name="notifications-outline" size={20} color="#e13e00" />
-            </TouchableOpacity>
-          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),

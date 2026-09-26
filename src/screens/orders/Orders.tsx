@@ -628,27 +628,8 @@ export default function Orders() {
         }
         ListHeaderComponent={
           <View className="pb-2 pt-1">
-            <View className="flex-row items-end justify-between gap-3">
-              <View className="min-w-0 flex-1">
-                <Text className="text-2xl font-extrabold tracking-tight text-gray-950">Orders</Text>
-                <Text className="mt-1 text-sm leading-5 text-gray-500">
-                  {isAuthenticated
-                    ? 'Track your orders and manage pending actions.'
-                    : 'Look up a guest order with its reference number.'}
-                </Text>
-              </View>
-
-              {isAuthenticated && orders.length > 0 && (
-                <View className="mb-1 rounded-full bg-[#fdeee7] px-3 py-1">
-                  <Text className="text-xs font-bold text-[#e13e00]">
-                    {orders.length} order{orders.length === 1 ? '' : 's'}
-                  </Text>
-                </View>
-              )}
-            </View>
-
             {!isAuthenticated && !activeQuery.isLoading && (
-              <View className="mt-5 rounded-3xl bg-white p-4" style={cardShadow.card}>
+              <View className="mt-5 rounded-3xl bg-white p-4 gap-4" style={cardShadow.card}>
                 <View className="flex-row items-center gap-2.5">
                   <View className="h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
                     <Ionicons name="search-outline" size={16} color={BRAND} />
@@ -672,7 +653,7 @@ export default function Orders() {
                 />
 
                 <TouchableOpacity
-                  className={`mt-3 min-h-12 items-center justify-center rounded-2xl bg-[#e13e00] ${
+                  className={`min-h-12 items-center justify-center rounded-2xl bg-[#e13e00] ${
                     referenceNumber.trim() ? '' : 'opacity-[0.55]'
                   }`}
                   activeOpacity={0.85}

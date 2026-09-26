@@ -108,7 +108,15 @@ export function useCancelOrder() {
     mutationFn: cancelCustomerOrder,
     onSuccess: (order, orderId) => {
       if (order) {
-        queryClient.setQueryData(['order-detail', orderId], order);
+        queryClient.setQueryData<OrderType | null>(['order-detail', orderId], (existing) => {
+          if (!existing) return order;
+
+          const patch = Object.fromEntries(
+            Object.entries(order).filter(([, value]) => value !== undefined),
+          ) as Partial<OrderType>;
+
+          return { ...existing, ...patch };
+        });
       }
       void queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
       void queryClient.invalidateQueries({ queryKey: ['order-detail', orderId] });
