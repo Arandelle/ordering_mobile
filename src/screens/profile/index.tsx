@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { LogOut, Wallet } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@/hooks/useWallet';
+import { useMembershipStatus } from '@/hooks/useMembership';
 import { Ionicons } from '@expo/vector-icons';
 import {
   emptyAddressDetails
@@ -49,6 +50,8 @@ export default function Profile() {
   const user = session?.user as ProfileUser | undefined;
   const { data: walletData, isLoading: walletLoading } = useWallet({ enabled: Boolean(user) });
   const walletBalance = walletData?.balance ?? 0;
+  const { data: membershipData } = useMembershipStatus({ enabled: Boolean(user) });
+  const hasActiveMembership = membershipData?.activeMembership?.status === 'paid';
   const { data: savedAddress, isLoading: isAddressLoading } = useMyAddress(Boolean(user));
   const updateAddress = useUpdateMyAddress();
 
@@ -356,6 +359,27 @@ export default function Profile() {
                     ₱{walletBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </Text>
                 )}
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </View>
+        </TouchableOpacity>
+
+        {/* Membership Card */}
+        <TouchableOpacity
+          className="mt-6 rounded-3xl bg-white p-5 shadow-sm"
+          activeOpacity={0.8}
+          onPress={() => router.push('/membership')}>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3">
+              <View className={`flex h-11 w-11 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-[#c63405]' : 'bg-gray-100'}`}>
+                <Ionicons name={hasActiveMembership ? 'star' : 'star-outline'} size={20} color={hasActiveMembership ? '#f3d78c' : '#6b7280'} />
+              </View>
+              <View>
+                <Text className="text-sm font-bold text-gray-950">Membership</Text>
+                <Text className={`text-xs font-medium ${hasActiveMembership ? 'text-emerald-600' : 'text-gray-500'}`}>
+                  {hasActiveMembership ? 'Active VIP Member' : 'View plans & benefits'}
+                </Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
