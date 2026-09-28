@@ -6,6 +6,7 @@ import {
   Dimensions,
   FlatList,
   RefreshControl,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -14,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Product } from '@/types/products.type';
 import Banner from './Banner';
+import MembershipBanner from './MembershipBanner';
+import VipCard from './VipCard';
 import Categories from './Categories';
 import { BranchSelector } from './BranchSelector';
 import { BranchProduct } from '@/hooks/useProducts';
@@ -21,6 +24,8 @@ import { STOCK_STATUSES } from '@/types/inventories.type';
 import { StockBadge } from './StockBadge';
 import { StoreClosedOverlay } from './StoreClosedOverLay';
 import { DynamicImage } from '@/components/ui/DynamicImage';
+import { authClient } from '@/lib/auth-client';
+import { useMembershipStatus } from '@/hooks/useMembership';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -141,6 +146,54 @@ const ProductCard = React.memo(
   }
 );
 
+// ─── Home Carousel (Banner + Membership) ─────────────────────────────────────
+
+const CAROUSEL_PAGE_WIDTH = Dimensions.get('window').width;
+
+const HomeCarousel = () => {
+  const { data: session } = authClient.useSession();
+  const isAuthenticated = Boolean(session?.user);
+  const { data: membershipData } = useMembershipStatus({ enabled: isAuthenticated });
+
+  const activeMembership = membershipData?.activeMembership;
+  const hasActiveMembership = activeMembership?.status === 'paid';
+  const tiers = membershipData?.tiers ?? [];
+  const activeTier = tiers.find((t) => t._id === activeMembership?.tierId);
+
+  const memberName =
+    (session?.user?.name ?? '').trim() ||
+    [activeMembership?.firstName, activeMembership?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim() ||
+    'Member';
+
+  return (
+    <ScrollView
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}>
+      {/* Page 1: Greeting banner */}
+      <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
+        <Banner />
+      </View>
+      {/* Page 2: Membership card or promo banner */}
+      <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
+        {hasActiveMembership && activeMembership ? (
+          <VipCard
+            membership={activeMembership}
+            memberName={memberName}
+            tierChannel={activeMembership.tierChannel}
+            expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
+          />
+        ) : (
+          <MembershipBanner />
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
 // ─── Product List ─────────────────────────────────────────────────────────────
 
 const ProductList = ({
@@ -192,7 +245,7 @@ const ProductList = ({
       onEndReachedThreshold={0.4}
       ListHeaderComponent={
         <>
-          <Banner />
+          <HomeCarousel />
           <BranchSelector />
           <Categories activeCategory={activeCategory} onCategoryPress={setActiveCategory} />
           <Text className="px-4 pb-1 pt-2 text-base font-bold text-gray-900">
