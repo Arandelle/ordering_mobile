@@ -135,6 +135,18 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Membership — hidden from tab bar, accessed via navigation */}
+      <Tabs.Screen
+        name="membership"
+        options={{
+          title: 'Membership',
+          href: null,
+          headerShown: true,
+          headerStyle: { backgroundColor: '#fff' },
+          headerTitleStyle: { fontSize: 16, fontWeight: '700' },
+        }}
+      />
     </Tabs>
   );
 }
