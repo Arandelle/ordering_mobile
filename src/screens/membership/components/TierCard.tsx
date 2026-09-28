@@ -24,11 +24,11 @@ const TierCard = ({ tier, isSelected, onSelect, onPay, isAuthenticated, isPendin
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onSelect}
-      className={`overflow-hidden rounded-2xl ${isSelected ? 'ring-2 ring-brand-500' : ''}`}
+      className="overflow-hidden rounded-2xl"
       style={{
         backgroundColor: isSelected ? '#1e293b' : '#0f172a',
-        borderWidth: isSelected ? 2 : 0,
-        borderColor: '#ef4501',
+        borderWidth: isSelected ? 2 : 1,
+        borderColor: isSelected ? '#ef4501' : 'transparent',
       }}>
       <View className="p-5">
         {/* Selected badge */}
