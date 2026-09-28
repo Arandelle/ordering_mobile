@@ -149,11 +149,14 @@ const ProductCard = React.memo(
 // ─── Home Carousel (Banner + Membership) ─────────────────────────────────────
 
 const CAROUSEL_PAGE_WIDTH = Dimensions.get('window').width;
+const AUTO_SCROLL_INTERVAL = 10000;
 
 const HomeCarousel = () => {
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
   const { data: membershipData } = useMembershipStatus({ enabled: isAuthenticated });
+  const scrollRef = useRef<ScrollView>(null);
+  const [activePage, setActivePage] = useState(0);
 
   const activeMembership = membershipData?.activeMembership;
   const hasActiveMembership = activeMembership?.status === 'paid';
@@ -168,29 +171,65 @@ const HomeCarousel = () => {
       .trim() ||
     'Member';
 
+  // Auto-scroll between pages
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setActivePage((prev) => {
+        const next = prev === 0 ? 1 : 0;
+        scrollRef.current?.scrollTo({ x: next * CAROUSEL_PAGE_WIDTH, animated: true });
+        return next;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleScrollEnd = (e: { nativeEvent: { contentOffset: { x: number } } }) => {
+    const page = Math.round(e.nativeEvent.contentOffset.x / CAROUSEL_PAGE_WIDTH);
+    setActivePage(page);
+  };
+
   return (
-    <ScrollView
-      horizontal
-      pagingEnabled
-      showsHorizontalScrollIndicator={false}>
-      {/* Page 1: Greeting banner */}
-      <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
-        <Banner />
-      </View>
-      {/* Page 2: Membership card or promo banner */}
-      <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
-        {hasActiveMembership && activeMembership ? (
-          <VipCard
-            membership={activeMembership}
-            memberName={memberName}
-            tierChannel={activeMembership.tierChannel}
-            expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
+    <View>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScrollEnd}>
+        {/* Page 1: Greeting banner */}
+        <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
+          <Banner />
+        </View>
+        {/* Page 2: Membership card or promo banner */}
+        <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
+          {hasActiveMembership && activeMembership ? (
+            <VipCard
+              membership={activeMembership}
+              memberName={memberName}
+              tierChannel={activeMembership.tierChannel}
+              expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
+            />
+          ) : (
+            <MembershipBanner />
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Pagination dots */}
+      <View className="mt-3 flex-row items-center justify-center gap-2">
+        {[0, 1].map((i) => (
+          <View
+            key={i}
+            className="rounded-full"
+            style={{
+              width: activePage === i ? 16 : 6,
+              height: 6,
+              backgroundColor: activePage === i ? '#e13e00' : '#d1d5db',
+            }}
           />
-        ) : (
-          <MembershipBanner />
-        )}
+        ))}
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
