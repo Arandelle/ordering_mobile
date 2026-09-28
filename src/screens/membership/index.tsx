@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -26,8 +27,15 @@ export default function MembershipScreen() {
   const insets = useSafeAreaInsets();
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
-  const { data: membershipData, isLoading } = useMembershipStatus({ enabled: isAuthenticated });
+  const { data: membershipData, isLoading, refetch } = useMembershipStatus({ enabled: isAuthenticated });
   const checkoutMutation = useMembershipCheckout();
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const [selectedTierId, setSelectedTierId] = useState('');
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
@@ -132,7 +140,10 @@ export default function MembershipScreen() {
     <ScrollView
       className="flex-1 bg-gray-50"
       contentContainerStyle={{ paddingBottom: insets.bottom + 40, paddingHorizontal: 16, paddingTop: 24 }}
-      showsVerticalScrollIndicator={false}>
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e13e00" colors={['#e13e00']} />
+      }>
       {/* Hero */}
       <View className="mb-6">
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
