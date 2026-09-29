@@ -1,22 +1,24 @@
 import { useCart } from '@/context/CartContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Platform, Text, TouchableOpacity } from 'react-native';
+import { Image, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
 import { authClient } from '@/lib/auth-client';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
 
-const TAB_BAR_CONTENT_HEIGHT = 56; // icon + label area, excluding safe area
+const TAB_BAR_CONTENT_HEIGHT = 56;
 
 export default function TabLayout() {
-  const { cartItems, totalItems, clearCart } = useCart();
+  const { totalItems } = useCart();
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
 
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const { data: orderSummary } = useCustomerOrderSummary();
 
@@ -27,6 +29,22 @@ export default function TabLayout() {
     (orderSummary?.completed ?? 0);
 
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
+
+  const CartHeaderButton = () => (
+    <TouchableOpacity
+      onPress={() => router.push('/cart')}
+      style={{ marginRight: 16 }}
+      className="flex-row items-center gap-1">
+      <View>
+        <Ionicons name="cart-outline" size={22} color="#333" />
+        {totalItems > 0 && (
+          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
+            <Text className="text-[10px] font-bold text-white">{totalItems}</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <Tabs
@@ -39,7 +57,7 @@ export default function TabLayout() {
           marginBottom: Platform.OS === 'ios' ? 0 : 4,
         },
         tabBarStyle: {
-          backgroundColor: '#fff', // was 'green' — likely leftover debug color
+          backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#f0f0f0',
           elevation: 12,
@@ -66,6 +84,7 @@ export default function TabLayout() {
               resizeMode="contain"
             />
           ),
+          headerRight: () => <CartHeaderButton />,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
@@ -73,10 +92,29 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="menu"
+        options={{
+          title: 'Menu',
+          headerTitle: () => (
+            <Image
+              source={require('../../assets/images/harrison_logo_landscape.png')}
+              className="h-full w-36"
+              resizeMode="contain"
+            />
+          ),
+          headerRight: () => <CartHeaderButton />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'restaurant' : 'restaurant-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="orders"
         options={{
-          title: 'My Orders',
+          title: 'Orders',
           tabBarBadge: isAuthenticated && activeOrdersCount > 0 ? activeOrdersCount : undefined,
+          headerRight: () => <CartHeaderButton />,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'bag-handle' : 'bag-handle-outline'}
@@ -85,30 +123,6 @@ export default function TabLayout() {
             />
           ),
         }}
-      />
-
-      <Tabs.Screen
-        name="cart"
-        options={() => ({
-          title: 'My Cart',
-          tabBarBadge: totalItems > 0 ? totalItems : undefined,
-          headerRight: () =>
-            cartItems.length > 0 ? (
-              <TouchableOpacity onPress={() => clearCart()} style={{ marginRight: 16 }}>
-                <Text
-                  style={{
-                    color: '#e13e00',
-                    fontSize: 13,
-                    fontWeight: '500',
-                  }}>
-                  Clear
-                </Text>
-              </TouchableOpacity>
-            ) : null,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'cart' : 'cart-outline'} size={size} color={color} />
-          ),
-        })}
       />
 
       {/* Auth tab — shows sign-in when not authenticated */}
@@ -128,11 +142,29 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'My Profile',
+          title: 'Profile',
           href: isAuthenticated ? undefined : null,
+          headerRight: () => <CartHeaderButton />,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
+        }}
+      />
+
+      {/* Cart — hidden from tab bar, accessed via header icon */}
+      <Tabs.Screen
+        name="cart"
+        options={{
+          href: null,
+          headerShown: true,
+          headerTitle: () => (
+            <Image
+              source={require('../../assets/images/harrison_logo_landscape.png')}
+              className="h-full w-36"
+              resizeMode="contain"
+            />
+          ),
+          headerRight: () => <CartHeaderButton />,
         }}
       />
 
