@@ -35,7 +35,7 @@ const queryClient = new QueryClient({
 });
 
 // Set to true during development to reset onboarding and see it again
-const RESET_ONBOARDING = true;
+const RESET_ONBOARDING = false;
 
 // Register here all route
 export default function RootLayout() {
@@ -88,13 +88,6 @@ export default function RootLayout() {
                   headerShown: true,
                   title: "Review"
                 }} />
-                <Stack.Screen
-                  name="wallet/index"
-                  options={{
-                    headerShown: true,
-                    title: 'My Wallet',
-                  }}
-                />
               </Stack>
             )}
           </CartProvider>
