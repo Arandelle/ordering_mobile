@@ -17,6 +17,7 @@ import { Product } from '@/types/products.type';
 import Banner from './Banner';
 import MembershipBanner from './MembershipBanner';
 import VipCard from './VipCard';
+import WalletBanner from './WalletBanner';
 import Categories from './Categories';
 import { BranchSelector } from './BranchSelector';
 import { BranchProduct } from '@/hooks/useProducts';
@@ -149,6 +150,7 @@ const ProductCard = React.memo(
 // ─── Home Carousel (Banner + Membership) ─────────────────────────────────────
 
 const CAROUSEL_PAGE_WIDTH = Dimensions.get('window').width;
+const CAROUSEL_PAGE_COUNT = 3;
 const AUTO_SCROLL_INTERVAL = 10000;
 
 const HomeCarousel = () => {
@@ -175,7 +177,7 @@ const HomeCarousel = () => {
   React.useEffect(() => {
     const timer = setInterval(() => {
       setActivePage((prev) => {
-        const next = prev === 0 ? 1 : 0;
+        const next = (prev + 1) % CAROUSEL_PAGE_COUNT;
         scrollRef.current?.scrollTo({ x: next * CAROUSEL_PAGE_WIDTH, animated: true });
         return next;
       });
@@ -213,11 +215,15 @@ const HomeCarousel = () => {
             <MembershipBanner />
           )}
         </View>
+        {/* Page 3: Wallet banner */}
+        <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
+          <WalletBanner />
+        </View>
       </ScrollView>
 
       {/* Pagination dots */}
       <View className="mt-3 flex-row items-center justify-center gap-2">
-        {[0, 1].map((i) => (
+        {Array.from({ length: CAROUSEL_PAGE_COUNT }).map((_, i) => (
           <View
             key={i}
             className="rounded-full"

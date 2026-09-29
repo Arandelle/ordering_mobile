@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Dimensions, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,8 +6,10 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import Banner from '@/components/home/Banner';
 import MembershipBanner from '@/components/home/MembershipBanner';
 import VipCard from '@/components/home/VipCard';
+import WalletBanner from '@/components/home/WalletBanner';
 import { authClient } from '@/lib/auth-client';
 import { useMembershipStatus } from '@/hooks/useMembership';
+import type { ActiveMembership, MembershipTier } from '@/types/membership.type';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const BANNER_HORIZONTAL_PADDING = 16;
@@ -43,6 +45,84 @@ function PromoCard({ source, onPress }: { source: number; onPress: () => void })
   );
 }
 
+const CAROUSEL_WIDTH = Dimensions.get('window').width;
+const MEMBERSHIP_WALLET_PAGES = 2;
+
+function MembershipWalletCarousel({
+  hasActiveMembership,
+  activeMembership,
+  memberName,
+  activeTier,
+}: {
+  hasActiveMembership: boolean;
+  activeMembership: ActiveMembership | null | undefined;
+  memberName: string;
+  activeTier: MembershipTier | undefined;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [activePage, setActivePage] = useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setActivePage((prev) => {
+        const next = (prev + 1) % MEMBERSHIP_WALLET_PAGES;
+        scrollRef.current?.scrollTo({ x: next * CAROUSEL_WIDTH, animated: true });
+        return next;
+      });
+    }, 8000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleScrollEnd = (e: { nativeEvent: { contentOffset: { x: number } } }) => {
+    const page = Math.round(e.nativeEvent.contentOffset.x / CAROUSEL_WIDTH);
+    setActivePage(page);
+  };
+
+  return (
+    <View className="mt-8">
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScrollEnd}>
+        {/* Page 1: Membership */}
+        <View style={{ width: CAROUSEL_WIDTH }}>
+          {hasActiveMembership && activeMembership ? (
+            <VipCard
+              membership={activeMembership}
+              memberName={memberName}
+              tierChannel={activeMembership.tierChannel}
+              expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
+            />
+          ) : (
+            <MembershipBanner />
+          )}
+        </View>
+        {/* Page 2: Wallet */}
+        <View style={{ width: CAROUSEL_WIDTH }}>
+          <WalletBanner />
+        </View>
+      </ScrollView>
+
+      {/* Pagination dots */}
+      <View className="mt-3 flex-row items-center justify-center gap-2">
+        {Array.from({ length: MEMBERSHIP_WALLET_PAGES }).map((_, i) => (
+          <View
+            key={i}
+            className="rounded-full"
+            style={{
+              width: activePage === i ? 16 : 6,
+              height: 6,
+              backgroundColor: activePage === i ? '#e13e00' : '#d1d5db',
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -57,10 +137,7 @@ export default function HomeScreen() {
 
   const memberName =
     (session?.user?.name ?? '').trim() ||
-    [activeMembership?.firstName, activeMembership?.lastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim() ||
+    [activeMembership?.firstName, activeMembership?.lastName].filter(Boolean).join(' ').trim() ||
     'Member';
 
   return (
@@ -68,26 +145,18 @@ export default function HomeScreen() {
       className="flex-1 bg-[#f9f5f2]"
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}>
-
       {/* Section 1: Craving Banner */}
       <Banner />
 
-      {/* Section 2: Membership */}
-      {hasActiveMembership && activeMembership ? (
-        <View className="mt-8 gap-3">
-          <Text className="px-4 text-base font-bold text-gray-900">Membership</Text>
-          <VipCard
-            membership={activeMembership}
-            memberName={memberName}
-            tierChannel={activeMembership.tierChannel}
-            expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
-          />
-        </View>
-      ) : (
-        <MembershipBanner />
-      )}
+      {/* Section 2: Membership + Wallet Carousel */}
+      <MembershipWalletCarousel
+        hasActiveMembership={hasActiveMembership}
+        activeMembership={activeMembership}
+        memberName={memberName}
+        activeTier={activeTier}
+      />
 
-      {/* Section 3: Delivery & Deals */}
+      {/* Section 4: Delivery & Deals */}
       <View className="mt-8">
         <View className="mb-3 flex-row items-center justify-between px-4">
           <Text className="text-base font-bold text-gray-900">Delivery & Deals</Text>
@@ -112,7 +181,7 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* Section 4: Menu Favorites */}
+      {/* Section 5: Menu Favorites */}
       <View className="mt-8">
         <View className="mb-3 flex-row items-center justify-between px-4">
           <Text className="text-base font-bold text-gray-900">Menu Favorites</Text>

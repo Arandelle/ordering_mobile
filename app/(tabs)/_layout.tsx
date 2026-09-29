@@ -36,7 +36,7 @@ export default function TabLayout() {
       style={{ marginRight: 16 }}
       className="flex-row items-center gap-1">
       <View>
-        <Ionicons name="cart-outline" size={22} color="#333" />
+        <Ionicons name="cart-outline" size={24} color="#333" />
         {totalItems > 0 && (
           <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
             <Text className="text-[10px] font-bold text-white">{totalItems}</Text>

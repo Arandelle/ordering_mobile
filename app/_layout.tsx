@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import '../global.css';
 import { CartProvider } from '@/context/CartContext';
 import { BranchProvider } from '@/context/BranchContext';
@@ -32,8 +34,25 @@ const queryClient = new QueryClient({
   },
 });
 
+// Set to true during development to reset onboarding and see it again
+const RESET_ONBOARDING = true;
+
 // Register here all route
 export default function RootLayout() {
+  const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      if (__DEV__ && RESET_ONBOARDING) {
+        await AsyncStorage.removeItem('has_completed_onboarding');
+      }
+      const value = await AsyncStorage.getItem('has_completed_onboarding');
+      setHasOnboarded(value === 'true');
+    })();
+  }, []);
+
+  if (hasOnboarded === null) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
@@ -41,37 +60,43 @@ export default function RootLayout() {
         <BranchProvider>
           <CartProvider>
             <StatusBar barStyle="dark-content" />
-            <Stack
-              screenOptions={{
-                headerTitleAlign: 'center',
-                headerStyle: { backgroundColor: '#fff' },
-                headerTintColor: '#111827',
-                headerShown: false
-              }}>
-              <Stack.Screen
-                name="(tabs)"
-              />
-              <Stack.Screen name="product/[id]" />
-              <Stack.Screen name="orders/[id]" 
-              options={{
-                headerShown: true,
-                title: "Order Details"
-              }}
-              />
-              <Stack.Screen name="checkout" />
-              <Stack.Screen name="auth" />
-              <Stack.Screen name="review/[id]" options={{
-                headerShown: true,
-                title: "Review"
-              }} />
-              <Stack.Screen
-                name="wallet/index"
+            {!hasOnboarded ? (
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="onboarding" />
+              </Stack>
+            ) : (
+              <Stack
+                screenOptions={{
+                  headerTitleAlign: 'center',
+                  headerStyle: { backgroundColor: '#fff' },
+                  headerTintColor: '#111827',
+                  headerShown: false
+                }}>
+                <Stack.Screen
+                  name="(tabs)"
+                />
+                <Stack.Screen name="product/[id]" />
+                <Stack.Screen name="orders/[id]"
                 options={{
                   headerShown: true,
-                  title: 'My Wallet',
+                  title: "Order Details"
                 }}
-              />
-            </Stack>
+                />
+                <Stack.Screen name="checkout" />
+                <Stack.Screen name="auth" />
+                <Stack.Screen name="review/[id]" options={{
+                  headerShown: true,
+                  title: "Review"
+                }} />
+                <Stack.Screen
+                  name="wallet/index"
+                  options={{
+                    headerShown: true,
+                    title: 'My Wallet',
+                  }}
+                />
+              </Stack>
+            )}
           </CartProvider>
         </BranchProvider>
       </QueryClientProvider>
