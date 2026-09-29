@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Modal, Text, TouchableOpacity, View } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useMembershipQR } from '@/hooks/useMembership';
@@ -26,8 +22,7 @@ type VipCardProps = {
   expiresAt?: string | null;
 };
 
-const CARD_WIDTH = 320;
-const CARD_HEIGHT = 200;
+const CARD_HEIGHT = 180;
 const GOLD = '#f3d78c';
 const GOLD_SOFT = '#f3d78c99';
 
@@ -60,11 +55,11 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
       <TouchableOpacity
         activeOpacity={0.95}
         onPress={handleFlip}
-        className="self-center mt-8"
-        style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+        className="mx-4"
+        style={{ height: CARD_HEIGHT }}>
         {/* Front face */}
         <Animated.View
-          style={[frontStyle, { position: 'absolute', width: CARD_WIDTH, height: CARD_HEIGHT }]}>
+          style={[frontStyle, { position: 'absolute', width: '100%', height: CARD_HEIGHT }]}>
           <View className="h-full w-full overflow-hidden rounded-2xl bg-[#c63405]">
             <Image
               source={require('assets/images/membership-card-bg.png')}
@@ -74,19 +69,13 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
             <View className="flex-1 items-center justify-center px-6">
               <Image
                 source={require('assets/images/membership-card-logo.png')}
-                style={{ width: 100, height: 95 }}
+                style={{ width: 100, height: 70 }}
                 resizeMode="contain"
               />
               <Text
                 style={{ color: GOLD, fontSize: 20, letterSpacing: 4, marginTop: 4 }}
                 className="font-bold">
                 V.I.P
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={{ color: GOLD, fontSize: 12, letterSpacing: 6, marginTop: 4 }}
-                className="uppercase">
-                {memberName}
               </Text>
             </View>
             <Text
@@ -99,7 +88,7 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
 
         {/* Back face */}
         <Animated.View
-          style={[backStyle, { position: 'absolute', width: CARD_WIDTH, height: CARD_HEIGHT }]}>
+          style={[backStyle, { position: 'absolute', width: '100%', height: CARD_HEIGHT }]}>
           <View className="h-full w-full overflow-hidden rounded-2xl bg-[#c63405]">
             <Image
               source={require('assets/images/membership-card-bg.png')}
@@ -108,13 +97,18 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
             />
             <View className="flex-row items-center justify-between px-5 py-4">
               <View className="flex-1 gap-3">
+                <Text
+                  numberOfLines={1}
+                  style={{ color: GOLD, fontSize: 10, letterSpacing: 6, marginTop: 4 }}
+                  className="uppercase">
+                  {memberName}
+                </Text>
+
                 <View>
-                  <Text style={{ color: GOLD_SOFT, fontSize: 8, letterSpacing: 3 }}>
-                    MEMBER ID
-                  </Text>
+                  <Text style={{ color: GOLD_SOFT, fontSize: 8, letterSpacing: 3 }}>MEMBER ID</Text>
                   <Text
                     numberOfLines={1}
-                    style={{ color: GOLD, fontSize: 16, letterSpacing: 3 }}
+                    style={{ color: GOLD, fontSize: 12, letterSpacing: 3 }}
                     className="font-bold">
                     {membership.memberId ?? '—'}
                   </Text>
@@ -123,7 +117,9 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
                   <Text style={{ color: GOLD_SOFT, fontSize: 8, letterSpacing: 3 }}>
                     MEMBER SINCE
                   </Text>
-                  <Text style={{ color: GOLD, fontSize: 16, letterSpacing: 3 }} className="font-bold">
+                  <Text
+                    style={{ color: GOLD, fontSize: 12, letterSpacing: 3 }}
+                    className="font-bold">
                     {formatCardDate(membership.paidAt)}
                   </Text>
                 </View>
@@ -131,7 +127,9 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
                   <Text style={{ color: GOLD_SOFT, fontSize: 8, letterSpacing: 3 }}>
                     VALID THRU
                   </Text>
-                  <Text style={{ color: GOLD, fontSize: 16, letterSpacing: 3 }} className="font-bold">
+                  <Text
+                    style={{ color: GOLD, fontSize: 12, letterSpacing: 3 }}
+                    className="font-bold">
                     {formatCardDate(expiresAt)}
                   </Text>
                 </View>
@@ -188,9 +186,7 @@ const VipCard = ({ membership, memberName, tierChannel, expiresAt }: VipCardProp
                 backgroundColor="#ffffff"
               />
             </View>
-            <Text className="mt-3 font-mono text-xs text-gray-500">
-              {qrData?.memberId}
-            </Text>
+            <Text className="mt-3 font-mono text-xs text-gray-500">{qrData?.memberId}</Text>
             <TouchableOpacity
               onPress={() => setQrModalOpen(false)}
               className="mt-4 rounded-xl bg-gray-100 px-8 py-3">

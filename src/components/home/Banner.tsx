@@ -5,7 +5,7 @@ const Banner = () => {
   return (
     <View className="relative mx-4 mt-8">
       {/* Card */}
-      <View className="overflow-hidden rounded-[28px] bg-[#E13E00] px-6 py-5 shadow-lg">
+      <View className="overflow-hidden rounded-xl bg-[#E13E00] px-6 py-5 shadow-lg">
         {/* Decorative blobs */}
         <View className="absolute -right-10 -top-2 h-40 w-40 rounded-full bg-[#ff8a57]/20" />
         <View className="absolute -bottom-12 -left-10 h-32 w-32 rounded-full bg-[#ffffff]/10" />
