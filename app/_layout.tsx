@@ -10,6 +10,7 @@ import { CartProvider } from '@/context/CartContext';
 import { BranchProvider } from '@/context/BranchContext';
 import { isApiError } from '@/lib/apiClient';
 import { isTimeoutError } from '@/lib/fetchWithTimeout';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 /**
  * TanStack Query's default retries failed queries 3 times with exponential
@@ -40,6 +41,9 @@ const RESET_ONBOARDING = false;
 // Register here all route
 export default function RootLayout() {
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
+
+  // Initialize push notifications for authenticated users
+  usePushNotifications();
 
   useEffect(() => {
     (async () => {

@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
+import { useUnreadCount } from '@/hooks/useNotifications';
 import { authClient } from '@/lib/auth-client';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,8 @@ export default function TabLayout() {
   const router = useRouter();
 
   const { data: orderSummary } = useCustomerOrderSummary();
+  const { data: unreadData } = useUnreadCount();
+  const unreadCount = unreadData?.unreadCount ?? 0;
 
   const activeOrdersCount =
     (orderSummary?.pending ?? 0) +
@@ -40,6 +43,24 @@ export default function TabLayout() {
         {totalItems > 0 && (
           <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
             <Text className="text-[10px] font-bold text-white">{totalItems}</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  const NotifHeaderButton = () => (
+    <TouchableOpacity
+      onPress={() => router.push('/notifications')}
+      style={{ marginRight: 16 }}
+      className="flex-row items-center gap-1">
+      <View>
+        <Ionicons name="notifications-outline" size={24} color="#333" />
+        {unreadCount > 0 && (
+          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
+            <Text className="text-[10px] font-bold text-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
           </View>
         )}
       </View>
@@ -84,7 +105,12 @@ export default function TabLayout() {
               resizeMode="contain"
             />
           ),
-          headerRight: () => <CartHeaderButton />,
+          headerRight: () => (
+            <>
+              <NotifHeaderButton />
+              <CartHeaderButton />
+            </>
+          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
@@ -102,9 +128,18 @@ export default function TabLayout() {
               resizeMode="contain"
             />
           ),
-          headerRight: () => <CartHeaderButton />,
+          headerRight: () => (
+            <>
+              <NotifHeaderButton />
+              <CartHeaderButton />
+            </>
+          ),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'restaurant' : 'restaurant-outline'} size={size} color={color} />
+            <Ionicons
+              name={focused ? 'restaurant' : 'restaurant-outline'}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -114,7 +149,12 @@ export default function TabLayout() {
         options={{
           title: 'Orders',
           tabBarBadge: isAuthenticated && activeOrdersCount > 0 ? activeOrdersCount : undefined,
-          headerRight: () => <CartHeaderButton />,
+          headerRight: () => (
+            <>
+              <NotifHeaderButton />
+              <CartHeaderButton />
+            </>
+          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'bag-handle' : 'bag-handle-outline'}
@@ -144,7 +184,12 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           href: isAuthenticated ? undefined : null,
-          headerRight: () => <CartHeaderButton />,
+          headerRight: () => (
+            <>
+              <NotifHeaderButton />
+              <CartHeaderButton />
+            </>
+          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
@@ -154,6 +199,21 @@ export default function TabLayout() {
       {/* Cart — hidden from tab bar, accessed via header icon */}
       <Tabs.Screen
         name="cart"
+        options={{
+          href: null,
+          headerShown: true,
+          headerTitle: () => (
+            <Image
+              source={require('../../assets/images/harrison_logo_landscape.png')}
+              className="h-full w-36"
+              resizeMode="contain"
+            />
+          ),
+          headerRight: () => <CartHeaderButton />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
         options={{
           href: null,
           headerShown: true,

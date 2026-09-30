@@ -39,7 +39,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.harrisoninasal.harrisoninasal"
+      "bundleIdentifier": "com.harrisoninasal.harrisoninasal",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -47,7 +50,15 @@
         "backgroundColor": "#ef4501"
       },
       "package": "com.harrisoninasal.harrisoninasal",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+    },
+    "notification": {
+      "iconUrl": "./assets/images/harrison_logo.png",
+      "color": "#ef4501",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "Harrison"
     },
     "extra": {
       "router": {},
