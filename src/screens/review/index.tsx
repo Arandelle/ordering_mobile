@@ -1,18 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { useOrder, useSubmitReview } from '@/hooks/useOrders';
 import { ItemReviewInput } from '@/types/review.type';
 import { Input } from '@/components/ui/Input';
 import { DynamicImage } from '@/components/ui/DynamicImage';
+import { Icon } from '@/components/ui/Icon';
 
 const BRAND = '#e13e00';
 
@@ -140,6 +134,7 @@ export default function OrderReview() {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
         <ActivityIndicator color={BRAND} />
+        <Text>Loading please wait...</Text>
       </View>
     );
   }
@@ -147,6 +142,9 @@ export default function OrderReview() {
   if (!order) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50 px-6">
+        <View className='p-2 rounded-full bg-brand-50'>
+          <Icon name='Package' size={32} color={BRAND}/>
+        </View>
         <Text className="text-center text-lg font-extrabold text-gray-950">Order not found</Text>
         <Text className="mt-2 text-center text-sm text-gray-500">
           Unable to load this order for review.
@@ -166,7 +164,7 @@ export default function OrderReview() {
         <Text className="mt-1 text-sm text-gray-500">{referenceNumber}</Text>
       </View>
 
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+      <View className="mb-4 border border-gray-100 rounded-md bg-white p-4">
         <Text className="text-[15px] font-bold text-gray-950">Overall experience</Text>
         <View className="mt-3">
           <RatingStars value={rating} onChange={setRating} />
@@ -177,11 +175,12 @@ export default function OrderReview() {
           value={comment}
           onChangeText={setComment}
           multiline
-          inputClassName="min-h-24 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-950"
+          maxLength={500}
+          className='h-40 items-start'
         />
       </View>
 
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+      <View className="mb-4 border border-gray-100 rounded-md bg-white p-4">
         <Text className="text-[15px] font-bold text-gray-950">Rate individual items</Text>
 
         <View className="mt-4 gap-4">
@@ -195,12 +194,12 @@ export default function OrderReview() {
                 key={item.productId}
                 className={`${isLastItem ? '' : 'border-b border-gray-100'} pb-4`}>
                 <View className="flex-row gap-3">
-                  <View className="h-16 w-16 overflow-hidden rounded-2xl bg-gray-100">
+                  <View className="h-16 w-16 overflow-hidden rounded-md bg-gray-100">
                     <DynamicImage
                       src={item.image ?? undefined}
                       variant="product"
                       alt={item.name}
-                      containerClassName="h-full w-full rounded-2xl"
+                      containerClassName="h-full w-full rounded-md"
                     />
                   </View>
 
@@ -212,7 +211,9 @@ export default function OrderReview() {
                     <View className="mt-2">
                       <RatingStars
                         value={itemRating}
-                        onChange={(nextRating) => handleItemRatingChange(item.productId, nextRating)}
+                        onChange={(nextRating) =>
+                          handleItemRatingChange(item.productId, nextRating)
+                        }
                         size={24}
                       />
                     </View>
@@ -227,7 +228,8 @@ export default function OrderReview() {
                       handleItemCommentChange(item.productId, nextComment)
                     }
                     multiline
-                    inputClassName="min-h-20 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-950"
+                    maxLength={500}
+                    className='h-40 items-start'
                   />
                 )}
               </View>
@@ -237,7 +239,7 @@ export default function OrderReview() {
       </View>
 
       <TouchableOpacity
-        className={`min-h-12 items-center justify-center rounded-2xl bg-[#e13e00] ${
+        className={`min-h-12 items-center justify-center rounded-md bg-[#e13e00] ${
           submitReview.isPending || rating < 1 ? 'opacity-[0.65]' : ''
         }`}
         activeOpacity={0.85}

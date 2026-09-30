@@ -44,20 +44,6 @@ const ACTIVE_ORDER_STATUSES = new Set<string>([
   ORDER_STATUSES.READY_FOR_PICKUP,
 ]);
 
-const cardShadow = StyleSheet.create({
-  card: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-});
-
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 type OrderListItem =
@@ -172,7 +158,7 @@ function ActionButton({
 
   return (
     <TouchableOpacity
-      className={`min-h-10 flex-row items-center justify-center gap-1.5 rounded-full px-4 ${style.container} ${
+      className={`min-h-10 flex-row items-center justify-center gap-1.5 rounded-md px-4 ${style.container} ${
         disabled ? 'opacity-[0.55]' : ''
       }`}
       activeOpacity={0.85}
@@ -202,7 +188,6 @@ function OrderCard({
   const [showAllItems, setShowAllItems] = useState(false);
   const state = useOrderState(order);
   const statusLabel = getOrderStatusLabel(order);
-  const referenceNumber = order.paymentInfo.referenceNumber ?? order._id;
   const fulfillment = getFulfillmentMeta(order.fulfillmentType);
   const visibleItems = showAllItems ? order.items : order.items.slice(0, 2);
   const hiddenItemCount = Math.max(order.items.length - visibleItems.length, 0);
@@ -218,154 +203,161 @@ function OrderCard({
   const showFooter = hasActions || isCheckingPayment;
 
   return (
-    <TouchableOpacity
-      className={`mb-3 overflow-hidden rounded-3xl bg-white ${state?.isCancelled ? 'opacity-80' : ''}`}
-      style={cardShadow.card}
-      activeOpacity={0.92}
-      onPress={() => router.push(`/orders/${order._id}`)}>
-      {/* Header — reference, fulfillment and status */}
-      <View className="flex-row items-start justify-between gap-3 px-4 pb-3 pt-4">
+   <View
+  className={`mb-4 bg-white border border-gray-300 rounded-md ${state?.isCancelled ? 'opacity-70' : ''}`}>
+  <TouchableOpacity
+    className="overflow-hidden"
+    activeOpacity={0.94}
+    accessibilityRole="button"
+    accessibilityLabel={`View order details, total ${formatMoney(order.total.totalAmount)}`}
+    onPress={() => router.push(`/orders/${order._id}`)}>
+    {/* Header: fulfillment, date and status */}
+    <View className="flex-row items-center justify-between gap-3 px-5 pb-4 pt-5">
+      <View className="min-w-0 flex-1 flex-row items-center gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-2xl bg-orange-50">
+          <Ionicons name={fulfillment.icon} size={18} color={BRAND} />
+        </View>
+
         <View className="min-w-0 flex-1">
-          <Text
-            className="text-[15px] font-extrabold tracking-tight text-gray-950"
-            numberOfLines={1}>
-            #{referenceNumber}
+          {/* Optional: show the order reference here, e.g. order.orderNumber */}
+          <Text className="text-[15px] font-bold tracking-tight text-gray-900" numberOfLines={1}>
+            {fulfillment.label}
           </Text>
-          <View className="mt-1.5 flex-row items-center gap-1.5">
-            <Ionicons name={fulfillment.icon} size={12} color="#9ca3af" />
-            <Text className="text-xs font-medium text-gray-500">{fulfillment.label}</Text>
-            <View className="h-1 w-1 rounded-full bg-gray-300" />
-            <Text className="text-xs text-gray-500">{formatDate(order.createdAt)}</Text>
+          <Text className="mt-0.5 text-xs font-medium text-gray-400">
+            {formatDate(order.createdAt)}
+          </Text>
+        </View>
+      </View>
+
+      <OrderStatusPill status={order.status} label={statusLabel} />
+    </View>
+
+    {/* Items */}
+    <View className="mx-5 border-t border-gray-100" />
+    <View className="px-5 pb-4 pt-4">
+      {visibleItems.length > 0 ? (
+        visibleItems.map((item, idx) => (
+          <View
+            key={`${item.productId}-${idx}`}
+            className={idx > 0 ? 'mt-3 border-t border-gray-100 pt-3' : ''}>
+            <OrderItemRow item={item} />
           </View>
-        </View>
-
-        <OrderStatusPill status={order.status} label={statusLabel} />
-      </View>
-
-      {/* Items */}
-      <View className="gap-2 border-t border-gray-100 px-4 pb-3 pt-3">
-        {visibleItems.length > 0 ? (
-          visibleItems.map((item, idx) => (
-            <View
-              key={`${item.productId}-${idx}`}
-              className={idx > 0 ? 'border-t border-dashed border-gray-100 pt-2' : ''}>
-              <OrderItemRow item={item} />
-            </View>
-          ))
-        ) : (
-          <View className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5">
-            <Text className="text-center text-sm font-semibold text-gray-400">No items listed</Text>
-          </View>
-        )}
-
-        {itemLineCount > 2 && (
-          <TouchableOpacity
-            className="flex-row items-center justify-center gap-1 rounded-xl bg-gray-50 py-2.5"
-            activeOpacity={0.8}
-            onPress={() => setShowAllItems((current) => !current)}>
-            <Text className="text-xs font-bold text-gray-500">
-              {showAllItems
-                ? 'Show less'
-                : `View ${hiddenItemCount} more item${hiddenItemCount === 1 ? '' : 's'}`}
-            </Text>
-            <Ionicons
-              name={showAllItems ? 'chevron-up' : 'chevron-down'}
-              size={13}
-              color="#6b7280"
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Totals */}
-      <View className="flex-row items-center justify-between border-t border-gray-100 px-4 py-3">
-        <View className="flex-row items-center gap-1">
-          <Text className="text-xs font-medium text-gray-400">
-            {itemLineCount} item{itemLineCount === 1 ? '' : 's'}
-          </Text>
-          <View className="h-1 w-1 rounded-full bg-gray-300" />
-          <Text className="text-xs font-bold text-[#e13e00]">View details</Text>
-          <Ionicons name="chevron-forward" size={11} color="#e13e00" />
-        </View>
-
-        <View className="flex-row items-baseline gap-1.5">
-          <Text className="text-xs font-semibold text-gray-400">Total</Text>
-          <Text className="text-base font-extrabold tracking-tight text-gray-950">
-            {formatMoney(order.total.totalAmount)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Actions */}
-      {showFooter && (
-        <View className="gap-2.5 border-t border-gray-100 bg-gray-50/70 px-4 pb-4 pt-3">
-          {isCheckingPayment && (
-            <View className="flex-row items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-3.5 py-3">
-              <ActivityIndicator size="small" color="#b45309" />
-              <View className="min-w-0 flex-1">
-                <Text className="text-[13px] font-bold text-amber-800">
-                  Checking payment status
-                </Text>
-                <Text className="mt-0.5 text-[11px] leading-4 text-amber-700">
-                  Maya is processing your payment. This can take a few moments.
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {hasActions && (
-            <View className="flex-row flex-wrap justify-end gap-2">
-              {state?.needPayment && (
-                <ActionButton
-                  label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
-                  icon="card-outline"
-                  variant="primary"
-                  disabled={disableActions}
-                  onPress={() => onPayNowPress(order)}
-                />
-              )}
-
-              {state?.canCancel && (
-                <ActionButton
-                  label="Cancel Order"
-                  icon="close-circle-outline"
-                  variant="danger"
-                  disabled={disableActions}
-                  onPress={() => onCancelPress(order)}
-                />
-              )}
-
-              {state?.needsReview && (
-                <ActionButton
-                  label="Write Review"
-                  icon="star-outline"
-                  variant="primary"
-                  disabled={disableActions}
-                  onPress={() => router.push(`/review/${order._id}`)}
-                />
-              )}
-
-              {state?.isCompleted && !state?.needsReview && (
-                <View className="min-h-10 flex-row items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4">
-                  <Ionicons name="star" size={14} color="#f59e0b" />
-                  <Text className="text-[13px] font-bold text-gray-500">Reviewed</Text>
-                </View>
-              )}
-
-              {state?.isCompleted && (
-                <ActionButton
-                  label="Buy Again"
-                  icon="repeat-outline"
-                  variant="secondary"
-                  disabled={disableActions}
-                  onPress={() => onAddToCartPress(order)}
-                />
-              )}
-            </View>
-          )}
+        ))
+      ) : (
+        <View className="items-center rounded-2xl bg-gray-50 px-4 py-6">
+          <Ionicons name="receipt-outline" size={20} color="#d1d5db" />
+          <Text className="mt-2 text-sm font-semibold text-gray-400">No items listed</Text>
         </View>
       )}
-    </TouchableOpacity>
+
+      {itemLineCount > 2 && (
+        <TouchableOpacity
+          className="mt-3 flex-row items-center justify-center gap-1 rounded-full bg-gray-50 py-2.5"
+          activeOpacity={0.7}
+          onPress={() => setShowAllItems((current) => !current)}>
+          <Text className="text-xs font-bold text-gray-600">
+            {showAllItems
+              ? 'Show less'
+              : `View ${hiddenItemCount} more item${hiddenItemCount === 1 ? '' : 's'}`}
+          </Text>
+          <Ionicons name={showAllItems ? 'chevron-up' : 'chevron-down'} size={13} color="#4b5563" />
+        </TouchableOpacity>
+      )}
+    </View>
+
+    {/* Totals */}
+    <View className="flex-row items-end justify-between bg-gray-50/70 px-5 py-4">
+      <View>
+        <Text className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+          {itemLineCount} item{itemLineCount === 1 ? '' : 's'}
+        </Text>
+        <View className="mt-1 flex-row items-center gap-0.5">
+          <Text className="text-xs font-bold" style={{ color: BRAND }}>
+            View details
+          </Text>
+          <Ionicons name="chevron-forward" size={12} color={BRAND} />
+        </View>
+      </View>
+
+      <View className="items-end">
+        <Text className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+          Total
+        </Text>
+        <Text className="text-xl font-extrabold tracking-tight text-gray-950">
+          {formatMoney(order.total.totalAmount)}
+        </Text>
+      </View>
+    </View>
+
+    {/* Actions */}
+    {showFooter && (
+      <View className="gap-3 border-t border-gray-100 bg-white px-5 pb-5 pt-4">
+        {isCheckingPayment && (
+          <View className="flex-row items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3">
+            <ActivityIndicator size="small" color="#b45309" />
+            <View className="min-w-0 flex-1">
+              <Text className="text-[13px] font-bold text-amber-800">Checking payment status</Text>
+              <Text className="mt-0.5 text-[11px] leading-4 text-amber-700">
+                Maya is processing your payment. This can take a few moments.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {hasActions && (
+          <View className="flex-row flex-wrap items-center justify-end gap-2.5">
+            {state?.isCompleted && !state?.needsReview && (
+              <View className="min-h-10 flex-row items-center gap-1.5 rounded-md bg-amber-50 px-4">
+                <Ionicons name="star" size={14} color="#f59e0b" />
+                <Text className="text-[13px] font-bold text-amber-700">Reviewed</Text>
+              </View>
+            )}
+
+            {state?.canCancel && (
+              <ActionButton
+                label="Cancel Order"
+                icon="close-circle-outline"
+                variant="danger"
+                disabled={disableActions}
+                onPress={() => onCancelPress(order)}
+              />
+            )}
+
+            {state?.isCompleted && (
+              <ActionButton
+                label="Buy Again"
+                icon="repeat-outline"
+                variant="secondary"
+                disabled={disableActions}
+                onPress={() => onAddToCartPress(order)}
+              />
+            )}
+
+            {state?.needsReview && (
+              <ActionButton
+                label="Write Review"
+                icon="star-outline"
+                variant="primary"
+                disabled={disableActions}
+                onPress={() => router.push(`/review/${order._id}`)}
+              />
+            )}
+
+            {state?.needPayment && (
+              <ActionButton
+                label={isPaying ? 'Opening...' : isCheckingPayment ? 'Checking...' : 'Pay Now'}
+                icon="card-outline"
+                variant="primary"
+                disabled={disableActions}
+                onPress={() => onPayNowPress(order)}
+              />
+            )}
+          </View>
+        )}
+      </View>
+    )}
+  </TouchableOpacity>
+</View>
   );
 }
 
@@ -403,7 +395,7 @@ function usePulse() {
 
 function OrderCardSkeleton({ opacity }: { opacity: Animated.Value }) {
   return (
-    <View className="mb-3 rounded-3xl bg-white p-4" style={cardShadow.card}>
+    <View className="mb-3 rounded-3xl bg-white p-4">
       <View className="flex-row items-start justify-between">
         <View className="gap-2">
           <Animated.View style={{ opacity }} className="h-4 w-36 rounded-full bg-gray-100" />
@@ -629,7 +621,7 @@ export default function Orders() {
         ListHeaderComponent={
           <View className="pb-2 pt-1">
             {!isAuthenticated && !activeQuery.isLoading && (
-              <View className="mt-5 rounded-3xl bg-white p-4 gap-4" style={cardShadow.card}>
+              <View className="mt-5 gap-4 rounded-3xl bg-white p-4">
                 <View className="flex-row items-center gap-2.5">
                   <View className="h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
                     <Ionicons name="search-outline" size={16} color={BRAND} />

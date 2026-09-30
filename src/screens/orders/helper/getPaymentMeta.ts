@@ -18,12 +18,12 @@ export function getPaymentMethodLabel(method?: string | null) {
 export function getPaymentStatusMeta(status?: string | null) {
   switch (status) {
     case PAYMENT_STATUSES.PAYMENT_SUCCESS:
-      return { label: 'Paid', dot: 'bg-emerald-500' };
+      return "Paid";
     case PAYMENT_STATUSES.PAYMENT_FAILED:
-      return { label: 'Failed', dot: 'bg-red-500' };
+      return "Failed";
     case PAYMENT_STATUSES.PAYMENT_EXPIRED:
-      return { label: 'Expired', dot: 'bg-red-400' };
+      return "Expired";
     default:
-      return { label: 'Pending', dot: 'bg-amber-500' };
+      return "Pending";
   }
 }
