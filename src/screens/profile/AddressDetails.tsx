@@ -1,10 +1,13 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { CheckoutAddressDetails } from '@/hooks/useCheckout';
 import { SectionHeader } from './components/SectionHeader';
 import { formatAddress } from './utils';
 import { AddressErrors, AddressField, EditingSection, LoadingAction } from './types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { DeliveryLocationPicker, DeliveryCoordinates, ResolvedDeliveryAddress } from '../checkout/DeliveryLocationPicker';
+import { PsgcAddressFields } from '../checkout/PsgcAddressFields';
 
 interface AddressDetailsProps {
   addressForm: CheckoutAddressDetails;
@@ -13,9 +16,13 @@ interface AddressDetailsProps {
   isLoading: boolean;
   isBusy: boolean;
   loadingAction: LoadingAction;
+  mapMismatch: boolean;
   startEditing: (section: EditingSection) => void;
   cancelEditing: () => void;
   onChange: (field: AddressField, value: string) => void;
+  onCoordinatesChange: (coords: DeliveryCoordinates) => void;
+  onAddressResolved: (address: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string }) => void;
+  onPsgcChange: (selection: { city?: string; barangay?: string; subMunicipality?: string }) => void;
   onSave: () => void;
 }
 
@@ -26,9 +33,13 @@ export function AddressDetails({
   isLoading,
   isBusy,
   loadingAction,
+  mapMismatch,
   startEditing,
   cancelEditing,
   onChange,
+  onCoordinatesChange,
+  onAddressResolved,
+  onPsgcChange,
   onSave,
 }: AddressDetailsProps) {
   return (
@@ -46,49 +57,40 @@ export function AddressDetails({
         </View>
       ) : isEditing ? (
         <View className="mt-4 gap-4">
+          <DeliveryLocationPicker
+            value={addressForm.coordinates}
+            onChange={onCoordinatesChange}
+            onAddressResolved={onAddressResolved}
+          />
+
           <Input
             label="Address Line 1"
-            placeholder="House number, street, barangay"
+            placeholder="House number, street"
             value={addressForm.line1}
             onChangeText={(value) => onChange('line1', value)}
             autoCapitalize="words"
             error={addressErrors.line1}
           />
 
-          <Input
-            label="Address Line 2"
-            placeholder="Unit, floor, building"
-            value={addressForm.line2}
-            onChangeText={(value) => onChange('line2', value)}
-            autoCapitalize="words"
+          <PsgcAddressFields
+            address={addressForm}
+            setField={(field, value) => onChange(field as AddressField, value)}
+            onPsgcChange={onPsgcChange}
           />
 
-          <View className="flex-row gap-3">
-            <Input
-              fieldClassName="flex-1"
-              label="City"
-              placeholder="Quezon City"
-              value={addressForm.city}
-              onChangeText={(value) => onChange('city', value)}
-              autoCapitalize="words"
-              error={addressErrors.city}
-            />
-
-            <Input
-              fieldClassName="flex-1"
-              label="Province"
-              placeholder="Metro Manila"
-              value={addressForm.province}
-              onChangeText={(value) => onChange('province', value)}
-              autoCapitalize="words"
-              error={addressErrors.province}
-            />
-          </View>
+          {mapMismatch && (
+            <View className="flex-row items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <Ionicons name="warning-outline" size={16} color="#d97706" style={{ marginTop: 1 }} />
+              <Text className="flex-1 text-xs font-medium leading-4 text-amber-800">
+                Map pin doesn't match your selected address. Update the map or adjust the fields above.
+              </Text>
+            </View>
+          )}
 
           <View className="flex-row gap-3">
             <Input
               fieldClassName="flex-1"
-              label="ZIP Code"
+              label="ZIP Code (optional)"
               placeholder="1100"
               value={addressForm.zipCode}
               onChangeText={(value) => onChange('zipCode', value)}
@@ -122,12 +124,12 @@ export function AddressDetails({
             </TouchableOpacity>
 
             <Button
-              className="flex-1"
+              className="flex-1 rounded-2xl"
               text="Save"
               onPress={onSave}
               loading={{ isLoading: loadingAction === 'address', text: 'Saving...' }}
               disabled={isBusy}
-              icon={{ name: 'save', size: 16, position: 'right' }}
+              icon={{ name: 'Save', size: 16, position: 'left' }}
             />
           </View>
         </View>

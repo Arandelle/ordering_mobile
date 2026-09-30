@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
 import { AddressDetails } from './AddressDetails';
+import type { DeliveryCoordinates, ResolvedDeliveryAddress } from '../checkout/DeliveryLocationPicker';
 import { ProfileDetails } from './ProfileDetails';
 import { SecurityDetails } from './SecurityDetails';
 import SignInForm from '@/screens/auth/SignInForm';
@@ -65,6 +66,8 @@ export default function Profile() {
   const [addressErrors, setAddressErrors] = useState<AddressErrors>({});
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [pendingAvatarBase64, setPendingAvatarBase64] = useState<string | null>(null);
+  const [mapMismatch, setMapMismatch] = useState(false);
+  const mapResolvedCodesRef = useRef<{ cityCode?: string; barangayCode?: string }>({});
 
   const profileImage = pendingAvatarBase64 || profileForm.image || user?.image || '';
   const isBusy = loadingAction !== null;
@@ -168,6 +171,8 @@ export default function Profile() {
     }
     setAddressErrors({});
     setPasswordForm(emptyPasswordForm);
+    setMapMismatch(false);
+    mapResolvedCodesRef.current = {};
     setEditingSection(null);
   };
 
@@ -257,12 +262,75 @@ export default function Profile() {
     }
   };
 
+  const handleCoordinatesChange = (coords: DeliveryCoordinates) => {
+    setAddressForm((prev) => ({ ...prev, coordinates: coords }));
+  };
+
+  const handleAddressResolved = (
+    resolved: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string },
+  ) => {
+    mapResolvedCodesRef.current = {
+      cityCode: resolved.cityCode,
+      barangayCode: resolved.barangayCode,
+    };
+    setMapMismatch(false);
+    setAddressForm((prev) => ({
+      ...prev,
+      line1: resolved.road || prev.line1,
+      line2: resolved.line2 || prev.line2,
+      city: resolved.city || prev.city,
+      province: resolved.province || prev.province,
+      zipCode: resolved.zipCode || prev.zipCode,
+      subMunicipality: resolved.subMunicipality || prev.subMunicipality,
+      placeName: resolved.placeName || prev.placeName,
+      cityCode: resolved.cityCode || prev.cityCode,
+      barangayCode: resolved.barangayCode || prev.barangayCode,
+    }));
+  };
+
+  const handlePsgcChange = useCallback(
+    async (selection: { city?: string; barangay?: string; subMunicipality?: string }) => {
+      const parts = [selection.barangay, selection.subMunicipality, selection.city].filter(Boolean);
+      if (!parts.length) return;
+
+      const query = [...parts, 'Metro Manila, Philippines'].join(', ');
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=ph&format=json&limit=1`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept-Language': 'en',
+            'User-Agent': 'HarrisonExpoApp/1.0 (https://github.com/harrison-expo)',
+          },
+        });
+        if (!res.ok) return;
+        const results = await res.json();
+        if (!results.length) return;
+
+        const { lat, lon } = results[0];
+        const coords = { lat: Number(lat), lng: Number(lon) };
+        setAddressForm((prev) => ({ ...prev, coordinates: coords }));
+
+        const mapCityCode = mapResolvedCodesRef.current.cityCode;
+        const mapBarangayCode = mapResolvedCodesRef.current.barangayCode;
+        const psgcChangedCityOrBarangay = Boolean(selection.city || selection.barangay);
+        if (psgcChangedCityOrBarangay && (mapCityCode || mapBarangayCode)) {
+          setMapMismatch(true);
+        }
+      } catch {
+        // Geocoding failed — coordinates stay as-is
+      }
+    },
+    [],
+  );
+
   const handleSaveAddress = async () => {
     clearMessages();
     setLoadingAction('address');
 
     try {
       await updateAddress.mutateAsync(addressForm);
+      setMapMismatch(false);
+      mapResolvedCodesRef.current = {};
       setEditingSection(null);
       setSuccess('Address updated.');
     } catch (requestError) {
@@ -415,9 +483,13 @@ export default function Profile() {
             isLoading={isAddressLoading}
             isBusy={isBusy}
             loadingAction={loadingAction}
+            mapMismatch={mapMismatch}
             startEditing={startEditing}
             cancelEditing={cancelEditing}
             onChange={handleAddressChange}
+            onCoordinatesChange={handleCoordinatesChange}
+            onAddressResolved={handleAddressResolved}
+            onPsgcChange={handlePsgcChange}
             onSave={handleSaveAddress}
           />
         </View>

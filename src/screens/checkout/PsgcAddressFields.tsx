@@ -257,10 +257,34 @@ function PsgcModalPicker({
   );
 }
 
+// ─── Props for external (non-checkout) usage ──────────────────────────────────
+
+export interface PsgcAddressFieldsProps {
+  address: {
+    city?: string;
+    cityCode?: string;
+    province?: string;
+    region?: string;
+    regionCode?: string;
+    line2?: string;
+    subMunicipality?: string;
+    subMunicipalityCode?: string;
+    barangayCode?: string;
+  };
+  setField: (field: string, value: string) => void;
+  onPsgcChange?: (selection: { city?: string; barangay?: string; subMunicipality?: string }) => void;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function PsgcAddressFields() {
-  const { draft, setShippingField, errors } = useCheckout();
+export function PsgcAddressFields(props: PsgcAddressFieldsProps | Record<string, never> = {}) {
+  const hasProps = 'address' in props && 'setField' in props;
+  const checkoutCtx = hasProps ? null : useCheckout();
+  const typedProps = hasProps ? props as PsgcAddressFieldsProps : null;
+  const address = typedProps?.address ?? checkoutCtx!.draft.shippingAddress;
+  const setField = typedProps?.setField ?? ((field: string, value: string) => checkoutCtx!.setShippingField(field as never, value));
+  const onPsgcChange = typedProps?.onPsgcChange;
+  const errors = hasProps ? undefined : checkoutCtx!.errors;
 
   const { data: cities = [], isLoading: isLoadingCities } = useQuery({
     queryKey: ['psgc', 'ncr-cities'],
@@ -270,9 +294,9 @@ export function PsgcAddressFields() {
 
   const selectedCity = useMemo(() => {
     if (!cities.length) return undefined;
-    return cities.find((c) => c.code === draft.shippingAddress.cityCode)
-      || findCityByName(cities, draft.shippingAddress.city);
-  }, [cities, draft.shippingAddress.city, draft.shippingAddress.cityCode]);
+    return cities.find((c) => c.code === address.cityCode)
+      || findCityByName(cities, address.city);
+  }, [cities, address.city, address.cityCode]);
 
   const isManila = selectedCity?.code === MANILA_CITY_CODE;
 
@@ -285,9 +309,9 @@ export function PsgcAddressFields() {
 
   const selectedSubMunicipality = useMemo(() => {
     if (!isManila) return undefined;
-    return manilaAreas.find((a) => a.code === draft.shippingAddress.subMunicipalityCode)
-      || findManilaSubMunicipalityByName(manilaAreas, draft.shippingAddress.subMunicipality || draft.shippingAddress.line2);
-  }, [isManila, manilaAreas, draft.shippingAddress.subMunicipalityCode, draft.shippingAddress.subMunicipality, draft.shippingAddress.line2]);
+    return manilaAreas.find((a) => a.code === address.subMunicipalityCode)
+      || findManilaSubMunicipalityByName(manilaAreas, address.subMunicipality || address.line2);
+  }, [isManila, manilaAreas, address.subMunicipalityCode, address.subMunicipality, address.line2]);
 
   const { data: barangays = [], isLoading: isLoadingBarangays } = useQuery({
     queryKey: ['psgc', 'barangays', selectedCity?.code, selectedSubMunicipality?.code ?? ''],
@@ -297,53 +321,56 @@ export function PsgcAddressFields() {
   });
 
   const selectedBarangay = useMemo(() => {
-    return barangays.find((b) => b.code === draft.shippingAddress.barangayCode)
-      || findBarangayByName(barangays, draft.shippingAddress.line2);
-  }, [barangays, draft.shippingAddress.barangayCode, draft.shippingAddress.line2]);
+    return barangays.find((b) => b.code === address.barangayCode)
+      || findBarangayByName(barangays, address.line2);
+  }, [barangays, address.barangayCode, address.line2]);
 
   // Lock region/province to NCR
   useEffect(() => {
-    if (!draft.shippingAddress.province) setShippingField('province', NCR_REGION.displayName);
-    if (!draft.shippingAddress.region) setShippingField('region', NCR_REGION.name);
-    if (!draft.shippingAddress.regionCode) setShippingField('regionCode', NCR_REGION.code);
+    if (!address.province) setField('province', NCR_REGION.displayName);
+    if (!address.region) setField('region', NCR_REGION.name);
+    if (!address.regionCode) setField('regionCode', NCR_REGION.code);
   }, []);
 
   // Sync city when detected from map
   useEffect(() => {
     if (!selectedCity) return;
-    if (draft.shippingAddress.city !== selectedCity.name) {
-      setShippingField('city', selectedCity.name);
+    if (address.city !== selectedCity.name) {
+      setField('city', selectedCity.name);
     }
-    if (draft.shippingAddress.cityCode !== selectedCity.code) {
-      setShippingField('cityCode', selectedCity.code);
+    if (address.cityCode !== selectedCity.code) {
+      setField('cityCode', selectedCity.code);
     }
   }, [selectedCity]);
 
   // Clear child selections when city changes
   const handleCityChange = useCallback((cityCode: string) => {
     const city = cities.find((c) => c.code === cityCode);
-    setShippingField('cityCode', city?.code ?? '');
-    setShippingField('city', city?.name ?? '');
-    setShippingField('province', NCR_REGION.displayName);
-    setShippingField('subMunicipalityCode', '');
-    setShippingField('subMunicipality', '');
-    setShippingField('line2', '');
-    setShippingField('barangayCode', '');
-  }, [cities]);
+    setField('cityCode', city?.code ?? '');
+    setField('city', city?.name ?? '');
+    setField('province', NCR_REGION.displayName);
+    setField('subMunicipalityCode', '');
+    setField('subMunicipality', '');
+    setField('line2', '');
+    setField('barangayCode', '');
+    onPsgcChange?.({ city: city?.name });
+  }, [cities, onPsgcChange]);
 
   const handleSubMunicipalityChange = useCallback((code: string) => {
     const area = manilaAreas.find((a) => a.code === code);
-    setShippingField('subMunicipalityCode', area?.code ?? '');
-    setShippingField('subMunicipality', area?.name ?? '');
-    setShippingField('line2', '');
-    setShippingField('barangayCode', '');
-  }, [manilaAreas]);
+    setField('subMunicipalityCode', area?.code ?? '');
+    setField('subMunicipality', area?.name ?? '');
+    setField('line2', '');
+    setField('barangayCode', '');
+    onPsgcChange?.({ subMunicipality: area?.name });
+  }, [manilaAreas, onPsgcChange]);
 
   const handleBarangayChange = useCallback((code: string) => {
     const barangay = barangays.find((b) => b.code === code);
-    setShippingField('barangayCode', barangay?.code ?? '');
-    setShippingField('line2', barangay?.name ?? '');
-  }, [barangays]);
+    setField('barangayCode', barangay?.code ?? '');
+    setField('line2', barangay?.name ?? '');
+    onPsgcChange?.({ barangay: barangay?.name });
+  }, [barangays, onPsgcChange]);
 
   return (
     <>
@@ -416,7 +443,7 @@ export function PsgcAddressFields() {
         label="Province"
         value={NCR_REGION.displayName}
         editable={false}
-        error={errors?.shipping.province}
+        error={(errors as { shipping?: { province?: string } })?.shipping?.province}
       />
     </>
   );
