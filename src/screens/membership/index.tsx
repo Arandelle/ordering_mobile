@@ -251,14 +251,14 @@ export default function MembershipScreen() {
       {hasActiveMembership && activeMembership && (
         <View className="gap-4">
           {/* VIP Card */}
-          <View className="items-center">
+        
             <VipCard
               membership={activeMembership}
               memberName={memberName}
               tierChannel={activeMembership.tierChannel}
               expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
             />
-          </View>
+      
 
           {/* Benefits */}
           {activeTier && <BenefitsList tier={activeTier} />}
