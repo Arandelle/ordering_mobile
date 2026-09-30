@@ -18,6 +18,7 @@ export type ProfileUser = {
   email: string;
   name?: string | null;
   image?: string | null;
+  publicId?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;
@@ -28,6 +29,7 @@ export type UpdateUserPayload = Parameters<typeof authClient.updateUser>[0] & {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  publicId?: string;
 };
 
 export interface ProfileForm {

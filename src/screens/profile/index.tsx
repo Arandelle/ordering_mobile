@@ -64,8 +64,9 @@ export default function Profile() {
   const [addressForm, setAddressForm] = useState(emptyAddressDetails);
   const [addressErrors, setAddressErrors] = useState<AddressErrors>({});
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
+  const [pendingAvatarBase64, setPendingAvatarBase64] = useState<string | null>(null);
 
-  const profileImage = profileForm.image || user?.image || '';
+  const profileImage = pendingAvatarBase64 || profileForm.image || user?.image || '';
   const isBusy = loadingAction !== null;
   const isProfileEditing = editingSection === 'profile';
   const isAddressEditing = editingSection === 'address';
@@ -153,6 +154,7 @@ export default function Profile() {
 
   const cancelEditing = () => {
     clearMessages();
+    setPendingAvatarBase64(null);
     if (user) {
       setProfileForm({
         firstName: user.firstName ?? '',
@@ -195,36 +197,55 @@ export default function Profile() {
     }
 
     const mimeType = asset.mimeType ?? 'image/jpeg';
-    setProfileForm((prev) => ({
-      ...prev,
-      image: `data:${mimeType};base64,${asset.base64}`,
-    }));
+    setPendingAvatarBase64(`data:${mimeType};base64,${asset.base64}`);
   };
 
   const handleSaveProfile = async () => {
     clearMessages();
     setLoadingAction('profile');
 
-    const fullName = [profileForm.firstName, profileForm.lastName].filter(Boolean).join(' ').trim();
-    const payload: UpdateUserPayload = {
-      firstName: profileForm.firstName.trim(),
-      lastName: profileForm.lastName.trim(),
-      phone: profileForm.phone.trim(),
-      name: fullName || user?.name || user?.email.split('@')[0] || 'Customer',
-      image: profileForm.image || null,
-    };
-    const { error: authError } = await authClient.updateUser(payload);
+    try {
+      let imageUrl = profileForm.image || null;
+      let newPublicId: string | undefined;
 
-    setLoadingAction(null);
+      if (pendingAvatarBase64) {
+        const uploaded = await apiClient.post<{ secure_url: string; public_id: string }>(
+          '/customer/upload-avatar',
+          {
+            imageFile: pendingAvatarBase64,
+            oldPublicId: user?.publicId ?? undefined,
+          },
+          { timeoutMs: 30000 },
+        );
+        imageUrl = uploaded.secure_url;
+        newPublicId = uploaded.public_id;
+      }
 
-    if (authError) {
-      setError(getAuthErrorMessage(authError, 'Unable to update profile'));
-      return;
+      const fullName = [profileForm.firstName, profileForm.lastName].filter(Boolean).join(' ').trim();
+      const payload: UpdateUserPayload = {
+        firstName: profileForm.firstName.trim(),
+        lastName: profileForm.lastName.trim(),
+        phone: profileForm.phone.trim(),
+        name: fullName || user?.name || user?.email.split('@')[0] || 'Customer',
+        image: imageUrl,
+        ...(newPublicId ? { publicId: newPublicId } : {}),
+      };
+      const { error: authError } = await authClient.updateUser(payload);
+
+      if (authError) {
+        setError(getAuthErrorMessage(authError, 'Unable to update profile'));
+        return;
+      }
+
+      setPendingAvatarBase64(null);
+      await refetch();
+      setEditingSection(null);
+      setSuccess('Profile updated.');
+    } catch (err) {
+      setError(getAuthErrorMessage(err, 'Unable to update profile'));
+    } finally {
+      setLoadingAction(null);
     }
-
-    await refetch();
-    setEditingSection(null);
-    setSuccess('Profile updated.');
   };
 
   const handleAddressChange = (field: AddressField, value: string) => {
