@@ -12,19 +12,20 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { LogOut, Wallet } from 'lucide-react-native';
+import { Wallet } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@/hooks/useWallet';
 import { useMembershipStatus } from '@/hooks/useMembership';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  emptyAddressDetails
-} from '@/hooks/useCheckout';
+import { emptyAddressDetails } from '@/hooks/useCheckout';
 import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
 import { AddressDetails } from './AddressDetails';
-import type { DeliveryCoordinates, ResolvedDeliveryAddress } from '../checkout/DeliveryLocationPicker';
+import type {
+  DeliveryCoordinates,
+  ResolvedDeliveryAddress,
+} from '../checkout/DeliveryLocationPicker';
 import { ProfileDetails } from './ProfileDetails';
 import { SecurityDetails } from './SecurityDetails';
 import SignInForm from '@/screens/auth/SignInForm';
@@ -41,7 +42,7 @@ import {
   ProfileUser,
   UpdateUserPayload,
 } from './types';
-
+import { Toast } from './components/ToastMessage';
 const BRAND = '#e13e00';
 
 export default function Profile() {
@@ -106,6 +107,12 @@ export default function Profile() {
     setError('');
     setSuccess('');
   };
+
+  useEffect(() => {
+    if (!error && !success) return;
+    const timer = setTimeout(clearMessages, 4000);
+    return () => clearTimeout(timer);
+  }, [error, success]);
 
   const handleSignOut = async () => {
     setLoadingAction('sign-out');
@@ -181,7 +188,10 @@ export default function Profile() {
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Photo access needed', 'Allow photo library access to update your profile image.');
+      Alert.alert(
+        'Photo access needed',
+        'Allow photo library access to update your profile image.'
+      );
       return;
     }
 
@@ -220,13 +230,16 @@ export default function Profile() {
             imageFile: pendingAvatarBase64,
             oldPublicId: user?.publicId ?? undefined,
           },
-          { timeoutMs: 30000 },
+          { timeoutMs: 30000 }
         );
         imageUrl = uploaded.secure_url;
         newPublicId = uploaded.public_id;
       }
 
-      const fullName = [profileForm.firstName, profileForm.lastName].filter(Boolean).join(' ').trim();
+      const fullName = [profileForm.firstName, profileForm.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
       const payload: UpdateUserPayload = {
         firstName: profileForm.firstName.trim(),
         lastName: profileForm.lastName.trim(),
@@ -267,7 +280,7 @@ export default function Profile() {
   };
 
   const handleAddressResolved = (
-    resolved: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string },
+    resolved: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string }
   ) => {
     mapResolvedCodesRef.current = {
       cityCode: resolved.cityCode,
@@ -320,7 +333,7 @@ export default function Profile() {
         // Geocoding failed — coordinates stay as-is
       }
     },
-    [],
+    []
   );
 
   const handleSaveAddress = async () => {
@@ -389,93 +402,101 @@ export default function Profile() {
     <KeyboardAvoidingView
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
+      {/* Fixed toast overlay — always visible regardless of scroll */}
+      {(!!error || !!success) && (
+        <View
+          style={{ top: insets.top + 8 }}
+          className="absolute left-5 right-5 z-50 gap-2"
+          pointerEvents="box-none">
+          {!!error && <Toast variant="error" message={error} onDismiss={clearMessages} />}
+          {!!success && <Toast variant="success" message={success} onDismiss={clearMessages} />}
+        </View>
+      )}
+
       <ScrollView
         className="flex-1 bg-gray-50"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80, paddingLeft: 20, paddingRight: 20, paddingTop: 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 80,
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingTop: 16,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <View className="rounded-3xl bg-white p-5 shadow-sm">
-          <ProfileHeader
-            user={user}
-            profileImage={profileImage}
-            isEditing={isProfileEditing}
-            onPickPhoto={handlePickPhoto}
-          />
 
-          {!!error && (
-            <View className="mt-4 rounded-2xl bg-red-50 px-4 py-3">
-              <Text className="text-sm font-semibold text-red-600">{error}</Text>
-            </View>
-          )}
-
-          {!!success && (
-            <View className="mt-4 rounded-2xl bg-green-50 px-4 py-3">
-              <Text className="text-sm font-semibold text-green-700">{success}</Text>
-            </View>
-          )}
+        {/* Profile card — header + details unified */}
+        <View className="overflow-hidden rounded-2xl bg-white shadow-sm">
+          <View className="px-5 pt-5">
+            <ProfileHeader
+              user={user}
+              profileImage={profileImage}
+              isEditing={isProfileEditing}
+              onPickPhoto={handlePickPhoto}
+            />
+          </View>
+          <View className="border-t border-gray-100 px-5 pb-5 pt-4">
+            <ProfileDetails
+              user={user}
+              profileForm={profileForm}
+              isEditing={isProfileEditing}
+              isBusy={isBusy}
+              loadingAction={loadingAction}
+              setProfileForm={setProfileForm}
+              startEditing={startEditing}
+              cancelEditing={cancelEditing}
+              onSave={handleSaveProfile}
+            />
+          </View>
         </View>
 
-        <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
-          <ProfileDetails
-            user={user}
-            profileForm={profileForm}
-            isEditing={isProfileEditing}
-            isBusy={isBusy}
-            loadingAction={loadingAction}
-            setProfileForm={setProfileForm}
-            startEditing={startEditing}
-            cancelEditing={cancelEditing}
-            onSave={handleSaveProfile}
-          />
-        </View>
-
-        {/* Wallet Card */}
-        <TouchableOpacity
-          className="mt-6 rounded-3xl bg-white p-5 shadow-sm"
-          activeOpacity={0.8}
-          onPress={() => router.push('/wallet')}>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <View className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100">
-                <Wallet size={20} color={BRAND} />
+        {/* Wallet & Membership — side by side */}
+        <View className="mt-3 flex-row gap-3">
+          <TouchableOpacity
+            className="flex-1 overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
+            activeOpacity={0.8}
+            onPress={() => router.push('/wallet')}>
+            <View className="flex-row items-center gap-2.5">
+              <View className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50">
+                <Wallet size={18} color={BRAND} />
               </View>
-              <View>
-                <Text className="text-sm font-bold text-gray-950">Wallet</Text>
+              <View className="flex-1">
+                <Text className="text-xs font-semibold text-gray-500">Wallet</Text>
                 {walletLoading ? (
                   <ActivityIndicator size="small" color={BRAND} />
                 ) : (
-                  <Text className="text-lg font-extrabold text-[#e13e00]">
+                  <Text className="text-base font-bold text-brand-500">
                     ₱{walletBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </Text>
                 )}
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        {/* Membership Card */}
-        <TouchableOpacity
-          className="mt-6 rounded-3xl bg-white p-5 shadow-sm"
-          activeOpacity={0.8}
-          onPress={() => router.push('/membership')}>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <View className={`flex h-11 w-11 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-[#c63405]' : 'bg-gray-100'}`}>
-                <Ionicons name={hasActiveMembership ? 'star' : 'star-outline'} size={20} color={hasActiveMembership ? '#f3d78c' : '#6b7280'} />
+          <TouchableOpacity
+            className="flex-1 overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
+            activeOpacity={0.8}
+            onPress={() => router.push('/membership')}>
+            <View className="flex-row items-center gap-2.5">
+              <View className={`flex h-10 w-10 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-brand-500' : 'bg-gray-100'}`}>
+                <Ionicons
+                  name={hasActiveMembership ? 'star' : 'star-outline'}
+                  size={18}
+                  color={hasActiveMembership ? '#fff' : '#6b7280'}
+                />
               </View>
-              <View>
-                <Text className="text-sm font-bold text-gray-950">Membership</Text>
-                <Text className={`text-xs font-medium ${hasActiveMembership ? 'text-emerald-600' : 'text-gray-500'}`}>
-                  {hasActiveMembership ? 'Active VIP Member' : 'View plans & benefits'}
+              <View className="flex-1">
+                <Text className="text-xs font-semibold text-gray-500">Membership</Text>
+                <Text className={`text-xs font-bold ${hasActiveMembership ? 'text-brand-500' : 'text-gray-700'}`} numberOfLines={1}>
+                  {hasActiveMembership ? 'VIP Active' : 'View plans'}
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
-        <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
+        {/* Address */}
+        <View className="mt-3 rounded-2xl bg-white p-5 shadow-sm">
           <AddressDetails
             addressForm={addressForm}
             addressErrors={addressErrors}
@@ -494,7 +515,8 @@ export default function Profile() {
           />
         </View>
 
-        <View className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
+        {/* Security */}
+        <View className="mt-3 rounded-2xl bg-white p-5 shadow-sm">
           <SecurityDetails
             passwordForm={passwordForm}
             isEditing={isPasswordEditing}
@@ -509,15 +531,16 @@ export default function Profile() {
           />
         </View>
 
+        {/* Sign out */}
         <TouchableOpacity
-          className={`mt-8 flex-row items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-3.5 shadow-sm ${
-            loadingAction === 'sign-out' ? 'opacity-[0.65]' : ''
+          className={`mt-4 flex-row items-center justify-center gap-2 rounded-2xl bg-white py-3.5 shadow-sm ${
+            loadingAction === 'sign-out' ? 'opacity-60' : ''
           }`}
           activeOpacity={0.85}
           onPress={handleSignOut}
           disabled={loadingAction === 'sign-out'}>
-          <LogOut size={17} color={BRAND} />
-          <Text className="text-sm font-bold text-[#e13e00]">
+          <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+          <Text className="text-sm font-bold text-red-500">
             {loadingAction === 'sign-out' ? 'Signing out...' : 'Sign out'}
           </Text>
         </TouchableOpacity>
