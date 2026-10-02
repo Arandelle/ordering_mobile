@@ -7,6 +7,7 @@ import { FULFILLMENT_TYPE } from '@/types/orders.type';
 import type { FulfillmentType, CreateOrderPayload, CreateOrderResponse } from '@/types/orders.type';
 import type { Branch } from '@/types/branch.type';
 import { useMyAddress } from '@/hooks/useAddress';
+import { useSettings } from '@/hooks/useSettings';
 import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -199,6 +200,7 @@ export function CheckoutProvider({
   const queryClient = useQueryClient();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const { data: myAddress } = useMyAddress(Boolean(session?.user));
+  const { data: settings } = useSettings();
 
   const [draft, setDraft] = useState<CheckoutDraft>(defaultDraft);
   const [errors, setErrors] = useState<CheckoutErrors>({
@@ -582,8 +584,8 @@ export function CheckoutProvider({
 
   // ── COD availability ─────────────────────────────────────────────────
   const isCodAvailable = useMemo(() => {
-    return resolveCodAvailable(selectedBranch?.codEnabled, undefined);
-  }, [selectedBranch?.codEnabled]);
+    return resolveCodAvailable(selectedBranch?.codEnabled, settings?.codEnabled);
+  }, [selectedBranch?.codEnabled, settings?.codEnabled]);
 
   // ── Readiness ────────────────────────────────────────────────────────
   const isReady = hasLoaded && !sessionPending;

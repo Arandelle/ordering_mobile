@@ -69,7 +69,6 @@ async function request<T>(
   }
 
   const fullUrl = APP_URL + '/api' + url;
-  console.log('[apiClient] →', fullUrl);
 
   let response;
   try {
@@ -82,8 +81,6 @@ async function request<T>(
         details: { url: fullUrl, timeoutMs },
       } as ApiError;
     }
-    console.error('[apiClient] Network error:', err?.message ?? err);
-    console.error('[apiClient] URL:', fullUrl);
     throw {
       message:
         'Network error — unable to reach the server. Please check your connection and try again.',
@@ -92,15 +89,11 @@ async function request<T>(
     } as ApiError;
   }
 
-  console.log('[apiClient] ←', response.status, response.statusText);
-
   let data: any;
   try {
     const raw = await response.text();
-    console.log('[apiClient] Response body (first 500 chars):', raw.slice(0, 500));
     data = JSON.parse(raw);
   } catch (err: any) {
-    console.error('[apiClient] JSON parse error:', err?.message ?? err);
     throw {
       message: 'Invalid JSON from server',
       code: 'INVALID_JSON',
@@ -109,7 +102,6 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    console.error('[apiClient] HTTP error:', response.status, data?.error ?? data);
     throw {
       message: data?.error || 'Request failed',
       code: 'HTTP',

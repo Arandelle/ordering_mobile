@@ -20,6 +20,7 @@ export interface SettingsType {
     closeTime: string; // shared close time for all active days
     isClosed: boolean; // override: mark entire store as temporarily closed
   };
+  codEnabled?: boolean;
 }
 
 interface SettingsResponse {

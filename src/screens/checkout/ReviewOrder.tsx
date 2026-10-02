@@ -1,8 +1,8 @@
 import { Banknote, ChevronRight, CreditCard, Wallet } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
+import { Alert, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBranchContext } from '@/context/BranchContext';
@@ -16,6 +16,7 @@ import { OrderConfirmationModal } from './OrderConfirmationModal';
 import { useDeliveryFeeEstimate } from '@/hooks/useOrders';
 import { Button } from '@/components/ui/Button';
 import { useWallet } from '@/hooks/useWallet';
+import { useQueryClient } from '@tanstack/react-query';
 
 function formatMoney(value: number) {
   return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -86,6 +87,7 @@ function PaymentOption({
 const ReviewOrder = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { selectedBranch } = useBranchContext();
   const {
     selectedItems,
@@ -109,13 +111,14 @@ const ReviewOrder = () => {
     isReady,
   } = useCheckout();
 
-  const { data: walletData } = useWallet();
+  const { data: walletData, refetch: refetchWallet } = useWallet();
   const walletBalance = walletData?.balance ?? 0;
   const hasWalletBalance = walletBalance > 0;
 
   const paymentMethod = draft.paymentMethod;
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const isDelivery = draft.fulfillmentType === FULFILLMENT_TYPE.DELIVERY;
   const isDineIn = draft.fulfillmentType === FULFILLMENT_TYPE.DINE_IN;
@@ -123,7 +126,7 @@ const ReviewOrder = () => {
 
   // Delivery fee estimate
   const deliveryCoords = draft.shippingAddress.coordinates;
-  const { data: deliveryEstimate, isLoading: isLoadingDeliveryFee } = useDeliveryFeeEstimate(
+  const { data: deliveryEstimate, isLoading: isLoadingDeliveryFee, refetch: refetchDeliveryFee } = useDeliveryFeeEstimate(
     isDelivery && deliveryCoords && selectedBranch?._id
       ? {
           branchId: selectedBranch._id,
@@ -154,6 +157,17 @@ const ReviewOrder = () => {
       setPaymentMethod('maya');
     }
   }, [walletCanCover, effectiveCodAvailable, paymentMethod, setPaymentMethod]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchWallet(),
+      refetchDeliveryFee(),
+      queryClient.invalidateQueries({ queryKey: ['branches'] }),
+      queryClient.invalidateQueries({ queryKey: ['settings'] }),
+    ]);
+    setRefreshing(false);
+  }, [refetchWallet, refetchDeliveryFee, queryClient]);
 
   // Mark when user manually selects a payment method
   const handlePaymentMethodChange = (method: 'cod' | 'maya' | 'wallet') => {
@@ -304,7 +318,10 @@ const ReviewOrder = () => {
       className="flex-1 bg-gray-50"
       contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       contentContainerClassName="px-5 pt-5"
-      showsVerticalScrollIndicator={false}>
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ef4501" />
+      }>
       <CheckoutStepper currentStep={isDelivery ? 3 : 2} />
 
       <Text className="mb-1 text-xl font-bold text-gray-950">Review Order</Text>
