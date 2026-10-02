@@ -30,6 +30,8 @@ import { StoreClosedOverlay } from '@/components/home/StoreClosedOverLay';
 import { BranchSelector } from '@/components/home/BranchSelector';
 import { ModifierGroup, ModifierItem, IncludedItem } from '@/types/products.type';
 import { ModifierSelection, ModifierSelectionItem } from '@/types/menu-types';
+import { authClient } from '@/lib/auth-client';
+import { useFavouriteToggle } from '@/hooks/useFavourites';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_BORDER_RADIUS = 28;
@@ -255,6 +257,12 @@ export default function ProductDetailsPage() {
   const storeClosedMessage = storeStatus && !storeStatus.isOpen ? storeStatus.message : '';
 
   const { addToCart, totalItems } = useCart();
+
+  // ── Favourites ──────────────────────────────────────────────────────────
+  const { data: session } = authClient.useSession();
+  const isLoggedIn = Boolean(session?.user);
+  const { isFavourited, toggle } = useFavouriteToggle(isLoggedIn);
+  const productIsFav = id ? isFavourited(id) : false;
 
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -502,10 +510,9 @@ export default function ProductDetailsPage() {
       name: product.name,
       price: unitPrice,
       image: product.image.url,
-      category: {
-        _id: product.category._id,
-        name: product.category.name,
-      },
+      category: typeof product.category === 'string'
+        ? { _id: product.category, name: '' }
+        : { _id: product.category?._id ?? '', name: product.category?.name ?? '' },
       quantity: quantity,
       modifierSelections: modifierSelections.length > 0 ? modifierSelections : undefined,
       includedItems: product.includedItems && product.includedItems.length > 0 ? product.includedItems : undefined,
@@ -630,8 +637,14 @@ export default function ProductDetailsPage() {
             </TouchableOpacity>
 
             <View className="flex flex-row gap-2">
-              <TouchableOpacity style={styles.circleBtn}>
-                <Ionicons name="heart-outline" size={20} color="#111827" />
+              <TouchableOpacity
+                onPress={() => id && toggle(id)}
+                style={styles.circleBtn}>
+                <Ionicons
+                  name={productIsFav ? 'heart' : 'heart-outline'}
+                  size={20}
+                  color={productIsFav ? '#e13e00' : '#111827'}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -661,9 +674,15 @@ export default function ProductDetailsPage() {
           {/* Badges */}
           <View className="mb-3 flex-row flex-wrap gap-1.5">
             <Badge label={product.productType} variant="category" />
-            <Badge label={product.category.name} variant="category" />
+            <Badge
+              label={typeof product.category === 'string' ? product.category : product.category?.name ?? ''}
+              variant="category"
+            />
             {product.subcategory && (
-              <Badge label={product.subcategory.name} variant="subcategory" />
+              <Badge
+                label={typeof product.subcategory === 'string' ? product.subcategory : product.subcategory?.name ?? ''}
+                variant="subcategory"
+              />
             )}
             {product.isPopular && <Badge label="🔥 Popular" variant="popular" />}
             {product.isSignature && <Badge label="✦ Signature" variant="signature" />}

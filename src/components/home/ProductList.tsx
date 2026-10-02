@@ -45,6 +45,10 @@ type ProductListProps = {
   setActiveCategory: (name: string | null) => void;
   isStoreClosed: boolean;
   storeClosedMessage: string;
+  showFavourites?: boolean;
+  favouriteIds?: string[];
+  onToggleFavourite?: (productId: string) => void;
+  isLoggedIn?: boolean;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -60,14 +64,19 @@ const ProductCard = React.memo(
     hasBranch,
     isStoreClosed,
     storeClosedMessage,
+    isLoggedIn,
+    isFavourited,
+    onToggleFavourite,
   }: {
     item: BranchProduct;
     hasBranch: boolean;
     isStoreClosed: boolean;
     storeClosedMessage: string;
+    isLoggedIn: boolean;
+    isFavourited: boolean;
+    onToggleFavourite: (productId: string) => void;
   }) => {
     const router = useRouter();
-    const [liked, setLiked] = useState(false);
     const scale = useRef(new Animated.Value(1)).current;
 
     // Stock info — only checked when a branch is selected
@@ -78,7 +87,7 @@ const ProductCard = React.memo(
     const isBlocked = isOutOfStock || isStoreClosed;
 
     const handleLike = () => {
-      setLiked((prev) => !prev);
+      onToggleFavourite(item._id);
       Animated.sequence([
         Animated.spring(scale, { toValue: 1.4, useNativeDriver: true, speed: 50 }),
         Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30 }),
@@ -121,8 +130,8 @@ const ProductCard = React.memo(
             <Animated.View style={{ transform: [{ scale }] }}>
               <Heart
                 size={15}
-                color={liked ? '#e13e00' : '#aaa'}
-                fill={liked ? '#e13e00' : 'transparent'}
+                color={isFavourited ? '#e13e00' : '#aaa'}
+                fill={isFavourited ? '#e13e00' : 'transparent'}
               />
             </Animated.View>
           </TouchableOpacity>
@@ -256,6 +265,10 @@ const ProductList = ({
   refreshing,
   activeCategory,
   setActiveCategory,
+  showFavourites,
+  favouriteIds = [],
+  onToggleFavourite,
+  isLoggedIn = false,
 }: ProductListProps) => {
   const insets = useSafeAreaInsets();
 
@@ -266,9 +279,12 @@ const ProductList = ({
         hasBranch={hasBranch}
         isStoreClosed={isStoreClosed}
         storeClosedMessage={storeClosedMessage}
+        isLoggedIn={isLoggedIn}
+        isFavourited={favouriteIds.includes(item._id)}
+        onToggleFavourite={onToggleFavourite ?? (() => {})}
       />
     ),
-    [hasBranch, isStoreClosed, storeClosedMessage]
+    [hasBranch, isStoreClosed, storeClosedMessage, isLoggedIn, favouriteIds, onToggleFavourite]
   );
 
   const keyExtractor = useCallback((item: Product) => item._id, []);
@@ -290,11 +306,15 @@ const ProductList = ({
       onEndReachedThreshold={0.4}
       ListHeaderComponent={
         <>
-          <HomeCarousel />
-          <BranchSelector />
+          {!showFavourites && <HomeCarousel />}
+          {!showFavourites && <BranchSelector />}
           <Categories activeCategory={activeCategory} onCategoryPress={setActiveCategory} />
           <Text className="px-4 pb-1 pt-2 text-base font-bold text-gray-900">
-            {hasBranch ? 'Available at this Branch' : 'All Products'}
+            {showFavourites
+              ? 'My Favourites'
+              : hasBranch
+                ? 'Available at this Branch'
+                : 'All Products'}
           </Text>
         </>
       }
@@ -323,6 +343,21 @@ const ProductList = ({
             <Text className="mb-3 text-sm text-gray-400">Failed to load products</Text>
             <TouchableOpacity onPress={() => refetch()}>
               <Text className="text-xs font-semibold text-[#e13e00]">Try again</Text>
+            </TouchableOpacity>
+          </View>
+        ) : showFavourites ? (
+          <View className="items-center gap-3 py-16 px-8">
+            <View className="h-20 w-20 items-center justify-center rounded-full bg-orange-50">
+              <Heart size={36} color="#e13e00" />
+            </View>
+            <Text className="text-lg font-semibold text-gray-900">No favourites yet</Text>
+            <Text className="text-center text-sm leading-relaxed text-gray-400">
+              Tap the heart icon on any product to save it here for quick access.
+            </Text>
+            <TouchableOpacity
+              onPress={() => setActiveCategory(null)}
+              className="mt-2 rounded-full bg-brand-500 px-6 py-2.5">
+              <Text className="text-sm font-bold text-white">Browse Menu</Text>
             </TouchableOpacity>
           </View>
         ) : (
