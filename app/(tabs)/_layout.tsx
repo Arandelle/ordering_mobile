@@ -1,12 +1,10 @@
-import { useCart } from '@/context/CartContext';
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Image, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { CartHeaderButton, NotifHeaderButton } from '@/components/HeaderButtons';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
-import { useUnreadCount } from '@/hooks/useNotifications';
 import { authClient } from '@/lib/auth-client';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { Image, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
 const ACTIVE_COLOR = '#e13e00';
 const INACTIVE_COLOR = '#888';
@@ -14,16 +12,12 @@ const INACTIVE_COLOR = '#888';
 const TAB_BAR_CONTENT_HEIGHT = 56;
 
 export default function TabLayout() {
-  const { totalItems } = useCart();
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
 
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   const { data: orderSummary } = useCustomerOrderSummary();
-  const { data: unreadData } = useUnreadCount();
-  const unreadCount = unreadData?.unreadCount ?? 0;
 
   const activeOrdersCount =
     (orderSummary?.pending ?? 0) +
@@ -32,40 +26,6 @@ export default function TabLayout() {
     (orderSummary?.completed ?? 0);
 
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
-
-  const CartHeaderButton = () => (
-    <TouchableOpacity
-      onPress={() => router.push('/cart')}
-      style={{ marginRight: 16 }}
-      className="flex-row items-center gap-1">
-      <View>
-        <Ionicons name="cart-outline" size={24} color="#333" />
-        {totalItems > 0 && (
-          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
-            <Text className="text-[10px] font-bold text-white">{totalItems}</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
-  const NotifHeaderButton = () => (
-    <TouchableOpacity
-      onPress={() => router.push('/notifications')}
-      style={{ marginRight: 16 }}
-      className="flex-row items-center gap-1">
-      <View>
-        <Ionicons name="notifications-outline" size={24} color="#333" />
-        {unreadCount > 0 && (
-          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
-            <Text className="text-[10px] font-bold text-white">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <Tabs
