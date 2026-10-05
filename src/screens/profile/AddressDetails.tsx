@@ -1,12 +1,15 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CheckoutAddressDetails } from '@/hooks/useCheckout';
-import { SectionHeader } from './components/SectionHeader';
 import { formatAddress } from './utils';
 import { AddressErrors, AddressField, EditingSection, LoadingAction } from './types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { DeliveryLocationPicker, DeliveryCoordinates, ResolvedDeliveryAddress } from '../checkout/DeliveryLocationPicker';
+import {
+  DeliveryLocationPicker,
+  DeliveryCoordinates,
+  ResolvedDeliveryAddress,
+} from '../checkout/DeliveryLocationPicker';
 import { PsgcAddressFields } from '../checkout/PsgcAddressFields';
 
 interface AddressDetailsProps {
@@ -21,7 +24,9 @@ interface AddressDetailsProps {
   cancelEditing: () => void;
   onChange: (field: AddressField, value: string) => void;
   onCoordinatesChange: (coords: DeliveryCoordinates) => void;
-  onAddressResolved: (address: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string }) => void;
+  onAddressResolved: (
+    address: ResolvedDeliveryAddress & { cityCode?: string; barangayCode?: string }
+  ) => void;
   onPsgcChange: (selection: { city?: string; barangay?: string; subMunicipality?: string }) => void;
   onSave: () => void;
 }
@@ -44,12 +49,8 @@ export function AddressDetails({
 }: AddressDetailsProps) {
   return (
     <View>
-      <SectionHeader
-        title="Address"
-        isEditing={isEditing}
-        onEdit={() => startEditing('address')}
-        onCancel={cancelEditing}
-      />
+
+      <Text className="text-sm text-brand-500 mb-4">Address</Text>
 
       {isLoading ? (
         <View className="py-6">
@@ -82,7 +83,8 @@ export function AddressDetails({
             <View className="flex-row items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
               <Ionicons name="warning-outline" size={16} color="#d97706" style={{ marginTop: 1 }} />
               <Text className="flex-1 text-xs font-medium leading-4 text-amber-800">
-                Map pin doesn't match your selected address. Update the map or adjust the fields above.
+                Map pin doesn't match your selected address. Update the map or adjust the fields
+                above.
               </Text>
             </View>
           )}
@@ -139,7 +141,7 @@ export function AddressDetails({
             <Ionicons name="location-outline" size={18} color="#6b7280" />
           </View>
           <View className="flex-1">
-            <Text className="whitespace-pre-line text-sm font-semibold leading-5 text-gray-900">
+            <Text className="whitespace-pre-line text-sm leading-5 text-gray-800">
               {formatAddress(addressForm)}
             </Text>
           </View>

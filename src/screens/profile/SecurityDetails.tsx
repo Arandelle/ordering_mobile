@@ -3,7 +3,6 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LockKeyhole } from 'lucide-react-native';
 import { DangerZone } from './components/DangerZone';
-import { SectionHeader } from './components/SectionHeader';
 import { EditingSection, LoadingAction, PasswordForm } from './types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -35,12 +34,7 @@ export function SecurityDetails({
 }: SecurityDetailsProps) {
   return (
     <View>
-      <SectionHeader
-        title="Security"
-        isEditing={isEditing}
-        onEdit={() => startEditing('password')}
-        onCancel={cancelEditing}
-      />
+      <Text className="mb-4 text-sm text-brand-500">Security</Text>
 
       {isOAuthOnly && !isEditing ? (
         <Text className="border-b border-gray-100 py-2.5 text-sm leading-5 text-gray-500">
@@ -72,9 +66,7 @@ export function SecurityDetails({
             label="New Password"
             placeholder="At least 8 characters"
             value={passwordForm.newPassword}
-            onChangeText={(value) =>
-              setPasswordForm((prev) => ({ ...prev, newPassword: value }))
-            }
+            onChangeText={(value) => setPasswordForm((prev) => ({ ...prev, newPassword: value }))}
             secureTextEntry
             leftIcon={{ icon: LockKeyhole }}
           />
@@ -125,11 +117,7 @@ export function SecurityDetails({
         </View>
       )}
 
-      <DangerZone
-        isBusy={isBusy}
-        loadingAction={loadingAction}
-        onDeleteAccount={onDeleteAccount}
-      />
+      <DangerZone isBusy={isBusy} loadingAction={loadingAction} onDeleteAccount={onDeleteAccount} />
     </View>
   );
 }
