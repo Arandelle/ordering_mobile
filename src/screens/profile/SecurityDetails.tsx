@@ -1,8 +1,8 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LockKeyhole } from 'lucide-react-native';
 import { DangerZone } from './components/DangerZone';
-import { InfoRow } from './components/InfoRow';
 import { SectionHeader } from './components/SectionHeader';
 import { EditingSection, LoadingAction, PasswordForm } from './types';
 import { Input } from '@/components/ui/Input';
@@ -108,8 +108,20 @@ export function SecurityDetails({
           </View>
         </View>
       ) : (
-        <View className="mt-2">
-          <InfoRow label="Password" value="Protected" />
+        <View className="mt-3 flex-row items-center gap-3">
+          <View className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100">
+            <Ionicons name="lock-closed-outline" size={18} color="#6b7280" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-gray-900">Password</Text>
+            <Text className="text-xs text-gray-400">Protected</Text>
+          </View>
+          <TouchableOpacity
+            className="items-center justify-center rounded-lg bg-gray-100 p-2"
+            activeOpacity={0.8}
+            onPress={() => startEditing('password')}>
+            <Ionicons name="create-outline" size={18} color="#6b7280" />
+          </TouchableOpacity>
         </View>
       )}
 

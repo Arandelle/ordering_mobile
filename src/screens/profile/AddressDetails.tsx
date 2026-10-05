@@ -134,10 +134,21 @@ export function AddressDetails({
           </View>
         </View>
       ) : (
-        <View className="mt-2">
-          <Text className="whitespace-pre-line border-b border-gray-100 py-3 text-sm font-semibold leading-5 text-gray-950">
-            {formatAddress(addressForm)}
-          </Text>
+        <View className="mt-3 flex-row items-start gap-3">
+          <View className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100">
+            <Ionicons name="location-outline" size={18} color="#6b7280" />
+          </View>
+          <View className="flex-1">
+            <Text className="whitespace-pre-line text-sm font-semibold leading-5 text-gray-900">
+              {formatAddress(addressForm)}
+            </Text>
+          </View>
+          <TouchableOpacity
+            className="items-center justify-center rounded-lg bg-gray-100 p-2"
+            activeOpacity={0.8}
+            onPress={() => startEditing('address')}>
+            <Ionicons name="create-outline" size={18} color="#6b7280" />
+          </TouchableOpacity>
         </View>
       )}
     </View>

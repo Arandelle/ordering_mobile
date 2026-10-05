@@ -29,7 +29,6 @@ import type {
 import { ProfileDetails } from './ProfileDetails';
 import { SecurityDetails } from './SecurityDetails';
 import SignInForm from '@/screens/auth/SignInForm';
-import { ProfileHeader } from './components/ProfileHeader';
 import {
   AddressErrors,
   AddressField,
@@ -425,43 +424,35 @@ export default function Profile() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
 
-        {/* Profile card — header + details unified */}
-        <View className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <View className="px-5 pt-5">
-            <ProfileHeader
-              user={user}
-              profileImage={profileImage}
-              isEditing={isProfileEditing}
-              onPickPhoto={handlePickPhoto}
-            />
-          </View>
-          <View className="border-t border-gray-100 px-5 pb-5 pt-4">
-            <ProfileDetails
-              user={user}
-              profileForm={profileForm}
-              isEditing={isProfileEditing}
-              isBusy={isBusy}
-              loadingAction={loadingAction}
-              setProfileForm={setProfileForm}
-              startEditing={startEditing}
-              cancelEditing={cancelEditing}
-              onSave={handleSaveProfile}
-            />
-          </View>
+        {/* Profile card */}
+        <View className="overflow-hidden bg-white p-5 border border-gray-200">
+          <ProfileDetails
+            user={user}
+            profileImage={profileImage}
+            profileForm={profileForm}
+            isEditing={isProfileEditing}
+            isBusy={isBusy}
+            loadingAction={loadingAction}
+            setProfileForm={setProfileForm}
+            startEditing={startEditing}
+            cancelEditing={cancelEditing}
+            onSave={handleSaveProfile}
+            onPickPhoto={handlePickPhoto}
+          />
         </View>
 
         {/* Wallet & Membership — side by side */}
         <View className="mt-3 flex-row gap-3">
           <TouchableOpacity
-            className="flex-1 overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
-            activeOpacity={0.8}
+            className="flex-1 border border-gray-200 bg-white p-4"
+            activeOpacity={0.7}
             onPress={() => router.push('/wallet')}>
-            <View className="flex-row items-center gap-2.5">
+            <View className="flex-row items-center gap-3">
               <View className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50">
                 <Wallet size={18} color={BRAND} />
               </View>
               <View className="flex-1">
-                <Text className="text-xs font-semibold text-gray-500">Wallet</Text>
+                <Text className="text-xs font-medium text-gray-400">Wallet</Text>
                 {walletLoading ? (
                   <ActivityIndicator size="small" color={BRAND} />
                 ) : (
@@ -470,14 +461,15 @@ export default function Profile() {
                   </Text>
                 )}
               </View>
+              <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1 overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
-            activeOpacity={0.8}
+            className="flex-1 border border-gray-200 bg-white p-4"
+            activeOpacity={0.7}
             onPress={() => router.push('/membership')}>
-            <View className="flex-row items-center gap-2.5">
+            <View className="flex-row items-center gap-3">
               <View className={`flex h-10 w-10 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-brand-500' : 'bg-gray-100'}`}>
                 <Ionicons
                   name={hasActiveMembership ? 'star' : 'star-outline'}
@@ -486,17 +478,18 @@ export default function Profile() {
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-xs font-semibold text-gray-500">Membership</Text>
-                <Text className={`text-xs font-bold ${hasActiveMembership ? 'text-brand-500' : 'text-gray-700'}`} numberOfLines={1}>
+                <Text className="text-xs font-medium text-gray-400">Membership</Text>
+                <Text className={`text-sm font-bold ${hasActiveMembership ? 'text-brand-500' : 'text-gray-700'}`} numberOfLines={1}>
                   {hasActiveMembership ? 'VIP Active' : 'View plans'}
                 </Text>
               </View>
+              <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Address */}
-        <View className="mt-3 rounded-2xl bg-white p-5 shadow-sm">
+        <View className="mt-3 border border-gray-200 bg-white p-5">
           <AddressDetails
             addressForm={addressForm}
             addressErrors={addressErrors}
@@ -516,7 +509,7 @@ export default function Profile() {
         </View>
 
         {/* Security */}
-        <View className="mt-3 rounded-2xl bg-white p-5 shadow-sm">
+        <View className="mt-3 border border-gray-200 bg-white p-5">
           <SecurityDetails
             passwordForm={passwordForm}
             isEditing={isPasswordEditing}
@@ -533,7 +526,7 @@ export default function Profile() {
 
         {/* Sign out */}
         <TouchableOpacity
-          className={`mt-4 flex-row items-center justify-center gap-2 rounded-2xl bg-white py-3.5 shadow-sm ${
+          className={`mt-3 flex-row items-center justify-center gap-2 border border-gray-200 bg-white py-3.5 ${
             loadingAction === 'sign-out' ? 'opacity-60' : ''
           }`}
           activeOpacity={0.85}
