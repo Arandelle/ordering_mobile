@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,19 +8,54 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/hooks/useNotifications';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import {
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+} from '@/hooks/useNotifications';
+import { useUndo } from '@/hooks/useUndo';
+import { UndoBanner } from '@/components/UndoBanner';
 import type { NotificationItem } from '@/types/notification';
 import { useRouter } from 'expo-router';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Config
 // ---------------------------------------------------------------------------
 
-const PRIORITY_CONFIG = {
-  high: { color: '#ef4501', icon: 'notifications' as const },
-  normal: { color: '#666', icon: 'notifications-outline' as const },
-  low: { color: '#999', icon: 'ellipse-outline' as const },
+const SWIPE_THRESHOLD = 80;
+
+const TYPE_CONFIG: Record<
+  string,
+  { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string; label: string }
+> = {
+  order: {
+    icon: 'receipt-outline',
+    color: '#ef4501',
+    bg: '#fff4ee',
+    label: 'Order',
+  },
+  promotion: {
+    icon: 'pricetag-outline',
+    color: '#f8b31f',
+    bg: '#fff9e6',
+    label: 'Promo',
+  },
+  system: {
+    icon: 'information-circle-outline',
+    color: '#6b7280',
+    bg: '#f3f4f6',
+    label: 'System',
+  },
 };
+
+const DEFAULT_TYPE = TYPE_CONFIG.system;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function timeAgo(dateStr: string): string {
   const now = new Date();
@@ -37,19 +72,6 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-function getTypeLabel(type: string): string {
-  switch (type) {
-    case 'order':
-      return 'Order';
-    case 'promotion':
-      return 'Promo';
-    case 'system':
-      return 'System';
-    default:
-      return type;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // NotificationCard
 // ---------------------------------------------------------------------------
@@ -57,48 +79,108 @@ function getTypeLabel(type: string): string {
 function NotificationCard({
   item,
   onPress,
+  onSwipeOpen,
+  onDelete,
+  isLast,
 }: {
   item: NotificationItem;
   onPress: () => void;
+  onSwipeOpen: (close: () => void) => void;
+  onDelete: (item: NotificationItem) => void;
+  isLast: boolean;
 }) {
-  const config = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.normal;
+  const swipeableRef = useRef<SwipeableMethods>(null);
+  const config = TYPE_CONFIG[item.type] ?? DEFAULT_TYPE;
+
+  const renderRightAction = () => (
+    <View
+      className="ml-2 flex-row items-center justify-center rounded-lg bg-red-500"
+      style={{ width: SWIPE_THRESHOLD }}
+    >
+      <View className="h-11 w-11 items-center justify-center rounded-full bg-red-600">
+        <Ionicons name="trash-outline" size={20} color="#fff" />
+      </View>
+    </View>
+  );
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.7}
-      className={`mx-3 mb-2 overflow-hidden rounded-2xl border-l-4 ${
-        item.isRead ? 'bg-white' : 'bg-brand-50'
-      }`}
-      style={{ borderLeftColor: config.color }}>
-      <View className="p-3">
-        <View className="flex-row items-start justify-between gap-2">
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Ionicons name={config.icon} size={16} color={config.color} />
-              <Text className="text-[11px] font-medium text-gray-500">
-                {getTypeLabel(item.type)}
+    <View style={{ marginBottom: isLast ? 0 : 1 }}>
+      <ReanimatedSwipeable
+        ref={swipeableRef}
+        friction={2}
+        rightThreshold={40}
+        overshootRight={false}
+        renderRightActions={renderRightAction}
+        onSwipeableOpen={(direction) => {
+          if (direction === 'left') {
+            onSwipeOpen(() => swipeableRef.current?.close());
+            onDelete(item);
+          }
+        }}
+      >
+        <TouchableOpacity
+          onPress={onPress}
+          activeOpacity={0.6}
+          className="mx-3 border-b border-gray-100 bg-white px-4 py-3.5"
+        >
+          <View className="flex-row items-start gap-3">
+            {/* Icon badge */}
+            <View
+              className="mt-0.5 h-10 w-10 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: config.bg }}
+            >
+              <Ionicons name={config.icon} size={20} color={config.color} />
+            </View>
+
+            {/* Content */}
+            <View className="flex-1">
+              <View className="flex-row items-center justify-between">
+                <Text
+                  className="text-[11px] font-semibold uppercase tracking-wide"
+                  style={{ color: config.color }}
+                >
+                  {config.label}
+                </Text>
+                <Text className="text-[11px] text-gray-400">
+                  {timeAgo(item.createdAt)}
+                </Text>
+              </View>
+
+              <Text
+                className={`mt-1 text-[15px] text-gray-900 ${
+                  item.isRead ? 'font-medium' : 'font-bold'
+                }`}
+                numberOfLines={1}
+              >
+                {item.title}
               </Text>
-              {!item.isRead && (
-                <View className="h-2 w-2 rounded-full bg-brand-500" />
+
+              <Text
+                className={`mt-0.5 text-[13px] leading-relaxed ${
+                  item.isRead ? 'text-gray-400' : 'text-gray-600'
+                }`}
+                numberOfLines={2}
+              >
+                {item.message}
+              </Text>
+
+              {item.branchName && (
+                <View className="mt-1.5 self-start rounded-full bg-gray-100 px-2 py-0.5">
+                  <Text className="text-[11px] font-medium text-gray-500">
+                    {item.branchName}
+                  </Text>
+                </View>
               )}
             </View>
-            <Text className="mt-1 text-[15px] font-semibold text-gray-900">
-              {item.title}
-            </Text>
-            <Text className="mt-0.5 text-sm text-gray-700" numberOfLines={2}>
-              {item.message}
-            </Text>
-            {item.branchName && (
-              <Text className="mt-1 text-xs text-gray-400">
-                {item.branchName}
-              </Text>
+
+            {/* Unread indicator */}
+            {!item.isRead && (
+              <View className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500" />
             )}
           </View>
-          <Text className="text-xs text-gray-400">{timeAgo(item.createdAt)}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+        </TouchableOpacity>
+      </ReanimatedSwipeable>
+    </View>
   );
 }
 
@@ -108,16 +190,16 @@ function NotificationCard({
 
 function EmptyState() {
   return (
-    <View className="flex-1 items-center justify-center gap-4 px-8 py-24">
-      <View className="h-24 w-24 items-center justify-center rounded-full bg-orange-50">
-        <Ionicons name="notifications-off-outline" size={44} color="#e13e00" />
+    <View className="flex-1 items-center justify-center gap-4 px-8">
+      <View className="h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+        <Ionicons name="notifications-off-outline" size={36} color="#9ca3af" />
       </View>
-      <View className="items-center gap-1">
-        <Text className="text-xl font-semibold text-gray-900">
-          No notifications yet
+      <View className="items-center gap-1.5">
+        <Text className="text-lg font-bold text-gray-900">
+          All caught up
         </Text>
         <Text className="text-center text-sm leading-relaxed text-gray-400">
-          We'll notify you about order updates, promos, and important news.
+          No notifications right now.{'\n'}We'll let you know when something new arrives.
         </Text>
       </View>
     </View>
@@ -135,16 +217,48 @@ export default function NotificationsScreen() {
   const { mutate: markAsRead } = useMarkAsRead();
   const { mutate: markAllAsRead } = useMarkAllAsRead();
 
-  const notifications = data?.notifications ?? [];
+  // Local deletion state (no API yet)
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const { pendingItem, secondsLeft, trigger, undo } = useUndo<NotificationItem>({
+    duration: 5,
+  });
+
+  const notifications = (data?.notifications ?? []).filter(
+    (n) => !deletedIds.has(n._id),
+  );
   const hasUnread = notifications.some((n) => !n.isRead);
+
+  // Close other swipeables when one opens
+  const openSwipeableCloseRef = useRef<(() => void) | null>(null);
+  const handleSwipeOpen = useCallback((close: () => void) => {
+    openSwipeableCloseRef.current?.();
+    openSwipeableCloseRef.current = close;
+  }, []);
+
+  const handleDelete = useCallback(
+    (item: NotificationItem) => {
+      setDeletedIds((prev) => new Set(prev).add(item._id));
+      trigger(item);
+    },
+    [trigger],
+  );
+
+  const handleUndo = useCallback(() => {
+    if (pendingItem) {
+      setDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pendingItem._id);
+        return next;
+      });
+    }
+    undo();
+  }, [pendingItem, undo]);
 
   const handleNotificationPress = useCallback(
     (item: NotificationItem) => {
       if (!item.isRead) {
         markAsRead(item._id);
       }
-
-      // Navigate to order detail if it's an order notification
       if (item.refType === 'Order' && item.refId) {
         router.push(`/orders/${item.refId}`);
       }
@@ -156,43 +270,55 @@ export default function NotificationsScreen() {
     markAllAsRead();
   }, [markAllAsRead]);
 
+  // --- Loading ---
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
+      <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color="#ef4501" />
       </View>
     );
   }
 
+  // --- Error ---
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-gray-50 px-8">
-        <Ionicons name="alert-circle-outline" size={48} color="#ef4501" />
+      <View className="flex-1 items-center justify-center gap-4 bg-white px-8">
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-red-50">
+          <Ionicons name="alert-circle-outline" size={32} color="#ef4444" />
+        </View>
         <Text className="text-center text-sm text-gray-500">
-          Failed to load notifications. Please try again.
+          Failed to load notifications
         </Text>
         <TouchableOpacity
           onPress={() => refetch()}
-          className="mt-2 rounded-2xl bg-brand-500 px-6 py-2">
-          <Text className="text-sm font-bold text-white">Retry</Text>
+          className="rounded-lg bg-brand-500 px-6 py-2.5"
+        >
+          <Text className="text-sm font-bold text-white">Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  if (notifications.length === 0) {
+  // --- Empty ---
+  if (notifications.length === 0 && !pendingItem) {
     return <EmptyState />;
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-white">
+      {/* Unread bar */}
       {hasUnread && (
-        <View className="mx-3 mt-2 flex-row items-center justify-between rounded-xl bg-brand-50 px-3 py-2">
-          <Text className="text-xs font-medium text-brand-500">
-            You have unread notifications
-          </Text>
+        <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-4 py-2.5">
+          <View className="flex-row items-center gap-2">
+            <View className="h-2 w-2 rounded-full bg-brand-500" />
+            <Text className="text-xs font-medium text-gray-600">
+              Unread notifications
+            </Text>
+          </View>
           <TouchableOpacity onPress={handleMarkAllAsRead}>
-            <Text className="text-xs font-bold text-brand-500">Mark all as read</Text>
+            <Text className="text-xs font-bold text-brand-500">
+              Mark all read
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -200,13 +326,20 @@ export default function NotificationsScreen() {
       <FlatList
         data={notifications}
         keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <NotificationCard
             item={item}
             onPress={() => handleNotificationPress(item)}
+            onSwipeOpen={handleSwipeOpen}
+            onDelete={handleDelete}
+            isLast={index === notifications.length - 1}
           />
         )}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: 24 }}
+        contentContainerStyle={
+          notifications.length === 0
+            ? { flexGrow: 1 }
+            : { paddingTop: 4, paddingBottom: 24 }
+        }
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -227,7 +360,32 @@ export default function NotificationsScreen() {
           }
         }}
         onEndReachedThreshold={0.3}
+        onScrollBeginDrag={() => {
+          openSwipeableCloseRef.current?.();
+          openSwipeableCloseRef.current = null;
+        }}
       />
+
+      {/* Undo banner overlay */}
+      {pendingItem && (
+        <View className="absolute bottom-6 left-0 right-0 z-50">
+          <UndoBanner
+            message={
+              <>
+                Deleted{' '}
+                <Text className="font-semibold text-white">
+                  {pendingItem.title}
+                </Text>
+              </>
+            }
+            secondsLeft={secondsLeft}
+            duration={5}
+            onUndo={handleUndo}
+            actionLabel="Undo"
+            iconName="trash-outline"
+          />
+        </View>
+      )}
     </View>
   );
 }
