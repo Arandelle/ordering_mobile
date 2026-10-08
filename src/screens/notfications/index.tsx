@@ -15,6 +15,7 @@ import {
   useNotifications,
   useMarkAsRead,
   useMarkAllAsRead,
+  useDeleteNotification,
 } from '@/hooks/useNotifications';
 import { useUndo } from '@/hooks/useUndo';
 import { UndoBanner } from '@/components/UndoBanner';
@@ -216,16 +217,14 @@ export default function NotificationsScreen() {
   const { data, isLoading, error, refetch, isRefetching } = useNotifications(page);
   const { mutate: markAsRead } = useMarkAsRead();
   const { mutate: markAllAsRead } = useMarkAllAsRead();
+  const { mutate: deleteNotification } = useDeleteNotification();
 
-  // Local deletion state (no API yet)
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const { pendingItem, secondsLeft, trigger, undo } = useUndo<NotificationItem>({
     duration: 5,
+    onExpire: (item) => deleteNotification(item._id),
   });
 
-  const notifications = (data?.notifications ?? []).filter(
-    (n) => !deletedIds.has(n._id),
-  );
+  const notifications = data?.notifications ?? [];
   const hasUnread = notifications.some((n) => !n.isRead);
 
   // Close other swipeables when one opens
@@ -237,22 +236,14 @@ export default function NotificationsScreen() {
 
   const handleDelete = useCallback(
     (item: NotificationItem) => {
-      setDeletedIds((prev) => new Set(prev).add(item._id));
       trigger(item);
     },
     [trigger],
   );
 
   const handleUndo = useCallback(() => {
-    if (pendingItem) {
-      setDeletedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(pendingItem._id);
-        return next;
-      });
-    }
     undo();
-  }, [pendingItem, undo]);
+  }, [undo]);
 
   const handleNotificationPress = useCallback(
     (item: NotificationItem) => {
