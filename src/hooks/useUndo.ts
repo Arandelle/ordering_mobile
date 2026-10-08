@@ -20,14 +20,17 @@ const DEFAULT_DURATION = 5;
  *     undo();
  *   };
  */
-interface UseUndoOptions {
+interface UseUndoOptions<T = unknown> {
   duration?: number;
+  onExpire?: (item: T) => void;
 }
 
-export function useUndo<T>({ duration = DEFAULT_DURATION }: UseUndoOptions = {}) {
+export function useUndo<T>({ duration = DEFAULT_DURATION, onExpire }: UseUndoOptions<T> = {}) {
   const [pendingItem, setPendingItem] = useState<T | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(duration);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onExpireRef = useRef(onExpire);
+  onExpireRef.current = onExpire;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -52,7 +55,10 @@ export function useUndo<T>({ duration = DEFAULT_DURATION }: UseUndoOptions = {})
         setSecondsLeft((prev) => {
           if (prev <= 1) {
             clearTimer();
-            setPendingItem(null);
+            setPendingItem((current) => {
+              if (current) onExpireRef.current?.(current);
+              return null;
+            });
             return 0;
           }
           return prev - 1;
