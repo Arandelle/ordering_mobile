@@ -98,3 +98,50 @@ export function useMarkAllAsRead() {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Delete notification (optimistic)
+// ---------------------------------------------------------------------------
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => notificationService.deleteNotification(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.notifications(1, 20) });
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.unreadCount });
+
+      const previousList = queryClient.getQueryData(QUERY_KEYS.notifications(1, 20)) as NotificationsListResponse | undefined;
+      const previousCount = queryClient.getQueryData(QUERY_KEYS.unreadCount) as UnreadCountResponse | undefined;
+
+      if (previousList) {
+        const removed = previousList.notifications.find((n: NotificationItem) => n._id === id);
+        queryClient.setQueryData(QUERY_KEYS.notifications(1, 20), {
+          ...previousList,
+          notifications: previousList.notifications.filter((n: NotificationItem) => n._id !== id),
+        });
+
+        if (removed && !removed.isRead && previousCount) {
+          queryClient.setQueryData(QUERY_KEYS.unreadCount, {
+            unreadCount: Math.max(0, previousCount.unreadCount - 1),
+          });
+        }
+      }
+
+      return { previousList, previousCount };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData(QUERY_KEYS.notifications(1, 20), context.previousList);
+      }
+      if (context?.previousCount) {
+        queryClient.setQueryData(QUERY_KEYS.unreadCount, context.previousCount);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications(1, 20) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.unreadCount });
+    },
+  });
+}
