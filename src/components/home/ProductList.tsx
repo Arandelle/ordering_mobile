@@ -159,7 +159,6 @@ const ProductCard = React.memo(
 // ─── Home Carousel (Banner + Membership) ─────────────────────────────────────
 
 const CAROUSEL_PAGE_WIDTH = Dimensions.get('window').width;
-const CAROUSEL_PAGE_COUNT = 3;
 const AUTO_SCROLL_INTERVAL = 10000;
 
 const HomeCarousel = () => {
@@ -172,7 +171,11 @@ const HomeCarousel = () => {
   const activeMembership = membershipData?.activeMembership;
   const hasActiveMembership = activeMembership?.status === 'paid';
   const tiers = membershipData?.tiers ?? [];
+  const hasTiers = tiers.length > 0;
   const activeTier = tiers.find((t) => t._id === activeMembership?.tierId);
+
+  // Dynamic page count: 3 pages if tiers exist, 2 pages (banner + wallet) if no tiers
+  const pageCount = hasTiers ? 3 : 2;
 
   const memberName =
     (session?.user?.name ?? '').trim() ||
@@ -186,13 +189,13 @@ const HomeCarousel = () => {
   React.useEffect(() => {
     const timer = setInterval(() => {
       setActivePage((prev) => {
-        const next = (prev + 1) % CAROUSEL_PAGE_COUNT;
+        const next = (prev + 1) % pageCount;
         scrollRef.current?.scrollTo({ x: next * CAROUSEL_PAGE_WIDTH, animated: true });
         return next;
       });
     }, AUTO_SCROLL_INTERVAL);
     return () => clearInterval(timer);
-  }, []);
+  }, [pageCount]);
 
   const handleScrollEnd = (e: { nativeEvent: { contentOffset: { x: number } } }) => {
     const page = Math.round(e.nativeEvent.contentOffset.x / CAROUSEL_PAGE_WIDTH);
@@ -211,20 +214,22 @@ const HomeCarousel = () => {
         <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
           <Banner />
         </View>
-        {/* Page 2: Membership card or promo banner */}
-        <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
-          {hasActiveMembership && activeMembership ? (
-            <VipCard
-              membership={activeMembership}
-              memberName={memberName}
-              tierChannel={activeMembership.tierChannel}
-              expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
-            />
-          ) : (
-            <MembershipBanner />
-          )}
-        </View>
-        {/* Page 3: Wallet banner */}
+        {/* Page 2: Membership card or promo banner — only if tiers exist */}
+        {hasTiers && (
+          <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
+            {hasActiveMembership && activeMembership ? (
+              <VipCard
+                membership={activeMembership}
+                memberName={memberName}
+                tierChannel={activeMembership.tierChannel}
+                expiresAt={activeMembership.expiresAt ?? activeTier?.validityRule?.expiresAt}
+              />
+            ) : (
+              <MembershipBanner />
+            )}
+          </View>
+        )}
+        {/* Page 3 (or 2 if no tiers): Wallet banner */}
         <View style={{ width: CAROUSEL_PAGE_WIDTH }}>
           <WalletBanner />
         </View>
@@ -232,7 +237,7 @@ const HomeCarousel = () => {
 
       {/* Pagination dots */}
       <View className="mt-3 flex-row items-center justify-center gap-2">
-        {Array.from({ length: CAROUSEL_PAGE_COUNT }).map((_, i) => (
+        {Array.from({ length: pageCount }).map((_, i) => (
           <View
             key={i}
             className="rounded-full"

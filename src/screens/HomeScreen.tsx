@@ -133,6 +133,7 @@ export default function HomeScreen() {
   const activeMembership = membershipData?.activeMembership;
   const hasActiveMembership = activeMembership?.status === 'paid';
   const tiers = membershipData?.tiers ?? [];
+  const hasTiers = tiers.length > 0;
   const activeTier = tiers.find((t) => t._id === activeMembership?.tierId);
 
   const memberName =
@@ -148,13 +149,15 @@ export default function HomeScreen() {
       {/* Section 1: Craving Banner */}
       <Banner />
 
-      {/* Section 2: Membership + Wallet Carousel */}
-      <MembershipWalletCarousel
-        hasActiveMembership={hasActiveMembership}
-        activeMembership={activeMembership}
-        memberName={memberName}
-        activeTier={activeTier}
-      />
+      {/* Section 2: Membership + Wallet Carousel — hidden when no tiers exist */}
+      {hasTiers && (
+        <MembershipWalletCarousel
+          hasActiveMembership={hasActiveMembership}
+          activeMembership={activeMembership}
+          memberName={memberName}
+          activeTier={activeTier}
+        />
+      )}
 
       {/* Section 4: Delivery & Deals */}
       <View className="mt-8">

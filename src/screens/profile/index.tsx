@@ -53,6 +53,7 @@ export default function Profile() {
   const walletBalance = walletData?.balance ?? 0;
   const { data: membershipData } = useMembershipStatus({ enabled: Boolean(user) });
   const hasActiveMembership = membershipData?.activeMembership?.status === 'paid';
+  const hasTiers = (membershipData?.tiers?.length ?? 0) > 0;
   const { data: savedAddress, isLoading: isAddressLoading } = useMyAddress(Boolean(user));
   const updateAddress = useUpdateMyAddress();
 
@@ -444,7 +445,7 @@ export default function Profile() {
         {/* Wallet & Membership — side by side */}
         <View className="mt-3 flex-row gap-3">
           <TouchableOpacity
-            className="flex-1 border border-gray-200 bg-white p-4"
+            className={`${hasTiers ? 'flex-1' : 'w-full'} border border-gray-200 bg-white p-4`}
             activeOpacity={0.7}
             onPress={() => router.push('/wallet')}>
             <View className="flex-row items-center gap-3">
@@ -465,27 +466,29 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            className="flex-1 border border-gray-200 bg-white p-4"
-            activeOpacity={0.7}
-            onPress={() => router.push('/membership')}>
-            <View className="flex-row items-center gap-3">
-              <View className={`flex h-10 w-10 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-brand-500' : 'bg-gray-100'}`}>
-                <Ionicons
-                  name={hasActiveMembership ? 'star' : 'star-outline'}
-                  size={18}
-                  color={hasActiveMembership ? '#fff' : '#6b7280'}
-                />
+          {hasTiers && (
+            <TouchableOpacity
+              className="flex-1 border border-gray-200 bg-white p-4"
+              activeOpacity={0.7}
+              onPress={() => router.push('/membership')}>
+              <View className="flex-row items-center gap-3">
+                <View className={`flex h-10 w-10 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-brand-500' : 'bg-gray-100'}`}>
+                  <Ionicons
+                    name={hasActiveMembership ? 'star' : 'star-outline'}
+                    size={18}
+                    color={hasActiveMembership ? '#fff' : '#6b7280'}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs font-medium text-gray-400">Membership</Text>
+                  <Text className={`text-sm font-bold ${hasActiveMembership ? 'text-brand-500' : 'text-gray-700'}`} numberOfLines={1}>
+                    {hasActiveMembership ? 'VIP Active' : 'View plans'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
               </View>
-              <View className="flex-1">
-                <Text className="text-xs font-medium text-gray-400">Membership</Text>
-                <Text className={`text-sm font-bold ${hasActiveMembership ? 'text-brand-500' : 'text-gray-700'}`} numberOfLines={1}>
-                  {hasActiveMembership ? 'VIP Active' : 'View plans'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Address */}
