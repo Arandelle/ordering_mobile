@@ -33,6 +33,10 @@ export const notificationService = {
   /** Mark all notifications as read */
   markAllAsRead: () =>
     apiClient.patch<void>('/customer/notifications/read-all'),
+
+  /** Delete a single notification */
+  deleteNotification: (id: string) =>
+    apiClient.delete<void>(`/customer/notifications/${id}`),
 };
 
 // ---------------------------------------------------------------------------
