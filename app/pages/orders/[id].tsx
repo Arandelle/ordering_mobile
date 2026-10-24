@@ -1,3 +1,3 @@
-import OrderDetails from "app/(tabs)/pages/orders/components/OrderDetails";
+import OrderDetails from "@/screens/orders/components/OrderDetails";
 
-export default OrderDetails
+export default OrderDetails;

@@ -205,7 +205,7 @@ async function searchAddress(query: string): Promise<SearchResult[]> {
 
 const INLINE_MAP_HEIGHT = 220;
 
-export function DeliveryLocationPicker({
+export default function DeliveryLocationPicker({
   value,
   addressQuery,
   onChange,

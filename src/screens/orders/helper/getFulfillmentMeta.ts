@@ -7,7 +7,7 @@ import { FULFILLMENT_TYPE, FulfillmentType } from '@/types/orders.type';
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 /** Icon + label pair for an order's fulfillment type */
-export function getFulfillmentMeta(type?: FulfillmentType): {
+export default function getFulfillmentMeta(type?: FulfillmentType): {
   icon: IoniconName;
   label: string;
 } {

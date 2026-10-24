@@ -55,7 +55,7 @@ export default function TabLayout() {
         headerTitleStyle: { fontSize: 14 },
       }}>
       <Tabs.Screen
-        name="index"
+        name="pages/index"
         options={{
           title: 'Home',
           headerTitle: () => (
@@ -153,30 +153,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color as string} />
           ),
-        }}
-      />
-
-      {/* Membership — hidden from tab bar, accessed via navigation */}
-      <Tabs.Screen
-        name="membership"
-        options={{
-          title: 'Membership',
-          href: null,
-          headerShown: true,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTitleStyle: { fontSize: 16, fontWeight: '700' },
-        }}
-      />
-
-      {/* Wallet — hidden from tab bar, accessed via navigation */}
-      <Tabs.Screen
-        name="wallet"
-        options={{
-          title: 'My Wallet',
-          href: null,
-          headerShown: true,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTitleStyle: { fontSize: 16, fontWeight: '700' },
         }}
       />
     </Tabs>

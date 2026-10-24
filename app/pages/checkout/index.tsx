@@ -1,3 +1,3 @@
-import PersonalDetails from "app/pages/checkout/checkout/PersonalDetails";
+import PersonalDetails from "@/screens/checkout/PersonalDetails";
 
 export default PersonalDetails;

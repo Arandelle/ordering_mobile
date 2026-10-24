@@ -2,7 +2,7 @@ import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export function CancelOrderModal({
+export default function CancelOrderModal({
   visible,
   referenceNumber,
   isCancelling,

@@ -9,7 +9,7 @@ const MembershipBanner = () => {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => router.push('/membership')}
+      onPress={() => router.push('pages/membership')}
       className="mx-4 mt-8 overflow-hidden rounded-[28px] bg-gray-900 px-6 py-5 shadow-lg">
       {/* Decorative blobs */}
       <View className="absolute -right-10 -top-2 h-40 w-40 rounded-full bg-brand-500/20" />

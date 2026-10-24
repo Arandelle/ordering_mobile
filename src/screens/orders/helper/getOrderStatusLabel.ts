@@ -1,7 +1,7 @@
 import { OrderType } from '@/types/orders.type';
 import { PAYMENT_STATUSES } from '@/types/payment.type';
 
-export function formatDisplayLabel(value?: string | null) {
+export default function formatDisplayLabel(value?: string | null) {
   if (!value) return 'Pending';
 
   return value

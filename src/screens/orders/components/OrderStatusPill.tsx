@@ -2,10 +2,10 @@ import { Text, View } from 'react-native';
 
 import { OrderType } from '@/types/orders.type';
 
-import { getStatusClasses } from '../helper/getStatusClasses';
+import getStatusClasses from '@/screens/orders/helper/getStatusClasses';
 
 /** Compact status pill with a colored dot — used across order cards and details */
-export function OrderStatusPill({
+export default function OrderStatusPill({
   status,
   label,
   size = 'sm',

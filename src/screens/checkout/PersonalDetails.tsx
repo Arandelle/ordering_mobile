@@ -6,7 +6,7 @@ import { useCheckout } from '@/context/CheckoutContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CheckoutStepper from './CheckoutStepper';
 import { FulfillmentSelector } from './FulfillmentSelector';
-import { ReservationPicker } from './ReservationPicker';
+import ReservationPicker from './ReservationPicker';
 import { PickupTimePicker } from './PickupTimePicker';
 import { useSettings } from '@/hooks/useSettings';
 import { FULFILLMENT_TYPE } from '@/types/orders.type';

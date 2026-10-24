@@ -1,3 +1,3 @@
-import ReviewOrder from "app/pages/checkout/checkout/ReviewOrder";
+import ReviewOrder from "@/screens/checkout/ReviewOrder";
 
 export default ReviewOrder;

@@ -17,17 +17,17 @@ const BANNER_WIDTH = SCREEN_WIDTH - BANNER_HORIZONTAL_PADDING * 2;
 const BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2.4);
 
 const DELIVERY_PROMOS = [
-  { source: require('../../assets/promos/Slider Banner 1.png') },
-  { source: require('../../assets/promos/Slider Banner 2.png') },
-  { source: require('../../assets/promos/FreeDeliveryBanner1.png') },
-  { source: require('../../assets/promos/DeliveryBanner2.png') },
+  { source: require('../../../assets/promos/Slider Banner 1.png') },
+  { source: require('../../../assets/promos/Slider Banner 2.png') },
+  { source: require('../../../assets/promos/FreeDeliveryBanner1.png') },
+  { source: require('../../../assets/promos/DeliveryBanner2.png') },
 ];
 
 const MENU_PROMOS = [
-  { source: require('../../assets/promos/BANNER V1.png') },
-  { source: require('../../assets/promos/BANNER V2.png') },
-  { source: require('../../assets/promos/BANNER V3.png') },
-  { source: require('../../assets/promos/BANNER V4.png') },
+  { source: require('../../../assets/promos/BANNER V1.png') },
+  { source: require('../../../assets/promos/BANNER V2.png') },
+  { source: require('../../../assets/promos/BANNER V3.png') },
+  { source: require('../../../assets/promos/BANNER V4.png') },
 ];
 
 function PromoCard({ source, onPress }: { source: number; onPress: () => void }) {

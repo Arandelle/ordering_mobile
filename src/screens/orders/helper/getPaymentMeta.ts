@@ -1,7 +1,7 @@
 import { PAYMENT_STATUSES } from '@/types/payment.type';
 
 /** Friendly label for a payment method key — "cod" -> "Cash on Delivery" */
-export function getPaymentMethodLabel(method?: string | null) {
+export default function getPaymentMethodLabel(method?: string | null) {
   switch (method?.toLowerCase()) {
     case 'maya':
       return 'Maya';

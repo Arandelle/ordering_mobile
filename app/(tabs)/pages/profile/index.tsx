@@ -21,13 +21,13 @@ import { emptyAddressDetails } from '@/hooks/useCheckout';
 import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
-import { AddressDetails } from './components/AddressDetails';
+import AddressDetails from '@/screens/profile/components/AddressDetails';
 import type {
   DeliveryCoordinates,
   ResolvedDeliveryAddress,
-} from '../../../pages/checkout/checkout/DeliveryLocationPicker';
-import { ProfileDetails } from './components/ProfileDetails';
-import { SecurityDetails } from './components/SecurityDetails';
+} from '@/screens/checkout/DeliveryLocationPicker';
+import { ProfileDetails } from '@/screens/profile/components/ProfileDetails';
+import { SecurityDetails } from '@/screens/profile/components/SecurityDetails';
 import {
   AddressErrors,
   AddressField,
@@ -39,8 +39,8 @@ import {
   ProfileForm,
   ProfileUser,
   UpdateUserPayload,
-} from './types';
-import { Toast } from './components/ToastMessage';
+} from '@/screens/profile/types';
+import { Toast } from '@/screens/profile/components/ToastMessage';
 import SignInForm from 'app/(tabs)/pages/auth';
 const BRAND = '#e13e00';
 
@@ -447,7 +447,7 @@ export default function Profile() {
           <TouchableOpacity
             className={`${hasTiers ? 'flex-1' : 'w-full'} border border-gray-200 bg-white p-4`}
             activeOpacity={0.7}
-            onPress={() => router.push('/wallet')}>
+            onPress={() => router.push('pages/wallet')}>
             <View className="flex-row items-center gap-3">
               <View className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50">
                 <Wallet size={18} color={BRAND} />
@@ -470,7 +470,7 @@ export default function Profile() {
             <TouchableOpacity
               className="flex-1 border border-gray-200 bg-white p-4"
               activeOpacity={0.7}
-              onPress={() => router.push('/membership')}>
+              onPress={() => router.push('pages/membership')}>
               <View className="flex-row items-center gap-3">
                 <View className={`flex h-10 w-10 items-center justify-center rounded-full ${hasActiveMembership ? 'bg-brand-500' : 'bg-gray-100'}`}>
                   <Ionicons

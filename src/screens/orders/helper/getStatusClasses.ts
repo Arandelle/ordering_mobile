@@ -1,6 +1,6 @@
 import { OrderType, ORDER_STATUSES, OrderStatus } from '@/types/orders.type';
 
-export function getStatusClasses(status: OrderType['status'] | OrderStatus) {
+export default function getStatusClasses(status: OrderType['status'] | OrderStatus) {
   switch (status) {
     case ORDER_STATUSES.PENDING:
       return {

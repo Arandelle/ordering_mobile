@@ -10,14 +10,14 @@ import { ORDER_STATUSES } from '@/types/orders.type';
 import { FULFILLMENT_TYPE, OrderType } from '@/types/orders.type';
 import { ModifierSelection } from '@/types/menu-types';
 
-import { useOrderState } from '../hooks/useOrderState';
-import { CancelOrderModal } from './CancelOrderModal';
-import { OrderStatusPill } from './OrderStatusPill';
-import { OrderTimeline } from './OrderTimeline';
-import { getErrorMessage } from '../helper/getErrorMessage';
-import { getFulfillmentMeta } from '../helper/getFulfillmentMeta';
-import { formatDisplayLabel, getOrderStatusLabel } from '../helper/getOrderStatusLabel';
-import { getPaymentMethodLabel, getPaymentStatusMeta } from '../helper/getPaymentMeta';
+import { useOrderState } from '@/screens/orders/hooks/useOrderState';
+import CancelOrderModal from '@/screens/orders/components/CancelOrderModal';
+import OrderStatusPill from '@/screens/orders/components/OrderStatusPill';
+import OrderTimeline from '@/screens/orders/components/OrderTimeline';
+import getErrorMessage from '@/screens/orders/helper/getErrorMessage';
+import getFulfillmentMeta from '@/screens/orders/helper/getFulfillmentMeta';
+import formatDisplayLabel, { getOrderStatusLabel } from '@/screens/orders/helper/getOrderStatusLabel';
+import getPaymentMethodLabel, { getPaymentStatusMeta } from '@/screens/orders/helper/getPaymentMeta';
 import { formatMoney } from '@/helper/formatter';
 import DynamicImage from '@/components/ui/DynamicImage';
 

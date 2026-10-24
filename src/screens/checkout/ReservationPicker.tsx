@@ -26,7 +26,7 @@ function roundToNext30Min(date: Date): Date {
   return rounded;
 }
 
-export function ReservationPicker({
+export default function ReservationPicker({
   scheduledAt,
   partySize,
   onChangeScheduledAt,

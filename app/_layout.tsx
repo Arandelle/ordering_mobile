@@ -86,6 +86,18 @@ export default function RootLayout() {
                   title: "Order Details"
                 }}
                 />
+                <Stack.Screen name="pages/membership"
+                options={{
+                  headerShown: true,
+                  title: "Memberships"
+                }}
+                />
+                <Stack.Screen name="pages/wallet"
+                options={{
+                  headerShown: true,
+                  title: "My Wallet"
+                }}
+                />
                 <Stack.Screen name="pages/cart" options={{
                   headerShown: true,
                   title: 'Cart',

@@ -5,12 +5,11 @@ import { formatAddress } from '../utils';
 import { AddressErrors, AddressField, EditingSection, LoadingAction } from '../types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import {
-  DeliveryLocationPicker,
-  DeliveryCoordinates,
-  ResolvedDeliveryAddress,
-} from '../../../../pages/checkout/checkout/DeliveryLocationPicker';
-import { PsgcAddressFields } from '../../../../pages/checkout/checkout/PsgcAddressFields';
+import DeliveryLocationPicker, {
+  type DeliveryCoordinates,
+  type ResolvedDeliveryAddress,
+} from '@/screens/checkout/DeliveryLocationPicker';
+import { PsgcAddressFields } from '@/screens/checkout/PsgcAddressFields';
 
 interface AddressDetailsProps {
   addressForm: CheckoutAddressDetails;
@@ -31,7 +30,7 @@ interface AddressDetailsProps {
   onSave: () => void;
 }
 
-export function AddressDetails({
+export default function AddressDetails({
   addressForm,
   addressErrors,
   isEditing,

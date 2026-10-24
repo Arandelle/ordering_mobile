@@ -36,7 +36,7 @@ function formatStepTime(value?: string) {
 }
 
 /** Horizontal progress stepper: Placed -> Preparing -> Ready -> Completed */
-export function OrderTimeline({ order }: { order: OrderType }) {
+export default function OrderTimeline({ order }: { order: OrderType }) {
   const currentIndex = getCurrentStepIndex(order.status);
 
   return (

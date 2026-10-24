@@ -9,7 +9,7 @@ import { formatMoney } from '@/helper/formatter';
 import { Button } from '@/components/ui/Button';
 import { UndoBanner } from '@/components/UndoBanner';
 import { useUndo } from '@/hooks/useUndo';
-import { CartItemCard } from './CartItemCard';
+import { CartItemCard } from '@/screens/cart/CartItemCard';
 
 // Bottom tab bar height — matches tabBarStyle padding in app/(tabs)/_layout.tsx
 const TAB_BAR_HEIGHT = 72;

@@ -27,12 +27,12 @@ import { ORDER_STATUSES } from '@/types/orders.type';
 import { OrderType } from '@/types/orders.type';
 import { CartItem, ModifierSelection } from '@/types/menu-types';
 
-import { useOrderState } from './hooks/useOrderState';
-import { CancelOrderModal } from './components/CancelOrderModal';
-import { OrderStatusPill } from './components/OrderStatusPill';
-import { getErrorMessage } from './helper/getErrorMessage';
-import { getFulfillmentMeta } from './helper/getFulfillmentMeta';
-import { getOrderStatusLabel } from './helper/getOrderStatusLabel';
+import { useOrderState } from '@/screens/orders/hooks/useOrderState';
+import CancelOrderModal from '@/screens/orders/components/CancelOrderModal';
+import OrderStatusPill from '@/screens/orders/components/OrderStatusPill';
+import getErrorMessage from '@/screens/orders/helper/getErrorMessage';
+import getFulfillmentMeta from '@/screens/orders/helper/getFulfillmentMeta';
+import { getOrderStatusLabel } from '@/screens/orders/helper/getOrderStatusLabel';
 import { formatMoney } from '@/helper/formatter';
 import DynamicImage from '@/components/ui/DynamicImage';
 
