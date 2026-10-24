@@ -2,8 +2,8 @@ import { Phone } from 'lucide-react-native';
 import { Dispatch, SetStateAction } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { EditingSection, LoadingAction, ProfileForm, ProfileUser } from './types';
-import { getDisplayName } from './utils';
+import { EditingSection, LoadingAction, ProfileForm, ProfileUser } from '../types';
+import { getDisplayName } from '../utils';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 

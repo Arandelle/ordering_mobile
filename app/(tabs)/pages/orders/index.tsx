@@ -210,7 +210,7 @@ function OrderCard({
     activeOpacity={0.94}
     accessibilityRole="button"
     accessibilityLabel={`View order details, total ${formatMoney(order.total.totalAmount)}`}
-    onPress={() => router.push(`/orders/${order._id}`)}>
+    onPress={() => router.push(`/pages/orders/${order._id}`)}>
     {/* Header: fulfillment, date and status */}
     <View className="flex-row items-center justify-between gap-3 px-5 pb-4 pt-5">
       <View className="min-w-0 flex-1 flex-row items-center gap-3">

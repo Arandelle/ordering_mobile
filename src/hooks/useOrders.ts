@@ -13,8 +13,11 @@ import {
   getDeliveryFeeEstimate,
   getGuestOrder,
   submitOrderReview,
+  getCheckoutEstimate,
   DeliveryFeeEstimateParams,
   DeliveryFeeEstimateResponse,
+  CheckoutEstimateParams,
+  CheckoutEstimateResponse,
 } from '@/services/orders.service';
 import { CreateOrderResponse, OrderType, OrdersApiResponse, ORDER_STATUSES, OrderStatus } from '@/types/orders.type';
 import { SubmitReviewPayload, SubmitReviewResponse } from '@/types/review.type';
@@ -157,6 +160,23 @@ export function useDeliveryFeeEstimate(params: DeliveryFeeEstimateParams | null)
     queryFn: () => getDeliveryFeeEstimate(params!),
     enabled: !!params,
     staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+}
+
+export function useCheckoutEstimate(params: CheckoutEstimateParams | null) {
+  return useQuery<CheckoutEstimateResponse | null, Error>({
+    queryKey: [
+      'checkout-estimate',
+      params?.branchId,
+      params?.fulfillmentType,
+      params?.items?.length,
+      params?.shippingAddress?.coordinates?.lat,
+      params?.shippingAddress?.coordinates?.lng,
+    ],
+    queryFn: () => getCheckoutEstimate(params!),
+    enabled: !!params && !!params.branchId && !!params.items?.length,
+    staleTime: 1000 * 30,
     retry: false,
   });
 }

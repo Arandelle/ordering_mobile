@@ -13,10 +13,11 @@ import { CreateOrderPayload, FULFILLMENT_TYPE } from '@/types/orders.type';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import CheckoutStepper from './CheckoutStepper';
 import { OrderConfirmationModal } from './OrderConfirmationModal';
-import { useDeliveryFeeEstimate } from '@/hooks/useOrders';
+import { useCheckoutEstimate } from '@/hooks/useOrders';
 import { Button } from '@/components/ui/Button';
 import { useWallet } from '@/hooks/useWallet';
 import { useQueryClient } from '@tanstack/react-query';
+import type { ModifierSelection } from '@/types/menu-types';
 
 function formatMoney(value: number) {
   return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -98,9 +99,6 @@ const ReviewOrder = () => {
     clearCart,
   } = useCart();
 
-  const vatableSales = selectedTotal / 1.12;
-  const vatAmount = selectedTotal - vatableSales;
-
   const {
     draft,
     errors,
@@ -124,25 +122,60 @@ const ReviewOrder = () => {
   const isDineIn = draft.fulfillmentType === FULFILLMENT_TYPE.DINE_IN;
   const isPickup = draft.fulfillmentType === FULFILLMENT_TYPE.PICKUP;
 
-  // Delivery fee estimate
+  // Checkout estimate — unified pricing from server (service charge, tax, discounts, delivery)
   const deliveryCoords = draft.shippingAddress.coordinates;
-  const { data: deliveryEstimate, isLoading: isLoadingDeliveryFee, refetch: refetchDeliveryFee } = useDeliveryFeeEstimate(
-    isDelivery && deliveryCoords && selectedBranch?._id
-      ? {
-          branchId: selectedBranch._id,
-          lat: deliveryCoords.lat,
-          lng: deliveryCoords.lng,
-          customerBarangayCode: draft.shippingAddress.barangayCode || undefined,
-          itemSubtotalAmount: vatableSales,
-        }
-      : null,
-  );
+  const estimateParams = selectedBranch?._id && selectedItems.length > 0
+    ? {
+        branchId: selectedBranch._id,
+        fulfillmentType: draft.fulfillmentType,
+        items: selectedItems.map((item) => ({
+          _id: String(item._id),
+          quantity: item.quantity,
+          modifierSelections: item.modifierSelections as ModifierSelection[] | undefined,
+        })),
+        ...(isDelivery && deliveryCoords
+          ? {
+              shippingAddress: {
+                coordinates: { lat: deliveryCoords.lat, lng: deliveryCoords.lng },
+                barangayCode: draft.shippingAddress.barangayCode || undefined,
+              },
+            }
+          : {}),
+      }
+    : null;
+
+  const {
+    data: estimate,
+    isLoading: isLoadingEstimate,
+    refetch: refetchEstimate,
+  } = useCheckoutEstimate(estimateParams);
+
+  // Fall back to client-side subtotal when estimate hasn't loaded yet
+  const effectiveTotal = estimate?.totalAmount ?? selectedTotal;
+  const effectiveVatableSales = estimate?.vatableSales ?? selectedTotal / 1.12;
+  const effectiveVatAmount = estimate?.vatAmount ?? selectedTotal - effectiveVatableSales;
+  const serviceChargeAmount = estimate?.serviceChargeAmount ?? 0;
+  const discountAmount = estimate?.discountAmount ?? 0;
+
+  // Delivery-specific fields from estimate (falls back to old hook for backward compat)
+  const deliveryEstimate = estimate
+    ? {
+        distanceKm: estimate.deliveryDistanceKm ?? 0,
+        billableKm: estimate.deliveryBillableKm ?? 0,
+        deliveryFee: estimate.rawDeliveryFee ?? estimate.deliveryFeeAmount ?? 0,
+        effectiveDeliveryFee: estimate.deliveryFeeAmount ?? 0,
+        freeDeliveryEligible: !!estimate.freeDeliveryApplied,
+        freeDeliveryApplied: !!estimate.freeDeliveryApplied,
+        deliveryUnavailable: estimate.deliveryUnavailable === true,
+      }
+    : null;
+  const isLoadingDeliveryFee = isLoadingEstimate;
 
   // Effective COD availability
   const effectiveCodAvailable = isCodAvailable && isDelivery;
 
   // Wallet can cover the full order total
-  const walletCanCover = hasWalletBalance && walletBalance >= selectedTotal;
+  const walletCanCover = hasWalletBalance && walletBalance >= effectiveTotal;
 
   // Track if user has manually selected a payment method
   const hasUserSelectedPayment = useRef(false);
@@ -162,12 +195,12 @@ const ReviewOrder = () => {
     setRefreshing(true);
     await Promise.all([
       refetchWallet(),
-      refetchDeliveryFee(),
+      refetchEstimate(),
       queryClient.invalidateQueries({ queryKey: ['branches'] }),
       queryClient.invalidateQueries({ queryKey: ['settings'] }),
     ]);
     setRefreshing(false);
-  }, [refetchWallet, refetchDeliveryFee, queryClient]);
+  }, [refetchWallet, refetchEstimate, queryClient]);
 
   // Mark when user manually selects a payment method
   const handlePaymentMethodChange = (method: 'cod' | 'maya' | 'wallet') => {
@@ -516,109 +549,94 @@ const ReviewOrder = () => {
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <Text className="mb-3 text-[15px] font-bold text-gray-950">Order total</Text>
 
-        <View className="gap-2">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-sm text-gray-500">Vatable sales</Text>
-            <Text className="text-sm font-semibold text-gray-800">{formatMoney(vatableSales)}</Text>
+        {isLoadingEstimate ? (
+          <View className="items-center py-4">
+            <Text className="text-sm text-gray-400">Calculating totals...</Text>
           </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-sm text-gray-500">VAT 12%</Text>
-            <Text className="text-sm font-semibold text-gray-800">{formatMoney(vatAmount)}</Text>
-          </View>
+        ) : (
+          <View className="gap-2">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm text-gray-500">Subtotal</Text>
+              <Text className="text-sm font-semibold text-gray-800">{formatMoney(selectedTotal)}</Text>
+            </View>
 
-          {isDelivery && (
-            <>
-              {isLoadingDeliveryFee ? (
+            {discountAmount > 0 && (
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm text-gray-500">Discounts</Text>
+                <Text className="text-sm font-semibold text-green-600">-{formatMoney(discountAmount)}</Text>
+              </View>
+            )}
+
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm text-gray-500">Vatable sales</Text>
+              <Text className="text-sm font-semibold text-gray-800">{formatMoney(effectiveVatableSales)}</Text>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm text-gray-500">VAT 12%</Text>
+              <Text className="text-sm font-semibold text-gray-800">{formatMoney(effectiveVatAmount)}</Text>
+            </View>
+
+            {(isPickup || isDineIn) && serviceChargeAmount > 0 && (
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm text-gray-500">Service charge (10%)</Text>
+                <Text className="text-sm font-semibold text-gray-800">{formatMoney(serviceChargeAmount)}</Text>
+              </View>
+            )}
+
+            {isDelivery && deliveryEstimate && (
+              <>
+                {/* Distance + billable km */}
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm text-gray-500">Delivery fee</Text>
-                  <Text className="text-sm text-gray-400">Calculating...</Text>
-                </View>
-              ) : deliveryEstimate ? (
-                <>
-                  {/* Distance + billable km */}
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-1.5">
-                      <Ionicons name="location-outline" size={14} color="#6b7280" />
-                      <Text className="text-sm text-gray-500">Distance</Text>
-                    </View>
-                    <Text className="text-sm font-semibold text-gray-800">
-                      {deliveryEstimate.distanceKm.toFixed(1)} km
-                      {deliveryEstimate.billableKm !== Math.round(deliveryEstimate.distanceKm) && (
-                        <Text className="text-xs text-gray-400">
-                          {' '}({deliveryEstimate.billableKm} km billed)
-                        </Text>
-                      )}
-                    </Text>
+                  <View className="flex-row items-center gap-1.5">
+                    <Ionicons name="location-outline" size={14} color="#6b7280" />
+                    <Text className="text-sm text-gray-500">Distance</Text>
                   </View>
-
-                  {/* Delivery fee */}
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-sm text-gray-500">Delivery fee</Text>
-                    {deliveryEstimate.freeDeliveryEligible ? (
-                      <View className="flex-row items-center gap-1">
-                        <Text className="text-xs text-gray-400 line-through">
-                          {formatMoney(deliveryEstimate.deliveryFee)}
-                        </Text>
-                        <Text className="text-sm font-bold text-green-600">FREE</Text>
-                      </View>
-                    ) : (
-                      <Text className="text-sm font-semibold text-gray-800">
-                        {formatMoney(deliveryEstimate.effectiveDeliveryFee)}
+                  <Text className="text-sm font-semibold text-gray-800">
+                    {deliveryEstimate.distanceKm.toFixed(1)} km
+                    {deliveryEstimate.billableKm !== Math.round(deliveryEstimate.distanceKm) && (
+                      <Text className="text-xs text-gray-400">
+                        {' '}({deliveryEstimate.billableKm} km billed)
                       </Text>
                     )}
+                  </Text>
+                </View>
+
+                {/* Delivery fee */}
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm text-gray-500">Delivery fee</Text>
+                  {deliveryEstimate.freeDeliveryEligible ? (
+                    <View className="flex-row items-center gap-1">
+                      <Text className="text-xs text-gray-400 line-through">
+                        {formatMoney(deliveryEstimate.deliveryFee)}
+                      </Text>
+                      <Text className="text-sm font-bold text-green-600">FREE</Text>
+                    </View>
+                  ) : (
+                    <Text className="text-sm font-semibold text-gray-800">
+                      {formatMoney(deliveryEstimate.effectiveDeliveryFee)}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Delivery unavailable warning */}
+                {deliveryEstimate.deliveryUnavailable && (
+                  <View className="flex-row items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2">
+                    <Ionicons name="alert-circle" size={14} color="#dc2626" />
+                    <Text className="flex-1 text-xs text-red-600">
+                      Delivery is not available for this address.
+                    </Text>
                   </View>
-
-                  {/* Free delivery reason */}
-                  {deliveryEstimate.freeDeliveryEligible && deliveryEstimate.freeDeliveryReason && (
-                    <View className="flex-row items-start gap-1.5 rounded-lg bg-green-50 px-3 py-2">
-                      <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
-                      <Text className="flex-1 text-xs text-green-700">
-                        {deliveryEstimate.freeDeliveryReason}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Free delivery not eligible — show upsell hint */}
-                  {!deliveryEstimate.freeDeliveryEligible && deliveryEstimate.freeDeliveryReason && (
-                    <View className="flex-row items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2">
-                      <Ionicons name="information-circle" size={14} color="#d97706" />
-                      <Text className="flex-1 text-xs text-amber-800">
-                        {deliveryEstimate.freeDeliveryReason}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Delivery unavailable warning */}
-                  {deliveryEstimate.deliveryUnavailable && (
-                    <View className="flex-row items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2">
-                      <Ionicons name="alert-circle" size={14} color="#dc2626" />
-                      <Text className="flex-1 text-xs text-red-600">
-                        Delivery is not available for this address.
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Recommended branch */}
-                  {deliveryEstimate.recommendedBranch && (
-                    <View className="flex-row items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2">
-                      <Ionicons name="navigate" size={14} color="#d97706" />
-                      <Text className="flex-1 text-xs text-amber-800">
-                        Try {deliveryEstimate.recommendedBranch.name} —{' '}
-                        {deliveryEstimate.recommendedBranch.distanceKm.toFixed(1)} km away
-                      </Text>
-                    </View>
-                  )}
-                </>
-              ) : null}
-            </>
-          )}
-        </View>
+                )}
+              </>
+            )}
+          </View>
+        )}
 
         <View className="my-3 h-px bg-gray-100" />
 
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-extrabold text-gray-950">Total</Text>
-          <Text className="text-xl font-extrabold text-[#e13e00]">{formatMoney(selectedTotal)}</Text>
+          <Text className="text-xl font-extrabold text-[#e13e00]">{formatMoney(effectiveTotal)}</Text>
         </View>
       </View>
 
@@ -690,7 +708,7 @@ const ReviewOrder = () => {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handlePlaceOrder}
         isPlacingOrder={isPlacingOrder}
-        displayTotalPrice={selectedTotal}
+        displayTotalPrice={effectiveTotal}
         selectedPayment={paymentMethod}
       />
     </ScrollView>

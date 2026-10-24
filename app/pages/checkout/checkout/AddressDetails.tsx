@@ -108,7 +108,7 @@ const AddressDetails = () => {
       return;
     }
 
-    router.push('/checkout/review');
+    router.push('pages/checkout/review');
   };
 
   if (!isReady || !isDelivery) {

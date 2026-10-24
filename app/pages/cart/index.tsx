@@ -196,7 +196,7 @@ export default function CartScreen() {
                 </Text>
               </View>
               <Button
-                onPress={() => router.push('/checkout')}
+                onPress={() => router.push('/pages/checkout')}
                 disabled={selectedCount === 0}
                 text="Checkout"
                 className="rounded-xl px-6 py-3.5"

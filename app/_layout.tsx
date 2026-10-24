@@ -79,20 +79,20 @@ export default function RootLayout() {
                 <Stack.Screen
                   name="(tabs)"
                 />
-                <Stack.Screen name="product/[id]" />
-                <Stack.Screen name="orders/[id]"
+                <Stack.Screen name="pages/product/[id]" />
+                <Stack.Screen name="pages/orders/[id]"
                 options={{
                   headerShown: true,
                   title: "Order Details"
                 }}
                 />
-                <Stack.Screen name="cart" options={{
+                <Stack.Screen name="pages/cart" options={{
                   headerShown: true,
                   title: 'Cart',
                 }} />
-                <Stack.Screen name="checkout" />
-                <Stack.Screen name="auth" />
-                <Stack.Screen name="review/[id]" options={{
+                <Stack.Screen name="pages/checkout" />
+                <Stack.Screen name="pages/auth" />
+                <Stack.Screen name="pages/review/[id]" options={{
                   headerShown: true,
                   title: "Review"
                 }} />

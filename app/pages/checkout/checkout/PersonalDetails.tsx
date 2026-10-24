@@ -61,9 +61,9 @@ const PersonalDetails = () => {
 
     // For delivery, go to address step; for pickup/dine-in, skip to review
     if (isDelivery) {
-      router.push('/checkout/address');
+      router.push('pages/checkout/address');
     } else {
-      router.push('/checkout/review');
+      router.push('pages/checkout/review');
     }
   };
 

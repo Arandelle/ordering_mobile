@@ -1,16 +1,16 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CheckoutAddressDetails } from '@/hooks/useCheckout';
-import { formatAddress } from './utils';
-import { AddressErrors, AddressField, EditingSection, LoadingAction } from './types';
+import { formatAddress } from '../utils';
+import { AddressErrors, AddressField, EditingSection, LoadingAction } from '../types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import {
   DeliveryLocationPicker,
   DeliveryCoordinates,
   ResolvedDeliveryAddress,
-} from '../checkout/DeliveryLocationPicker';
-import { PsgcAddressFields } from '../checkout/PsgcAddressFields';
+} from '../../../../pages/checkout/checkout/DeliveryLocationPicker';
+import { PsgcAddressFields } from '../../../../pages/checkout/checkout/PsgcAddressFields';
 
 interface AddressDetailsProps {
   addressForm: CheckoutAddressDetails;

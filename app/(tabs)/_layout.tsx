@@ -78,7 +78,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="menu"
+        name="pages/menu"
         options={{
           title: 'Menu',
           headerTitle: () => (
@@ -105,7 +105,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="orders"
+        name="pages/orders"
         options={{
           title: 'Orders',
           tabBarBadge: isAuthenticated && activeOrdersCount > 0 ? activeOrdersCount : undefined,
@@ -127,7 +127,7 @@ export default function TabLayout() {
 
       {/* Auth tab — shows sign-in when not authenticated */}
       <Tabs.Screen
-        name="auth"
+        name="pages/auth"
         options={{
           title: 'Sign In',
           href: isAuthenticated ? null : undefined,
@@ -140,7 +140,7 @@ export default function TabLayout() {
 
       {/* Profile tab — only visible when authenticated */}
       <Tabs.Screen
-        name="profile"
+        name="pages/profile"
         options={{
           title: 'Profile',
           href: isAuthenticated ? undefined : null,

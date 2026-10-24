@@ -95,7 +95,7 @@ const ProductCard = React.memo(
     };
 
     const handlePress = () => {
-      router.push(`/product/${item._id}`);
+      router.push(`pages/product/${item._id}`);
     };
 
     return (

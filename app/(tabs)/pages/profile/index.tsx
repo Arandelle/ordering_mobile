@@ -21,14 +21,13 @@ import { emptyAddressDetails } from '@/hooks/useCheckout';
 import { apiClient } from '@/lib/apiClient';
 import { useMyAddress, useUpdateMyAddress } from '@/hooks/useAddress';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
-import { AddressDetails } from './AddressDetails';
+import { AddressDetails } from './components/AddressDetails';
 import type {
   DeliveryCoordinates,
   ResolvedDeliveryAddress,
-} from '../checkout/DeliveryLocationPicker';
-import { ProfileDetails } from './ProfileDetails';
-import { SecurityDetails } from './SecurityDetails';
-import SignInForm from '@/screens/auth/SignInForm';
+} from '../../../pages/checkout/checkout/DeliveryLocationPicker';
+import { ProfileDetails } from './components/ProfileDetails';
+import { SecurityDetails } from './components/SecurityDetails';
 import {
   AddressErrors,
   AddressField,
@@ -42,6 +41,7 @@ import {
   UpdateUserPayload,
 } from './types';
 import { Toast } from './components/ToastMessage';
+import SignInForm from 'app/(tabs)/pages/auth';
 const BRAND = '#e13e00';
 
 export default function Profile() {

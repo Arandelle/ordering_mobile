@@ -2,8 +2,8 @@ import { Dispatch, SetStateAction } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LockKeyhole } from 'lucide-react-native';
-import { DangerZone } from './components/DangerZone';
-import { EditingSection, LoadingAction, PasswordForm } from './types';
+import { DangerZone } from './DangerZone';
+import { EditingSection, LoadingAction, PasswordForm } from '../types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
