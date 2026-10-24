@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image as RNImage,
@@ -123,11 +123,13 @@ export const DynamicImage = forwardRef<View, DynamicImageProps>(
     const handleError = useCallback(() => setHasError(true), []);
     const handleLoad = useCallback(() => setIsLoaded(true), []);
 
+    const viewRef = ref as React.Ref<React.ElementRef<typeof View>>;
+
     // Already errored → show fallback immediately
     if (hasError) {
       return (
         <View
-          ref={ref}
+          ref={viewRef}
           style={containerStyle}
           className={twMerge("overflow-hidden", containerClassName)}
           accessibilityRole="image"
@@ -139,7 +141,7 @@ export const DynamicImage = forwardRef<View, DynamicImageProps>(
 
     return (
       <View
-        ref={ref}
+        ref={viewRef}
         style={containerStyle}
         className={twMerge("overflow-hidden", containerClassName)}>
         {/* Loading overlay */}

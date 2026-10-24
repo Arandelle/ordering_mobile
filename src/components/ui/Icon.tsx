@@ -18,7 +18,7 @@ export const Icon = ({
   iconSet?: "lucide" | "ionicons";
 } & Omit<LucideProps, "size" | "color">) => {
   if (iconSet === "ionicons") {
-    return <Ionicons name={name as IoniconName} size={size} color={color ?? "currentColor"} {...props} />;
+    return <Ionicons name={name as IoniconName} size={size} color={color ?? "currentColor"} />;
   }
 
   const IconComponent = getLucideIcon(name);
