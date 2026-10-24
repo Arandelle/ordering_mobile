@@ -221,6 +221,7 @@ const ReviewOrder = () => {
       items: selectedItems.map((item) => ({
         _id: String(item._id),
         quantity: item.quantity,
+        modifierSelections: item.modifierSelections,
       })),
     };
 
