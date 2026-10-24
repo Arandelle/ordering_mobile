@@ -31,33 +31,32 @@ export function FulfillmentSelector({
   onChange: (value: FulfillmentType) => void;
 }) {
   return (
-    <View className="gap-3">
+    <View className="flex-row gap-2">
       {options.map((option) => {
         const isSelected = value === option.value;
 
         return (
           <TouchableOpacity
             key={option.value}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
             onPress={() => onChange(option.value)}
-            className={`flex-row items-start gap-3 rounded-xl border px-4 py-3 ${
-              isSelected ? 'border-[#e13e00] bg-orange-50' : 'border-gray-200 bg-white'
+            className={`flex-1 items-center justify-center rounded-lg border py-3 ${
+              isSelected ? 'border-[#e13e00] bg-[#e13e00]' : 'border-gray-200 bg-white'
             }`}>
-            <View
-              className={`mt-0.5 h-9 w-9 items-center justify-center rounded-full ${
-                isSelected ? 'bg-[#e13e00]' : 'bg-gray-100'
-              }`}>
-              {isSelected ? option.icon : (
-                option.value === FULFILLMENT_TYPE.DELIVERY ? <Truck size={17} color="#6b7280" /> :
-                option.value === FULFILLMENT_TYPE.PICKUP ? <Store size={17} color="#6b7280" /> :
-                <UtensilsCrossed size={17} color="#6b7280" />
+            <View className="mb-1">
+              {isSelected ? (
+                option.value === FULFILLMENT_TYPE.DELIVERY ? <Truck size={18} color="#fff" /> :
+                option.value === FULFILLMENT_TYPE.PICKUP ? <Store size={18} color="#fff" /> :
+                <UtensilsCrossed size={18} color="#fff" />
+              ) : (
+                option.value === FULFILLMENT_TYPE.DELIVERY ? <Truck size={18} color="#6b7280" /> :
+                option.value === FULFILLMENT_TYPE.PICKUP ? <Store size={18} color="#6b7280" /> :
+                <UtensilsCrossed size={18} color="#6b7280" />
               )}
             </View>
-
-            <View className="flex-1">
-              <Text className="text-sm font-bold text-gray-900">{option.label}</Text>
-              <Text className="mt-0.5 text-xs leading-5 text-gray-500">{option.description}</Text>
-            </View>
+            <Text className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-gray-700'}`}>
+              {option.label}
+            </Text>
           </TouchableOpacity>
         );
       })}

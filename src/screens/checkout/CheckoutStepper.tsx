@@ -8,7 +8,7 @@ interface CheckoutStepperProps {
 
 const CheckoutStepper = ({ currentStep }: CheckoutStepperProps) => {
   return (
-    <View className="mb-6 rounded-2xl bg-orange-50 px-4 py-3 w-full">
+    <View className="mb-6 rounded-2xl px-4 py-3 w-full">
       <View className="flex-row items-center justify-between">
         {STEPS.map((step, index) => {
           const stepNumber = index + 1;
@@ -22,7 +22,7 @@ const CheckoutStepper = ({ currentStep }: CheckoutStepperProps) => {
               <View className="items-center">
                 <View
                   className={`h-8 w-8 items-center justify-center rounded-full ${
-                    isActive ? 'bg-[#e13e00]' : 'bg-white'
+                    isActive ? 'bg-[#e13e00] border border-white' : 'bg-white border border-gray-300'
                   }`}>
                   <Text
                     className={`text-xs font-bold ${
@@ -43,7 +43,7 @@ const CheckoutStepper = ({ currentStep }: CheckoutStepperProps) => {
                 <View className="flex-1 items-center">
                   <View
                     className={`mb-4 h-[2px] w-full ${
-                      isActive ? 'bg-[#e13e00]' : 'bg-white'
+                      isActive ? 'bg-[#e13e00]/60' : 'bg-gray-200'
                     }`}
                   />
                 </View>

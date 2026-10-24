@@ -70,17 +70,18 @@ function PaymentOption({
 
   return (
     <TouchableOpacity
-      className={`flex-1 rounded-2xl border p-4 ${
-        selected ? 'border-[#e13e00] bg-orange-50' : 'border-gray-200 bg-white'
+      className={`flex-row items-center gap-3 rounded-lg border px-4 py-3 ${
+        selected ? 'border-[#e13e00]' : 'border-gray-200'
       } ${disabled ? 'opacity-40' : ''}`}
-      activeOpacity={0.86}
+      activeOpacity={0.7}
       disabled={disabled}
       onPress={onPress}>
-      <View className="mb-3 h-10 w-10 items-center justify-center rounded-full bg-white">
-        <Icon size={20} color={selected ? '#e13e00' : '#4b5563'} />
+      <Icon size={18} color={selected ? '#e13e00' : '#6b7280'} />
+      <View className="flex-1">
+        <Text className={`text-sm font-semibold ${selected ? 'text-gray-900' : 'text-gray-700'}`}>{label}</Text>
+        <Text className="text-xs text-gray-400">{subtitle}</Text>
       </View>
-      <Text className="text-sm font-extrabold text-gray-950">{label}</Text>
-      <Text className="mt-1 text-xs leading-4 text-gray-500">{subtitle}</Text>
+      {selected && <View className="h-2 w-2 rounded-full bg-[#e13e00]" />}
     </TouchableOpacity>
   );
 }
@@ -364,18 +365,18 @@ const ReviewOrder = () => {
       </Text>
 
       {/* Branch + Fulfillment type */}
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+      <View className="mb-4">
         <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-[15px] font-bold text-gray-950">Branch</Text>
-          <View className="rounded-full bg-orange-100 px-2.5 py-0.5">
-            <Text className="text-[10px] font-bold text-orange-600">
+          <Text className="text-sm font-semibold text-gray-900">Branch</Text>
+          <View className="rounded-full bg-gray-100 px-2.5 py-0.5">
+            <Text className="text-[11px] font-medium text-gray-600">
               {formatFulfillment(draft.fulfillmentType)}
             </Text>
           </View>
         </View>
         <BranchSelector className="mt-0 px-0" />
         {!!selectedBranch?.address && (
-          <Text className="mt-2 text-xs leading-4 text-gray-500">
+          <Text className="mt-1.5 text-xs text-gray-400">
             {selectedBranch.address?.city} {selectedBranch.address?.province}
           </Text>
         )}
@@ -383,16 +384,16 @@ const ReviewOrder = () => {
 
       {/* Personal Details card (editable) */}
       <TouchableOpacity
-        className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
-        activeOpacity={0.86}
+        className="mb-4 border-b border-gray-200 pb-4"
+        activeOpacity={0.7}
         onPress={() => router.push('/checkout')}>
-        <View className="mb-2 flex-row items-start justify-between gap-3">
+        <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-xs font-bold uppercase tracking-wide text-gray-500">
+            <Text className="text-xs font-medium text-gray-400">
               Personal Details
             </Text>
-            <Text className="mt-1 text-base font-extrabold text-gray-950">{display(fullName)}</Text>
-            <Text className="mt-1 text-sm leading-5 text-gray-600">
+            <Text className="mt-1 text-base font-semibold text-gray-900">{display(fullName)}</Text>
+            <Text className="mt-0.5 text-sm text-gray-500">
               {display(draft.customer.customerEmail)} · {display(draft.customer.customerPhone)}
             </Text>
 
@@ -436,16 +437,16 @@ const ReviewOrder = () => {
       {/* Delivery Address card (editable) — delivery only */}
       {isDelivery && (
         <TouchableOpacity
-          className="mb-4 rounded-2xl bg-white p-4 shadow-sm"
-          activeOpacity={0.86}
+          className="mb-4 border-b border-gray-200 pb-4"
+          activeOpacity={0.7}
           onPress={() => router.push('/checkout/address')}>
-          <View className="mb-2 flex-row items-start justify-between gap-3">
+          <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">
-              <Text className="text-xs font-bold uppercase tracking-wide text-gray-500">
+              <Text className="text-xs font-medium text-gray-400">
                 Delivery Address
               </Text>
               {draft.shippingAddress.line1 ? (
-                <Text className="mt-1 text-sm leading-5 text-gray-800">
+                <Text className="mt-1 text-sm text-gray-700">
                   {[
                     draft.shippingAddress.line1,
                     draft.shippingAddress.line2,
@@ -461,39 +462,39 @@ const ReviewOrder = () => {
             </View>
 
             <View className="flex-row items-center gap-1">
-              <Text className="text-xs font-bold text-[#e13e00]">Edit</Text>
-              <ChevronRight size={16} color="#e13e00" />
+              <Text className="text-xs font-semibold text-[#e13e00]">Edit</Text>
+              <ChevronRight size={14} color="#e13e00" />
             </View>
           </View>
 
           {!!draft.shippingAddress.landmark?.trim() && (
-            <Text className="mt-2 text-xs text-gray-500">Landmark: {draft.shippingAddress.landmark}</Text>
+            <Text className="mt-1.5 text-xs text-gray-400">Landmark: {draft.shippingAddress.landmark}</Text>
           )}
         </TouchableOpacity>
       )}
 
       {/* Items */}
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+      <View className="mb-4 border-b border-gray-200 pb-4">
         <View className="mb-3 flex-row items-center justify-between">
-          <Text className="text-[15px] font-bold text-gray-950">Items</Text>
-          <Text className="text-xs font-semibold text-gray-500">{selectedCount} total</Text>
+          <Text className="text-sm font-semibold text-gray-900">Items</Text>
+          <Text className="text-xs text-gray-400">{selectedCount} total</Text>
         </View>
 
         <View className="gap-3">
           {selectedItems.map((item) => (
             <View key={String(item._id)} className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
-                <Text className="text-sm font-bold text-gray-950" numberOfLines={2}>
+                <Text className="text-sm font-semibold text-gray-900" numberOfLines={2}>
                   {item.name}
                 </Text>
-                <Text className="mt-1 text-xs text-gray-500">
+                <Text className="mt-0.5 text-xs text-gray-400">
                   {item.quantity} x {formatMoney(item.price)}
                 </Text>
                 <TouchableOpacity
-                  className="mt-2 self-start"
-                  activeOpacity={0.8}
+                  className="mt-1.5 self-start"
+                  activeOpacity={0.7}
                   onPress={() => removeFromCart(item._id)}>
-                  <Text className="text-xs font-bold text-red-600">Remove</Text>
+                  <Text className="text-xs font-medium text-red-500">Remove</Text>
                 </TouchableOpacity>
               </View>
               <View className="items-end gap-2">
@@ -502,7 +503,7 @@ const ReviewOrder = () => {
                   onDecrement={() => updateQuantity(item._id, item.quantity - 1)}
                   onIncrement={() => updateQuantity(item._id, item.quantity + 1)}
                 />
-                <Text className="text-sm font-extrabold text-gray-950">
+                <Text className="text-sm font-semibold text-gray-900">
                   {formatMoney(item.price * item.quantity)}
                 </Text>
               </View>
@@ -512,10 +513,10 @@ const ReviewOrder = () => {
       </View>
 
       {/* Payment method */}
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-        <Text className="mb-3 text-[15px] font-bold text-gray-950">Payment method</Text>
+      <View className="mb-4">
+        <Text className="mb-2 text-sm font-semibold text-gray-900">Payment method</Text>
 
-        <View className="flex-row gap-3">
+        <View className="gap-2">
           {hasWalletBalance && (
             <PaymentOption
               method="wallet"
@@ -547,8 +548,8 @@ const ReviewOrder = () => {
       </View>
 
       {/* Order total */}
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-        <Text className="mb-3 text-[15px] font-bold text-gray-950">Order total</Text>
+      <View className="mb-4">
+        <Text className="mb-3 text-sm font-semibold text-gray-900">Order total</Text>
 
         {isLoadingEstimate ? (
           <View className="items-center py-4">
@@ -558,29 +559,29 @@ const ReviewOrder = () => {
           <View className="gap-2">
             <View className="flex-row items-center justify-between">
               <Text className="text-sm text-gray-500">Subtotal</Text>
-              <Text className="text-sm font-semibold text-gray-800">{formatMoney(selectedTotal)}</Text>
+              <Text className="text-sm font-medium text-gray-700">{formatMoney(selectedTotal)}</Text>
             </View>
 
             {discountAmount > 0 && (
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm text-gray-500">Discounts</Text>
-                <Text className="text-sm font-semibold text-green-600">-{formatMoney(discountAmount)}</Text>
+                <Text className="text-sm font-medium text-green-600">-{formatMoney(discountAmount)}</Text>
               </View>
             )}
 
             <View className="flex-row items-center justify-between">
               <Text className="text-sm text-gray-500">Vatable sales</Text>
-              <Text className="text-sm font-semibold text-gray-800">{formatMoney(effectiveVatableSales)}</Text>
+              <Text className="text-sm font-medium text-gray-700">{formatMoney(effectiveVatableSales)}</Text>
             </View>
             <View className="flex-row items-center justify-between">
               <Text className="text-sm text-gray-500">VAT 12%</Text>
-              <Text className="text-sm font-semibold text-gray-800">{formatMoney(effectiveVatAmount)}</Text>
+              <Text className="text-sm font-medium text-gray-700">{formatMoney(effectiveVatAmount)}</Text>
             </View>
 
             {(isPickup || isDineIn) && serviceChargeAmount > 0 && (
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm text-gray-500">Service charge (10%)</Text>
-                <Text className="text-sm font-semibold text-gray-800">{formatMoney(serviceChargeAmount)}</Text>
+                <Text className="text-sm font-medium text-gray-700">{formatMoney(serviceChargeAmount)}</Text>
               </View>
             )}
 
@@ -589,10 +590,10 @@ const ReviewOrder = () => {
                 {/* Distance + billable km */}
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-1.5">
-                    <Ionicons name="location-outline" size={14} color="#6b7280" />
+                    <Ionicons name="location-outline" size={14} color="#9ca3af" />
                     <Text className="text-sm text-gray-500">Distance</Text>
                   </View>
-                  <Text className="text-sm font-semibold text-gray-800">
+                  <Text className="text-sm font-medium text-gray-700">
                     {deliveryEstimate.distanceKm.toFixed(1)} km
                     {deliveryEstimate.billableKm !== Math.round(deliveryEstimate.distanceKm) && (
                       <Text className="text-xs text-gray-400">
@@ -610,10 +611,10 @@ const ReviewOrder = () => {
                       <Text className="text-xs text-gray-400 line-through">
                         {formatMoney(deliveryEstimate.deliveryFee)}
                       </Text>
-                      <Text className="text-sm font-bold text-green-600">FREE</Text>
+                      <Text className="text-sm font-semibold text-green-600">FREE</Text>
                     </View>
                   ) : (
-                    <Text className="text-sm font-semibold text-gray-800">
+                    <Text className="text-sm font-medium text-gray-700">
                       {formatMoney(deliveryEstimate.effectiveDeliveryFee)}
                     </Text>
                   )}
@@ -621,7 +622,7 @@ const ReviewOrder = () => {
 
                 {/* Delivery unavailable warning */}
                 {deliveryEstimate.deliveryUnavailable && (
-                  <View className="flex-row items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2">
+                  <View className="flex-row items-start gap-1.5 rounded-md bg-red-50 px-3 py-2">
                     <Ionicons name="alert-circle" size={14} color="#dc2626" />
                     <Text className="flex-1 text-xs text-red-600">
                       Delivery is not available for this address.
@@ -633,11 +634,11 @@ const ReviewOrder = () => {
           </View>
         )}
 
-        <View className="my-3 h-px bg-gray-100" />
+        <View className="my-3 h-px bg-gray-200" />
 
         <View className="flex-row items-center justify-between">
-          <Text className="text-base font-extrabold text-gray-950">Total</Text>
-          <Text className="text-xl font-extrabold text-[#e13e00]">{formatMoney(effectiveTotal)}</Text>
+          <Text className="text-base font-semibold text-gray-900">Total</Text>
+          <Text className="text-lg font-bold text-[#e13e00]">{formatMoney(effectiveTotal)}</Text>
         </View>
       </View>
 
