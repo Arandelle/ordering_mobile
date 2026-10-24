@@ -72,7 +72,7 @@ export default function TabLayout() {
             </>
           ),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color as string} />
           ),
         }}
       />
@@ -98,7 +98,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? 'restaurant' : 'restaurant-outline'}
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -119,7 +119,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? 'bag-handle' : 'bag-handle-outline'}
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -132,7 +132,7 @@ export default function TabLayout() {
           title: 'Sign In',
           href: isAuthenticated ? null : undefined,
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'log-in' : 'log-in-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'log-in' : 'log-in-outline'} size={size} color={color as string} />
           ),
           headerShown: false,
         }}
@@ -151,40 +151,8 @@ export default function TabLayout() {
             </>
           ),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color as string} />
           ),
-        }}
-      />
-
-      {/* Cart — hidden from tab bar, accessed via header icon */}
-      <Tabs.Screen
-        name="cart"
-        options={{
-          href: null,
-          headerShown: true,
-          headerTitle: () => (
-            <Image
-              source={require('../../assets/images/harrison_logo_landscape.png')}
-              className="h-full w-36"
-              resizeMode="contain"
-            />
-          ),
-          headerRight: () => <CartHeaderButton />,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          href: null,
-          headerShown: true,
-          headerTitle: () => (
-            <Image
-              source={require('../../assets/images/harrison_logo_landscape.png')}
-              className="h-full w-36"
-              resizeMode="contain"
-            />
-          ),
-          headerRight: () => <CartHeaderButton />,
         }}
       />
 

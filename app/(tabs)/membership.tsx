@@ -1,2 +1,2 @@
-import MembershipScreen from '../../src/screens/membership';
+import MembershipScreen from '../pages/membership';
 export default MembershipScreen;

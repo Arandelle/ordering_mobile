@@ -16,7 +16,7 @@ const WalletBanner = () => {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => router.push('/wallet')}
+      onPress={() => router.navigate('/pages/wallet')}
       className="mx-4 overflow-hidden rounded-xl bg-emerald-700 px-6 py-5 shadow-lg">
       {/* Decorative blobs */}
       <View className="absolute -right-10 -top-2 h-40 w-40 rounded-full bg-white/10" />

@@ -11,7 +11,7 @@ export const CartHeaderButton = () => {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push('/cart')}
+      onPress={() => router.push('/pages/cart')}
       style={{ marginRight: 16 }}
       className="flex-row items-center gap-1">
       <View>
@@ -39,7 +39,7 @@ export const NotifHeaderButton = () => {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push('/notifications')}
+      onPress={() => router.navigate('/pages/notifications')}
       style={{ marginRight: 16 }}
       className="flex-row items-center gap-1">
       <View>
