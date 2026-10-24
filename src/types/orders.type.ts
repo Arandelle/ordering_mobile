@@ -168,6 +168,8 @@ export interface OrderType {
     orderDiscountPromotionId?: string;
     orderDiscountPromotionName?: string;
     voucherDiscountAmount?: number;
+    /** 10% service charge on discounted subtotal — only for pickup/dine-in orders */
+    serviceChargeAmount?: number;
     deliveryFeeAmount?: number;
     rawDeliveryFee?: number;
     deliveryDistanceKm?: number;

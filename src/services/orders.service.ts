@@ -212,3 +212,79 @@ export async function getDeliveryFeeEstimate(
 
   return (response as { data: DeliveryFeeEstimateResponse })?.data ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// Checkout Estimate — unified pricing (service charge, discounts, tax, delivery)
+// ---------------------------------------------------------------------------
+
+export type CheckoutEstimateParams = {
+  branchId: string;
+  fulfillmentType: string;
+  items: {
+    _id: string;
+    quantity: number;
+    modifierSelections?: {
+      groupId: string;
+      groupName: string;
+      isMain: boolean;
+      linkedToGroupId: string | null;
+      required: boolean;
+      minSelect: number;
+      maxSelect: number;
+      maxQty: number;
+      items: {
+        productId: string;
+        name: string;
+        label: string | null;
+        upgradePrice: number;
+        quantity: number;
+      }[];
+    }[];
+  }[];
+  shippingAddress?: {
+    coordinates?: { lat: number; lng: number };
+    barangayCode?: string;
+  };
+  applyPromoCardDiscount?: boolean;
+  voucherDiscountAmount?: number;
+};
+
+export type CheckoutEstimateResponse = {
+  vatableSales: number;
+  vatAmount: number;
+  totalAmount: number;
+  subtotalAmount: number;
+  discountAmount: number;
+  productDiscountAmount: number;
+  orderDiscountAmount: number;
+  voucherDiscountAmount: number;
+  serviceChargeAmount: number;
+  deliveryFeeAmount: number;
+  rawDeliveryFee?: number;
+  deliveryDistanceKm?: number;
+  deliveryBillableKm?: number;
+  freeDeliveryApplied?: boolean;
+  deliveryUnavailable?: boolean;
+  promoCardApplied?: boolean;
+  discountCode?: string;
+  productDiscountPromotions?: {
+    promotionId: string;
+    name: string;
+    productId: string;
+    productName: string;
+    discountAmount: number;
+  }[];
+  orderDiscountPromotionId?: string;
+  orderDiscountPromotionName?: string;
+};
+
+export async function getCheckoutEstimate(
+  params: CheckoutEstimateParams,
+): Promise<CheckoutEstimateResponse | null> {
+  const response = await apiClient.post<{ data: CheckoutEstimateResponse }>(
+    '/customer/checkout/estimate',
+    params,
+  );
+
+  return (response as { data: CheckoutEstimateResponse })?.data ?? null;
+}
