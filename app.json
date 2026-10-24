@@ -24,16 +24,22 @@
           "resizeMode": "contain",
           "backgroundColor": "#ef4501"
         }
+      ],
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/harrison_logo.png",
+          "color": "#ef4501",
+          "iosDisplayInForeground": true,
+          "androidMode": "default",
+          "androidCollapsedTitle": "Harrison"
+        }
       ]
     ],
     "orientation": "portrait",
     "icon": "./assets/images/harrison_logo.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/images/harrison_splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ef4501"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -41,7 +47,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.harrisoninasal.harrisoninasal",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -51,14 +59,10 @@
       },
       "package": "com.harrisoninasal.harrisoninasal",
       "versionCode": 1,
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
-    },
-    "notification": {
-      "iconUrl": "./assets/images/harrison_logo.png",
-      "color": "#ef4501",
-      "iosDisplayInForeground": true,
-      "androidMode": "default",
-      "androidCollapsedTitle": "Harrison"
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "extra": {
       "router": {},
