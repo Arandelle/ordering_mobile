@@ -334,7 +334,7 @@ export default function NotificationsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={refetch}
+            onRefresh={() => { void refetch(); }}
             tintColor="#ef4501"
           />
         }
@@ -343,7 +343,7 @@ export default function NotificationsScreen() {
             <View className="py-4">
               <ActivityIndicator size="small" color="#ef4501" />
             </View>
-          ) : null
+          ) : undefined
         }
         onEndReached={() => {
           if (data?.pagination.hasNextPage) {

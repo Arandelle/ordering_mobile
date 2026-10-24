@@ -59,7 +59,7 @@ function MembershipWalletCarousel({
   memberName: string;
   activeTier: MembershipTier | undefined;
 }) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
   const [activePage, setActivePage] = useState(0);
 
   React.useEffect(() => {

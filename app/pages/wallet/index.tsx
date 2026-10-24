@@ -523,7 +523,7 @@ export default function WalletScreen() {
                   <View className="py-4">
                     <ActivityIndicator size="small" color={BRAND} />
                   </View>
-                ) : null
+                ) : undefined
               }
             />
           )}

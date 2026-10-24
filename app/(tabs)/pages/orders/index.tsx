@@ -684,7 +684,7 @@ export default function Orders() {
               <OrderCardSkeleton opacity={pulse} />
               <OrderCardSkeleton opacity={pulse} />
             </View>
-          ) : !isAuthenticated && !submittedReference ? null : (
+          ) : !isAuthenticated && !submittedReference ? undefined : (
             <EmptyOrders isGuestSearch={!isAuthenticated} />
           )
         }
@@ -693,7 +693,7 @@ export default function Orders() {
             <View className="items-center py-5">
               <ActivityIndicator color={BRAND} />
             </View>
-          ) : null
+          ) : undefined
         }
       />
 

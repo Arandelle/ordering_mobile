@@ -165,7 +165,7 @@ const HomeCarousel = () => {
   const { data: session } = authClient.useSession();
   const isAuthenticated = Boolean(session?.user);
   const { data: membershipData } = useMembershipStatus({ enabled: isAuthenticated });
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
   const [activePage, setActivePage] = useState(0);
 
   const activeMembership = membershipData?.activeMembership;
@@ -336,7 +336,7 @@ const ProductList = ({
           <ActivityIndicator size="small" color="#e13e00" className="py-4" />
         ) : !hasNextPage && products.length > 0 ? (
           <Text className="py-4 text-center text-xs text-gray-400">All products loaded</Text>
-        ) : null
+        ) : undefined
       }
       ListEmptyComponent={
         isLoading ? (

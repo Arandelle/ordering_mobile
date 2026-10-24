@@ -31,7 +31,7 @@ const SLIDES = [
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleScrollEnd = (e: { nativeEvent: { contentOffset: { x: number } } }) => {
