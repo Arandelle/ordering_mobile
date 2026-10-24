@@ -35,7 +35,7 @@ export function CartItemCard({
   const renderRightAction = () => {
     return (
       <View
-        className="ml-2 flex-row items-center justify-center rounded-2xl bg-red-500"
+        className="mr-3 flex-row items-center justify-center rounded-2xl bg-red-500"
         style={{ width: SWIPE_THRESHOLD }}>
         <View className="h-11 w-11 items-center justify-center rounded-full bg-red-600">
           <Icon name="Trash" size={20} color="#fff" />

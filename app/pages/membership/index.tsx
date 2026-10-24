@@ -139,7 +139,7 @@ export default function MembershipScreen() {
   return (
     <ScrollView
       className="flex-1 bg-gray-50"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 40, paddingHorizontal: 16, paddingTop: 24 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 80, paddingHorizontal: 16, paddingTop: 24 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e13e00" colors={['#e13e00']} />

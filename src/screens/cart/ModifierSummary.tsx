@@ -22,7 +22,8 @@ export function ModifierSummary({ modifiers }: { modifiers: ModifierSelection[] 
         onPress={() => setShowModal(true)}
         activeOpacity={0.7}
         text={`${modifiers.length} option/s ${totalExtras > 0 ? `+${formatMoney(totalExtras)}` : ''}`}
-        icon={{ name: 'ChevronForward', size: 10, color: '#ef3501' }}
+        className='rounded-md bg-unset justify-start px-0'
+        textClassName='text-[#e13e00] px-unset underline'
       />
 
       <ModifierDetailsSheet

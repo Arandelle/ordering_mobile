@@ -98,7 +98,7 @@ export default function CartScreen() {
   const isEmpty = cartItems.length === 0;
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 mb-16 bg-gray-50">
       {/* ── Content ── */}
       {isEmpty && !isActive ? (
         <EmptyCart />

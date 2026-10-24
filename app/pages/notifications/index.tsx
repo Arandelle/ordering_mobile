@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
@@ -213,6 +214,7 @@ function EmptyState() {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(1);
   const { data, isLoading, error, refetch, isRefetching } = useNotifications(page);
   const { mutate: markAsRead } = useMarkAsRead();
@@ -329,7 +331,7 @@ export default function NotificationsScreen() {
         contentContainerStyle={
           notifications.length === 0
             ? { flexGrow: 1 }
-            : { paddingTop: 4, paddingBottom: 24 }
+            : { paddingTop: 4, paddingBottom: insets.bottom + 80 }
         }
         refreshControl={
           <RefreshControl
