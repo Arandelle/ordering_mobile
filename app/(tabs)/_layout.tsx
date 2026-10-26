@@ -1,8 +1,10 @@
 import { CartHeaderButton, NotifHeaderButton } from '@/components/HeaderButtons';
+import { Icon } from '@/components/ui/Icon';
 import { useCustomerOrderSummary } from '@/hooks/useOrderSummary';
 import { authClient } from '@/lib/auth-client';
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { TabsScreenOptions } from 'expo-router/build/layouts/TabsClient.js';
+import { ____ColorValue_Internal } from 'node_modules/react-native/types_generated/Libraries/StyleSheet/StyleSheetTypes';
 import { Image, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +28,45 @@ export default function TabLayout() {
     (orderSummary?.completed ?? 0);
 
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
+  
+  type TabConfig = {
+    title: string;
+    icon: string;
+    showHeader?: boolean;
+    badge?: number;
+    href?: string | null | undefined;
+  };
+
+  const TAB_SCREEN_OPTIONS = (props: TabConfig): TabsScreenOptions => {
+    return {
+      title: props.title,
+      tabBarBadge: props.badge,
+      headerShown: props.showHeader,
+      href: props.href,
+      headerTitle: () => (
+        <Image
+          source={require('../../assets/images/harrison_logo_landscape.png')}
+          className="h-full w-36"
+          resizeMode="contain"
+        />
+      ),
+      headerRight: () => (
+        <>
+          <NotifHeaderButton />
+          <CartHeaderButton />
+        </>
+      ),
+      tabBarIcon: ({
+        color,
+        size,
+        focused,
+      }: {
+        color: ____ColorValue_Internal;
+        size: number;
+        focused: boolean;
+      }) => <Icon name={props.icon} size={size} color={color as string} />,
+    };
+  };
 
   return (
     <Tabs
@@ -56,104 +97,47 @@ export default function TabLayout() {
       }}>
       <Tabs.Screen
         name="pages/index"
-        options={{
+        options={TAB_SCREEN_OPTIONS({
           title: 'Home',
-          headerTitle: () => (
-            <Image
-              source={require('../../assets/images/harrison_logo_landscape.png')}
-              className="h-full w-36"
-              resizeMode="contain"
-            />
-          ),
-          headerRight: () => (
-            <>
-              <NotifHeaderButton />
-              <CartHeaderButton />
-            </>
-          ),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color as string} />
-          ),
-        }}
+          icon: 'Home',
+        })}
       />
 
       <Tabs.Screen
         name="pages/menu"
-        options={{
+        options={TAB_SCREEN_OPTIONS({
           title: 'Menu',
-          headerTitle: () => (
-            <Image
-              source={require('../../assets/images/harrison_logo_landscape.png')}
-              className="h-full w-36"
-              resizeMode="contain"
-            />
-          ),
-          headerRight: () => (
-            <>
-              <NotifHeaderButton />
-              <CartHeaderButton />
-            </>
-          ),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'restaurant' : 'restaurant-outline'}
-              size={size}
-              color={color as string}
-            />
-          ),
-        }}
+          icon: 'Utensils',
+        })}
       />
 
       <Tabs.Screen
         name="pages/orders"
-        options={{
+        options={TAB_SCREEN_OPTIONS({
           title: 'Orders',
-          tabBarBadge: isAuthenticated && activeOrdersCount > 0 ? activeOrdersCount : undefined,
-          headerRight: () => (
-            <>
-              <NotifHeaderButton />
-              <CartHeaderButton />
-            </>
-          ),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'bag-handle' : 'bag-handle-outline'}
-              size={size}
-              color={color as string}
-            />
-          ),
-        }}
+          icon: 'ShoppingBag',
+          badge: isAuthenticated && activeOrdersCount > 0 ? activeOrdersCount : undefined,
+        })}
       />
 
       {/* Auth tab — shows sign-in when not authenticated */}
       <Tabs.Screen
         name="pages/auth"
-        options={{
-          title: 'Sign In',
+        options={TAB_SCREEN_OPTIONS({
+          title: 'Sign-in',
+          icon: 'LogIn',
           href: isAuthenticated ? null : undefined,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'log-in' : 'log-in-outline'} size={size} color={color as string} />
-          ),
-          headerShown: false,
-        }}
+        })}
       />
 
       {/* Profile tab — only visible when authenticated */}
       <Tabs.Screen
         name="pages/profile"
-        options={{
+        options={TAB_SCREEN_OPTIONS({
           title: 'Profile',
+          icon: 'User',
           href: isAuthenticated ? undefined : null,
-          headerRight: () => (
-            <>
-              <NotifHeaderButton />
-              <CartHeaderButton />
-            </>
-          ),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color as string} />
-          ),
-        }}
+        })}
       />
     </Tabs>
   );
