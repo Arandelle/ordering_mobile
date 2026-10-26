@@ -48,6 +48,7 @@ type ProductListProps = {
   showFavourites?: boolean;
   favouriteIds?: string[];
   onToggleFavourite?: (productId: string) => void;
+  isFavouritedFn?: (productId: string) => boolean;
   isLoggedIn?: boolean;
 };
 
@@ -273,6 +274,7 @@ const ProductList = ({
   showFavourites,
   favouriteIds = [],
   onToggleFavourite,
+  isFavouritedFn,
   isLoggedIn = false,
 }: ProductListProps) => {
   const insets = useSafeAreaInsets();
@@ -285,11 +287,11 @@ const ProductList = ({
         isStoreClosed={isStoreClosed}
         storeClosedMessage={storeClosedMessage}
         isLoggedIn={isLoggedIn}
-        isFavourited={favouriteIds.includes(item._id)}
+        isFavourited={isFavouritedFn ? isFavouritedFn(item._id) : favouriteIds.includes(item._id)}
         onToggleFavourite={onToggleFavourite ?? (() => {})}
       />
     ),
-    [hasBranch, isStoreClosed, storeClosedMessage, isLoggedIn, favouriteIds, onToggleFavourite]
+    [hasBranch, isStoreClosed, storeClosedMessage, isLoggedIn, favouriteIds, isFavouritedFn, onToggleFavourite]
   );
 
   const keyExtractor = useCallback((item: Product) => item._id, []);

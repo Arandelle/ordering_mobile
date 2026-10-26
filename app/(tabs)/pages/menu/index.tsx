@@ -164,6 +164,7 @@ export default function MenuScreen() {
       storeClosedMessage={storeClosedMessage}
       showFavourites={showFavourites}
       favouriteIds={allFavouriteIds}
+      isFavouritedFn={isFavourited}
       onToggleFavourite={toggle}
       isLoggedIn={isLoggedIn}
     />
