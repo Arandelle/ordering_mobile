@@ -1,9 +1,17 @@
 import { useCart } from '@/context/CartContext';
 import { useUnreadCount } from '@/hooks/useNotifications';
 import { authClient } from '@/lib/auth-client';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { Icon } from './ui/Icon';
+
+const CountBadge = (count: number | string) => {
+  return (
+    <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
+      <Text className="text-[10px] font-bold text-white">{count}</Text>
+    </View>
+  );
+};
 
 export const CartHeaderButton = () => {
   const { totalItems } = useCart();
@@ -15,12 +23,8 @@ export const CartHeaderButton = () => {
       style={{ marginRight: 16 }}
       className="flex-row items-center gap-1">
       <View>
-        <Ionicons name="cart-outline" size={24} color="#333" />
-        {totalItems > 0 && (
-          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
-            <Text className="text-[10px] font-bold text-white">{totalItems}</Text>
-          </View>
-        )}
+        <Icon name="ShoppingCart" size={22} color="#4b5563" />
+        {totalItems > 0 && CountBadge(totalItems > 99 ? '99+' : totalItems)}
       </View>
     </TouchableOpacity>
   );
@@ -43,14 +47,8 @@ export const NotifHeaderButton = () => {
       style={{ marginRight: 16 }}
       className="flex-row items-center gap-1">
       <View>
-        <Ionicons name="notifications-outline" size={24} color="#333" />
-        {unreadCount > 0 && (
-          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e13e00] px-1">
-            <Text className="text-[10px] font-bold text-white">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Text>
-          </View>
-        )}
+        <Icon name="Bell" size={22} color="#4b5563" />
+        {unreadCount > 0 && CountBadge(unreadCount > 99 ? '99+' : unreadCount)}
       </View>
     </TouchableOpacity>
   );

@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
-  StyleSheet,
   Text,
   TouchableOpacity,
   ToastAndroid,
@@ -204,7 +203,7 @@ function OrderCard({
 
   return (
    <View
-  className={`mb-4 bg-white border border-gray-300 rounded-md ${state?.isCancelled ? 'opacity-70' : ''}`}>
+  className={`mb-4 bg-white border border-gray-100 rounded-md ${state?.isCancelled ? 'opacity-70' : ''}`}>
   <TouchableOpacity
     className="overflow-hidden"
     activeOpacity={0.94}
@@ -214,10 +213,6 @@ function OrderCard({
     {/* Header: fulfillment, date and status */}
     <View className="flex-row items-center justify-between gap-3 px-5 pb-4 pt-5">
       <View className="min-w-0 flex-1 flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-2xl bg-orange-50">
-          <Ionicons name={fulfillment.icon} size={18} color={BRAND} />
-        </View>
-
         <View className="min-w-0 flex-1">
           {/* Optional: show the order reference here, e.g. order.orderNumber */}
           <Text className="text-[15px] font-bold tracking-tight text-gray-900" numberOfLines={1}>
@@ -339,7 +334,7 @@ function OrderCard({
                 icon="star-outline"
                 variant="primary"
                 disabled={disableActions}
-                onPress={() => router.push(`/review/${order._id}`)}
+                onPress={() => router.push(`pages/review/${order._id}`)}
               />
             )}
 

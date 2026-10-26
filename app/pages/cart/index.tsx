@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useRef } from 'react';
 import { SectionList, Text, View } from 'react-native';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { UndoBanner } from '@/components/UndoBanner';
 import { useUndo } from '@/hooks/useUndo';
 import { CartItemCard } from '@/screens/cart/CartItemCard';
+import { Icon } from '@/components/ui/Icon';
 
 // Bottom tab bar height — matches tabBarStyle padding in app/(tabs)/_layout.tsx
 const TAB_BAR_HEIGHT = 72;
@@ -21,7 +21,7 @@ function EmptyCart() {
   return (
     <View className="flex-1 items-center justify-center gap-4 px-8">
       <View className="h-24 w-24 items-center justify-center rounded-full bg-orange-50">
-        <Ionicons name="cart-outline" size={44} color="#e13e00" />
+        <Icon name='ShoppingCart' size={44} color='#e13e00'/>
       </View>
       <View className="items-center gap-1">
         <Text className="text-xl font-semibold text-gray-900">Your cart is empty</Text>
@@ -29,7 +29,7 @@ function EmptyCart() {
           Add some delicious items to get started!
         </Text>
       </View>
-      <Button text="Browse Menu" onPress={() => router.back()} className="mt-2 rounded-2xl px-6" />
+      <Button text="Browse Menu" onPress={() => router.push("pages/menu")} className="mt-2 rounded-2xl px-6" />
     </View>
   );
 }

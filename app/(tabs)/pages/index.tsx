@@ -163,7 +163,7 @@ export default function HomeScreen() {
       <View className="mt-8">
         <View className="mb-3 flex-row items-center justify-between px-4">
           <Text className="text-base font-bold text-gray-900">Delivery & Deals</Text>
-          <TouchableOpacity onPress={() => router.push('/menu')}>
+          <TouchableOpacity onPress={() => router.push('pages/menu')}>
             <Text className="text-xs font-semibold text-[#e13e00]">See all</Text>
           </TouchableOpacity>
         </View>
@@ -178,7 +178,7 @@ export default function HomeScreen() {
             <PromoCard
               key={`delivery-${index}`}
               source={promo.source}
-              onPress={() => router.push('/menu')}
+              onPress={() => router.push('pages/menu')}
             />
           ))}
         </ScrollView>
@@ -188,7 +188,7 @@ export default function HomeScreen() {
       <View className="mt-8">
         <View className="mb-3 flex-row items-center justify-between px-4">
           <Text className="text-base font-bold text-gray-900">Menu Favorites</Text>
-          <TouchableOpacity onPress={() => router.push('/menu')}>
+          <TouchableOpacity onPress={() => router.push('pages/menu')}>
             <Text className="text-xs font-semibold text-[#e13e00]">See all</Text>
           </TouchableOpacity>
         </View>
@@ -203,7 +203,7 @@ export default function HomeScreen() {
             <PromoCard
               key={`menu-${index}`}
               source={promo.source}
-              onPress={() => router.push('/menu')}
+              onPress={() => router.push('pages/menu')}
             />
           ))}
         </ScrollView>
@@ -212,7 +212,7 @@ export default function HomeScreen() {
       {/* CTA to menu */}
       <View className="mt-10 px-4">
         <TouchableOpacity
-          onPress={() => router.push('/menu')}
+          onPress={() => router.push('pages/menu')}
           activeOpacity={0.85}
           className="items-center rounded-2xl bg-[#e13e00] py-4 shadow-sm">
           <Text className="text-base font-bold text-white">Browse Full Menu</Text>
