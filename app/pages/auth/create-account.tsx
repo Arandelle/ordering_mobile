@@ -54,7 +54,7 @@ export default function CreateAccount() {
       return;
     }
 
-    router.replace('/profile');
+    router.replace('pages/profile');
   };
 
   const handleGoogleSignup = async () => {
@@ -73,7 +73,7 @@ export default function CreateAccount() {
       return;
     }
 
-    router.replace('/profile');
+    router.replace('pages/profile');
   };
 
   return (

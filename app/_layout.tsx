@@ -59,61 +59,75 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <BranchProvider>
-          <CartProvider>
-            <StatusBar barStyle="dark-content" />
-            {!hasOnboarded ? (
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="onboarding" />
-              </Stack>
-            ) : (
-              <Stack
-                screenOptions={{
-                  headerTitleAlign: 'center',
-                  headerStyle: { backgroundColor: '#fff' },
-                  headerTintColor: '#111827',
-                  headerShown: false
-                }}>
-                <Stack.Screen
-                  name="(tabs)"
-                />
-                <Stack.Screen name="pages/product/[id]" />
-                <Stack.Screen name="pages/orders/[id]"
-                options={{
-                  headerShown: true,
-                  title: "Order Details"
-                }}
-                />
-                <Stack.Screen name="pages/membership"
-                options={{
-                  headerShown: true,
-                  title: "Memberships"
-                }}
-                />
-                <Stack.Screen name="pages/wallet"
-                options={{
-                  headerShown: true,
-                  title: "My Wallet"
-                }}
-                />
-                <Stack.Screen name="pages/cart" options={{
-                  headerShown: true,
-                  title: 'Cart',
-                }} />
-                <Stack.Screen name="pages/checkout" />
-                <Stack.Screen name="pages/auth" />
-                <Stack.Screen name="pages/review/[id]" options={{
-                  headerShown: true,
-                  title: "Review"
-                }} />
-              </Stack>
-            )}
-          </CartProvider>
-        </BranchProvider>
-      </QueryClientProvider>
-    </SafeAreaProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <BranchProvider>
+            <CartProvider>
+              <StatusBar barStyle="dark-content" />
+              {!hasOnboarded ? (
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="onboarding" />
+                </Stack>
+              ) : (
+                <Stack
+                  screenOptions={{
+                    headerTitleAlign: 'center',
+                    headerStyle: { backgroundColor: '#fff' },
+                    headerTintColor: '#111827',
+                    headerShown: false,
+                  }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="pages/product/[id]" />
+                  <Stack.Screen
+                    name="pages/orders/[id]"
+                    options={{
+                      headerShown: true,
+                      title: 'Order Details',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pages/membership"
+                    options={{
+                      headerShown: true,
+                      title: 'Memberships',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pages/wallet"
+                    options={{
+                      headerShown: true,
+                      title: 'My Wallet',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pages/cart"
+                    options={{
+                      headerShown: true,
+                      title: 'Cart',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pages/notifications"
+                    options={{
+                      headerShown: true,
+                      title: 'Notification',
+                    }}
+                  />
+                  <Stack.Screen name="pages/checkout" />
+                  <Stack.Screen name="pages/auth" />
+                  <Stack.Screen
+                    name="pages/review/[id]"
+                    options={{
+                      headerShown: true,
+                      title: 'Review',
+                    }}
+                  />
+                </Stack>
+              )}
+            </CartProvider>
+          </BranchProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

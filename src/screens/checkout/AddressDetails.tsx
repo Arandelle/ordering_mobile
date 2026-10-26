@@ -59,7 +59,7 @@ const AddressDetails = () => {
   // If not delivery, skip to review
   useEffect(() => {
     if (isReady && !isDelivery) {
-      router.replace('/checkout/review');
+      router.replace('pages/checkout/review');
     }
   }, [isReady, isDelivery]);
 

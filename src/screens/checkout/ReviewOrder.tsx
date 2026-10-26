@@ -18,10 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { useWallet } from '@/hooks/useWallet';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ModifierSelection } from '@/types/menu-types';
-
-function formatMoney(value: number) {
-  return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatMoney } from '@/helper/formatter';
 
 function display(value?: string) {
   return value?.trim() ? value.trim() : 'Not provided';
@@ -386,7 +383,7 @@ const ReviewOrder = () => {
       <TouchableOpacity
         className="mb-4 border-b border-gray-200 pb-4"
         activeOpacity={0.7}
-        onPress={() => router.push('/checkout')}>
+        onPress={() => router.push('pages/checkout')}>
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
             <Text className="text-xs font-medium text-gray-400">
@@ -439,7 +436,7 @@ const ReviewOrder = () => {
         <TouchableOpacity
           className="mb-4 border-b border-gray-200 pb-4"
           activeOpacity={0.7}
-          onPress={() => router.push('/checkout/address')}>
+          onPress={() => router.push('pages/checkout/address')}>
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">
               <Text className="text-xs font-medium text-gray-400">

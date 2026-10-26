@@ -53,7 +53,7 @@ export default function SignInForm() {
 
     queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
     queryClient.invalidateQueries({ queryKey: ['order-summary'] });
-    router.replace('/');
+    router.replace('/pages');
   };
 
   const handleGoogleLogin = async () => {
@@ -62,7 +62,7 @@ export default function SignInForm() {
 
     const { error: authError } = await authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/profile',
+      callbackURL: '/pages/profile',
     });
 
     setLoadingAction(null);
@@ -74,7 +74,7 @@ export default function SignInForm() {
 
     queryClient.invalidateQueries({ queryKey: ['orders-infinite'] });
     queryClient.invalidateQueries({ queryKey: ['order-summary'] });
-    router.replace('/profile');
+    router.replace('pages/profile');
   };
 
   if (sessionPending) {
@@ -151,7 +151,7 @@ export default function SignInForm() {
           <TouchableOpacity
             className="mt-4 self-center"
             activeOpacity={0.8}
-            onPress={() => router.push('/auth/forgot-password')}>
+            onPress={() => router.push('pages/auth/forgot-password')}>
             <Text className="text-sm font-bold text-[#e13e00]">Forgot password?</Text>
           </TouchableOpacity>
 
@@ -174,7 +174,7 @@ export default function SignInForm() {
             <Text className="text-sm text-gray-500">No account yet?</Text>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => router.push('/auth/create-account')}>
+              onPress={() => router.push('pages/auth/create-account')}>
               <Text className="text-sm font-bold text-[#e13e00]">Create one</Text>
             </TouchableOpacity>
           </View>
