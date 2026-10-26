@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Star } from 'lucide-react-native';
 import { useOrder, useSubmitReview } from '@/hooks/useOrders';
 import { ItemReviewInput } from '@/types/review.type';
-import { Input } from '@/components/ui/Input';
-import { DynamicImage } from '@/components/ui/DynamicImage';
-import { Icon } from '@/components/ui/Icon';
+import { DynamicImage, Icon, Input } from '@/components/ui';
 
 const BRAND = '#e13e00';
 
@@ -41,7 +38,8 @@ function RatingStars({
             className="h-10 w-10 items-center justify-center"
             activeOpacity={0.8}
             onPress={() => onChange(rating)}>
-            <Star
+            <Icon
+              name="Star"
               size={size}
               color={isSelected ? BRAND : '#d1d5db'}
               fill={isSelected ? BRAND : 'transparent'}
@@ -122,7 +120,7 @@ export default function OrderReview() {
       Alert.alert('Review submitted', 'Thank you for sharing your feedback.', [
         {
           text: 'Done',
-          onPress: () => router.replace(`/orders/${orderId}`),
+          onPress: () => router.replace(`pages/orders/${orderId}`),
         },
       ]);
     } catch (error) {
@@ -142,8 +140,8 @@ export default function OrderReview() {
   if (!order) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50 px-6">
-        <View className='p-2 rounded-full bg-brand-50'>
-          <Icon name='Package' size={32} color={BRAND}/>
+        <View className="rounded-full bg-brand-50 p-2">
+          <Icon name="Package" size={32} color={BRAND} />
         </View>
         <Text className="text-center text-lg font-extrabold text-gray-950">Order not found</Text>
         <Text className="mt-2 text-center text-sm text-gray-500">
@@ -164,23 +162,23 @@ export default function OrderReview() {
         <Text className="mt-1 text-sm text-gray-500">{referenceNumber}</Text>
       </View>
 
-      <View className="mb-4 border border-gray-100 rounded-md bg-white p-4">
+      <View className="mb-4 rounded-md border border-gray-100 bg-white p-4">
         <Text className="text-[15px] font-bold text-gray-950">Overall experience</Text>
-        <View className="mt-3">
+        <View className="my-3">
           <RatingStars value={rating} onChange={setRating} />
         </View>
 
         <Input
-          placeholder="Tell us about your order..."
+          placeholder="Tell us what happened (e.g., Rider was nice OR delivery was delayed)..."
           value={comment}
           onChangeText={setComment}
           multiline
           maxLength={500}
-          className='h-40 items-start'
+          className="h-40 items-start"
         />
       </View>
 
-      <View className="mb-4 border border-gray-100 rounded-md bg-white p-4">
+      <View className="mb-4 rounded-md border border-gray-100 bg-white p-4">
         <Text className="text-[15px] font-bold text-gray-950">Rate individual items</Text>
 
         <View className="mt-4 gap-4">
@@ -208,28 +206,26 @@ export default function OrderReview() {
                       {item.name}
                     </Text>
                     <Text className="mt-1 text-xs text-gray-500">Qty {item.quantity}</Text>
-                    <View className="mt-2">
-                      <RatingStars
-                        value={itemRating}
-                        onChange={(nextRating) =>
-                          handleItemRatingChange(item.productId, nextRating)
-                        }
-                        size={24}
-                      />
-                    </View>
                   </View>
+                </View>
+                <View className="my-3">
+                  <RatingStars
+                    value={itemRating}
+                    onChange={(nextRating) => handleItemRatingChange(item.productId, nextRating)}
+                    size={24}
+                  />
                 </View>
 
                 {itemRating > 0 && (
                   <Input
-                    placeholder="Comment for this item..."
+                    placeholder="How was the item? (e.g., Pecho was juicy OR Leche flan was too watery)..."
                     value={itemReview?.comment ?? ''}
                     onChangeText={(nextComment) =>
                       handleItemCommentChange(item.productId, nextComment)
                     }
                     multiline
                     maxLength={500}
-                    className='h-40 items-start'
+                    className="h-40 items-start"
                   />
                 )}
               </View>
