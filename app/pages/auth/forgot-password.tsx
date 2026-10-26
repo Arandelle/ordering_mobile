@@ -1,15 +1,8 @@
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Text, View } from 'react-native';
 import { Mail } from 'lucide-react-native';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
-import { Button } from '@/components/ui/Button';
+import { AuthScreenWrapper, Button, Input } from '@/components/ui';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -24,7 +17,7 @@ export default function ForgotPassword() {
 
     const { error: authError } = await authClient.requestPasswordReset({
       email: email.trim(),
-      redirectTo: "/auth/reset-password",
+      redirectTo: '/auth/reset-password',
     });
 
     setIsSubmitting(false);
@@ -38,56 +31,50 @@ export default function ForgotPassword() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        className="flex-1 bg-gray-50"
-        contentContainerClassName="px-5 py-6"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        <View className="rounded-3xl bg-white p-5 shadow-sm">
-          <Text className="text-2xl font-extrabold text-gray-950">Forgot password?</Text>
-          <Text className="mt-1 text-sm leading-5 text-gray-500">
-            Enter your email and we will send a reset link.
-          </Text>
+    <AuthScreenWrapper>
+      {/* Header Section */}
+      <View className="mb-8">
+        <Text className="text-3xl font-bold text-gray-900">Forgot password?</Text>
+        <Text className="mt-2 text-base text-gray-500">
+          Enter your email and we'll send you a reset link
+        </Text>
+      </View>
 
-          <View className="mt-6">
-            <Text className="mb-1.5 text-[13px] font-semibold text-gray-700">Email</Text>
-            <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3.5">
-              <Mail size={17} color="#9ca3af" />
-              <TextInput
-                className="min-h-12 flex-1 px-3 text-sm text-gray-950"
-                placeholder="juan@email.com"
-                placeholderTextColor="#b9b9b9"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+      {/* Form Card */}
+      <View className="border border-gray-200 bg-white p-5">
+        <Input
+          label="Email"
+          placeholder="juan@email.com"
+          value={email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setError('');
+            setSuccess('');
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          leftIcon={{ icon: Mail }}
+        />
+
+        {!!error && (
+          <View className="mt-4 border border-red-200 bg-red-50 px-4 py-3">
+            <Text className="text-sm font-medium text-red-600">{error}</Text>
           </View>
+        )}
 
-          {!!error && (
-            <View className="mt-4 rounded-2xl bg-red-50 px-4 py-3">
-              <Text className="text-sm font-semibold text-red-600">{error}</Text>
-            </View>
-          )}
+        {!!success && (
+          <View className="mt-4 border border-green-200 bg-green-50 px-4 py-3">
+            <Text className="text-sm font-medium text-green-700">{success}</Text>
+          </View>
+        )}
 
-          {!!success && (
-            <View className="mt-4 rounded-2xl bg-green-50 px-4 py-3">
-              <Text className="text-sm font-semibold text-green-700">{success}</Text>
-            </View>
-          )}
-
-          <Button
-            className="mt-5"
-            text="Send Reset Link"
-            onPress={handleResetRequest}
-            loading={{ isLoading: isSubmitting, text: 'Sending...' }}
-          />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <Button
+          className="mt-5 rounded-lg"
+          text="Send Reset Link"
+          onPress={handleResetRequest}
+          loading={{ isLoading: isSubmitting, text: 'Sending...' }}
+        />
+      </View>
+    </AuthScreenWrapper>
   );
 }

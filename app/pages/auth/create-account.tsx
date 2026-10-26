@@ -1,25 +1,15 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { LockKeyhole, Mail, Check } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authClient, getAuthErrorMessage } from '@/lib/auth-client';
 import { isAllowedCustomerDomain } from '@/lib/isAllowedEmails';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constant';
-import { GoogleIcon } from '@/components/ui/GoogleIcon';
+import { AuthScreenWrapper, Button, GoogleIcon, Input } from '@/components/ui';
+
 
 export default function CreateAccount() {
-  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -94,26 +84,14 @@ export default function CreateAccount() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        className="flex-1 bg-gray-50"
-        contentContainerStyle={{
-          paddingTop: insets.top + 40,
-          paddingBottom: insets.bottom + 80,
-          paddingLeft: 24,
-          paddingRight: 24,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-gray-900">Create an account</Text>
-          <Text className="mt-2 text-base text-gray-500">
-            Sign up to start ordering and track your purchases
-          </Text>
-        </View>
+    <AuthScreenWrapper>
+      {/* Header Section */}
+      <View className="mb-8">
+        <Text className="text-3xl font-bold text-gray-900">Create an account</Text>
+        <Text className="mt-2 text-base text-gray-500">
+          Sign up to start ordering and track your purchases
+        </Text>
+      </View>
 
         {/* Form Card */}
         <View className="mb-3 border border-gray-200 bg-white p-5">
@@ -235,7 +213,6 @@ export default function CreateAccount() {
             <Text className="text-sm font-semibold text-[#e13e00]">Sign in</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </AuthScreenWrapper>
   );
 }
