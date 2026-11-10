@@ -13,6 +13,7 @@ import {
   Platform,
   ToastAndroid,
   PanResponder,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BranchProduct, useProduct } from '@/hooks/useProducts';
@@ -32,208 +33,301 @@ import { ModifierGroup, ModifierItem, IncludedItem } from '@/types/products.type
 import { ModifierSelection, ModifierSelectionItem } from '@/types/menu-types';
 import { authClient } from '@/lib/auth-client';
 import { useFavouriteToggle } from '@/hooks/useFavourites';
+import BottomSheet from '@/components/BottomSheet';
+import { DynamicImage } from '@/components/ui/DynamicImage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_BORDER_RADIUS = 28;
 
-// ─── Modifier Selection Section ───────────────────────────────────────────────
+// ─── Modifier helpers ─────────────────────────────────────────────────────────
 
-interface ModifierSelectionState {
-  [groupId: string]: {
-    selected: Map<string, { item: ModifierItem; qty: number }>; // itemId -> {item, qty}
-  };
+function getModProductId(item: ModifierItem): string {
+  return typeof item.product === 'object' && item.product !== null
+    ? (item.product as any)._id
+    : String(item.product ?? '');
 }
 
-function ModifierSection({
-  groups,
-  selection,
-  onToggle,
-  onQtyChange,
+function getModImage(item: ModifierItem): string {
+  if (typeof item.product === 'object' && item.product !== null && 'image' in item.product) {
+    return (item.product as any).image?.url || '';
+  }
+  return '';
+}
+
+function getModPrice(item: ModifierItem): number {
+  if (item.price != null) return item.price;
+  if (typeof item.product === 'object' && item.product !== null && 'price' in item.product) {
+    return (item.product as any).price ?? 0;
+  }
+  return 0;
+}
+
+function getModName(item: ModifierItem): string {
+  if (item.label) return item.label;
+  if (typeof item.product === 'object' && item.product !== null && 'name' in item.product) {
+    return (item.product as any).name || '';
+  }
+  if (typeof item.product === 'string') return item.product;
+  return '';
+}
+
+// ─── Effective group settings (linked groups derive from main at runtime) ─────
+
+interface EffectiveSettings {
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  maxQty: number;
+  isLinked: boolean;
+}
+
+function buildEffectiveSettings(
+  groups: ModifierGroup[],
+  quantities: Map<string, Map<string, number>>
+): Map<string, EffectiveSettings> {
+  const map = new Map<string, EffectiveSettings>();
+  const mainGroup = groups.find((g) => g.isMain);
+  const mainGroupId = mainGroup?._id || mainGroup?.name || '';
+  const mainQtyMap = quantities.get(mainGroupId);
+  const mainTotalQty = mainQtyMap
+    ? [...mainQtyMap.values()].reduce((sum, q) => sum + Math.max(0, q), 0)
+    : 0;
+
+  for (const group of groups) {
+    const gid = group._id || group.name;
+    if (group.linkedToGroupId && mainGroup) {
+      map.set(gid, {
+        required: mainTotalQty > 0,
+        minSelect: mainTotalQty > 0 ? 1 : 0,
+        maxSelect: mainTotalQty,
+        maxQty: mainTotalQty,
+        isLinked: true,
+      });
+    } else {
+      map.set(gid, {
+        required: group.required,
+        minSelect: group.minSelect,
+        maxSelect: group.maxSelect,
+        maxQty: group.maxQty,
+        isLinked: false,
+      });
+    }
+  }
+  return map;
+}
+
+// ─── Modifier Group Preview Row ──────────────────────────────────────────────
+
+function ModifierGroupPreview({
+  group,
+  eff,
+  groupQtyMap,
+  onOpen,
 }: {
-  groups: ModifierGroup[];
-  selection: ModifierSelectionState;
-  onToggle: (groupId: string, itemId: string) => void;
-  onQtyChange: (groupId: string, itemId: string, qty: number) => void;
+  group: ModifierGroup;
+  eff: EffectiveSettings;
+  groupQtyMap: Map<string, number> | undefined;
+  onOpen: () => void;
 }) {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    () => new Set(groups.filter((g) => g.isMain || g.required).map((g) => g._id || g.name))
-  );
+  const selectedItems = group.items.filter((item) => {
+    const pid = getModProductId(item);
+    return (groupQtyMap?.get(pid) ?? 0) > 0;
+  });
 
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-  };
+  const hasIncluded = group.items.some((item) => item.isIncluded);
+  const currentTotalQty = groupQtyMap ? [...groupQtyMap.values()].reduce((s, q) => s + q, 0) : 0;
 
-  const getProductImage = (item: ModifierItem): string => {
-    if (typeof item.product === 'object' && item.product !== null && 'image' in item.product) {
-      return (item.product as any).image?.url || '';
+  const previewItem =
+    selectedItems[0] ?? group.items.find((item) => item.isIncluded) ?? group.items[0];
+  const previewImage = previewItem ? getModImage(previewItem) : '';
+
+  const getPreviewText = () => {
+    if (selectedItems.length === 0) {
+      return `Choose ${eff.maxSelect === 1 ? '1' : `up to ${eff.maxSelect}`}`;
     }
-    return '';
-  };
-
-  const getProductPrice = (item: ModifierItem): number => {
-    if (item.price != null) return item.price;
-    if (typeof item.product === 'object' && item.product !== null && 'price' in item.product) {
-      return (item.product as any).price ?? 0;
+    if (selectedItems.length === 1) {
+      const item = selectedItems[0];
+      const name = getModName(item);
+      const qty = groupQtyMap?.get(getModProductId(item)) ?? 1;
+      return qty > 1 ? `${qty}× ${name}` : name;
     }
-    return 0;
-  };
-
-  const getProductName = (item: ModifierItem): string => {
-    if (item.label) return item.label;
-    if (typeof item.product === 'object' && item.product !== null && 'name' in item.product) {
-      return (item.product as any).name || '';
-    }
-    if (typeof item.product === 'string') return item.product;
-    return '';
+    return `${selectedItems.length} items selected`;
   };
 
   return (
-    <View className="mt-4">
-      <Text className="mb-2 text-sm font-semibold text-gray-900">Customize Your Order</Text>
-      {groups.map((group) => {
-        const groupId = group._id || group.name;
-        const isExpanded = expandedGroups.has(groupId);
-        const groupSelection = selection[groupId]?.selected || new Map();
-        const isRequired = group.required === true;
-        const selectedCount = groupSelection.size;
-        const minSelect = isRequired ? (group.minSelect ?? 1) : 0;
-        const remaining = isRequired ? Math.max(0, minSelect - selectedCount) : 0;
+    <TouchableOpacity
+      onPress={onOpen}
+      className="flex-row items-center gap-3 border-b border-gray-100 py-3"
+      activeOpacity={0.7}>
+      {/* Preview image */}
+      <DynamicImage
+        src={previewImage || undefined}
+        variant="product"
+        containerStyle={{ width: 56, height: 56 }}
+        containerClassName="rounded-lg"
+        resizeMode="cover"
+      />
 
-        return (
-          <View key={groupId} className="mb-3 rounded-xl border border-gray-100 bg-gray-50">
-            {/* Group header */}
+      {/* Group info */}
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-sm font-bold text-gray-900" numberOfLines={1}>
+            {group.name}
+          </Text>
+          {eff.required && (
+            <Text className="text-[10px] font-bold uppercase tracking-wider text-brand-500">
+              Required
+            </Text>
+          )}
+        </View>
+        <Text className="text-xs text-gray-500" numberOfLines={1}>
+          {getPreviewText()}
+        </Text>
+        {currentTotalQty > 0 && (
+          <Text className="text-[10px] text-gray-400">
+            Qty: {currentTotalQty} / {eff.maxQty}
+          </Text>
+        )}
+      </View>
+
+      {/* Action button */}
+      <View className="rounded-full border border-gray-200 px-4 py-2">
+        <Text className="text-xs font-bold text-gray-900">
+          {selectedItems.length > 0 || hasIncluded ? 'Customize' : 'Choose'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Modifier Selection Bottom Sheet Content ─────────────────────────────────
+
+function ModifierSheetContent({
+  group,
+  eff,
+  groupQtyMap,
+  onSetQty,
+  onClose,
+}: {
+  group: ModifierGroup;
+  eff: EffectiveSettings;
+  groupQtyMap: Map<string, number> | undefined;
+  onSetQty: (productId: string, qty: number) => void;
+  onClose: () => void;
+}) {
+  const currentTotalQty = groupQtyMap ? [...groupQtyMap.values()].reduce((s, q) => s + q, 0) : 0;
+  const isRadio = eff.maxSelect === 1;
+
+  return (
+    <View>
+      {/* Header */}
+      <View className="flex-row items-center justify-between border-b border-gray-100 px-1 pb-3">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-base font-bold text-gray-900">{group.name}</Text>
+          {group.isMain && (
+            <View className="rounded bg-amber-50 px-1.5 py-0.5">
+              <Text className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
+                Main
+              </Text>
+            </View>
+          )}
+          {eff.isLinked && (
+            <View className="rounded bg-purple-50 px-1.5 py-0.5">
+              <Text className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                Side
+              </Text>
+            </View>
+          )}
+          {eff.required && (
+            <Text className="text-[10px] font-bold uppercase tracking-wider text-brand-500">
+              Required
+            </Text>
+          )}
+        </View>
+        <Text className="text-xs font-medium text-gray-500">
+          Qty: {currentTotalQty} / {eff.maxQty}
+        </Text>
+      </View>
+
+      <Text className="mb-3 mt-2 text-xs text-gray-400">
+        {isRadio ? 'Choose 1' : `Choose up to ${eff.maxSelect} item${eff.maxSelect > 1 ? 's' : ''}`}
+      </Text>
+
+      {/* Items list */}
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+        {group.items.map((modItem, idx) => {
+          const pid = getModProductId(modItem);
+          const itemQty = groupQtyMap?.get(pid) ?? 0;
+          const isSelected = itemQty > 0;
+          const upgradePrice = getModPrice(modItem);
+          const itemName = getModName(modItem);
+          const itemImage = getModImage(modItem);
+          const isIncluded = modItem.isIncluded === true;
+
+          return (
             <TouchableOpacity
-              onPress={() => toggleGroup(groupId)}
-              className="flex-row items-center justify-between px-4 py-3">
+              key={pid || idx}
+              onPress={() => onSetQty(pid, isSelected ? 0 : 1)}
+              className={`flex-row items-center gap-3 rounded-lg px-2 py-3 ${
+                isSelected ? 'bg-brand-50' : ''
+              }`}
+              activeOpacity={0.7}>
+              {/* Image */}
+              <DynamicImage
+                src={itemImage || undefined}
+                variant="product"
+                containerStyle={{ width: 48, height: 48 }}
+                containerClassName="rounded-md"
+                resizeMode="cover"
+              />
+
+              {/* Name + price */}
               <View className="flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-sm font-semibold text-gray-900">{group.name}</Text>
-                  {isRequired && remaining > 0 && (
-                    <View className="rounded-full bg-orange-100 px-2 py-0.5">
-                      <Text className="text-xs font-semibold text-orange-600">
-                        {remaining} more required
-                      </Text>
-                    </View>
-                  )}
-                  {isRequired && remaining === 0 && selectedCount > 0 && (
-                    <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
-                  )}
-                </View>
-                <Text className="text-xs text-gray-400">
-                  {isRequired
-                    ? `Select ${minSelect}–${group.maxSelect}`
-                    : `Up to ${group.maxSelect}`}
+                <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>
+                  {itemName}
+                </Text>
+                <Text className="text-xs text-gray-500">
+                  {isIncluded
+                    ? '(Default)'
+                    : upgradePrice === 0
+                      ? 'Free'
+                      : `+ ₱${upgradePrice.toLocaleString('en-PH')}`}
                 </Text>
               </View>
-              <Ionicons
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color="#6b7280"
-              />
-            </TouchableOpacity>
 
-            {/* Group items */}
-            {isExpanded && (
-              <View className="border-t border-gray-100 px-4 pb-3 pt-2">
-                {group.items.map((item, idx) => {
-                  const productId = typeof item.product === 'object' && item.product !== null
-                    ? (item.product as any)._id
-                    : item.product;
-                  const itemId = String(productId ?? idx);
-                  const isSelected = groupSelection.has(itemId);
-                  const selectedEntry = groupSelection.get(itemId);
-                  const itemPrice = getProductPrice(item);
-                  const itemName = getProductName(item);
-                  const itemImage = getProductImage(item);
-
-                  return (
-                    <View key={idx} className="mb-2 last:mb-0">
-                      <TouchableOpacity
-                        onPress={() => onToggle(groupId, itemId)}
-                        className={`flex-row items-center gap-3 rounded-lg px-3 py-2.5 ${
-                          isSelected ? 'bg-orange-50' : 'bg-white'
-                        }`}>
-                        {/* Checkbox */}
-                        <View
-                          className={`h-5 w-5 items-center justify-center rounded border ${
-                            isSelected
-                              ? 'border-orange-500 bg-orange-500'
-                              : 'border-gray-300 bg-white'
-                          }`}>
-                          {isSelected && (
-                            <Ionicons name="checkmark" size={14} color="#fff" />
-                          )}
-                        </View>
-
-                        {/* Image (small) */}
-                        {itemImage ? (
-                          <Image
-                            source={{ uri: itemImage }}
-                            className="h-10 w-10 rounded-lg"
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View className="h-10 w-10 rounded-lg bg-gray-100" />
-                        )}
-
-                        {/* Name + price */}
-                        <View className="flex-1">
-                          <Text
-                            className="text-sm font-medium text-gray-900"
-                            numberOfLines={1}>
-                            {itemName}
-                          </Text>
-                          {itemPrice > 0 && (
-                            <Text className="text-xs text-orange-600">
-                              +₱{itemPrice.toLocaleString('en-PH')}
-                            </Text>
-                          )}
-                        </View>
-
-                        {/* Qty controls (only when selected and maxQty > 1) */}
-                        {isSelected && group.maxQty > 1 && (
-                          <View className="flex-row items-center gap-2">
-                            <TouchableOpacity
-                              onPress={() =>
-                                onQtyChange(
-                                  groupId,
-                                  itemId,
-                                  Math.max(1, (selectedEntry?.qty ?? 1) - 1)
-                                )
-                              }
-                              className="h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white">
-                              <Ionicons name="remove" size={14} color="#111827" />
-                            </TouchableOpacity>
-                            <Text className="w-4 text-center text-sm font-semibold">
-                              {selectedEntry?.qty ?? 1}
-                            </Text>
-                            <TouchableOpacity
-                              onPress={() =>
-                                onQtyChange(
-                                  groupId,
-                                  itemId,
-                                  Math.min(group.maxQty, (selectedEntry?.qty ?? 1) + 1)
-                                )
-                              }
-                              className="h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white">
-                              <Ionicons name="add" size={14} color="#e13e00" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
+              {/* Checkbox indicator */}
+              <View
+                className={`h-5 w-5 items-center justify-center rounded border ${
+                  isSelected ? 'border-brand-500 bg-brand-500' : 'border-gray-300 bg-white'
+                }`}>
+                {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-            )}
-          </View>
-        );
-      })}
+
+              {/* Qty stepper — only when selected, not included, and multi-qty allowed */}
+              {isSelected && !isIncluded && (eff.maxSelect > 1 || eff.maxQty > 1) && (
+                <View className="ml-1">
+                  <QuantityStepper
+                    value={itemQty}
+                    min={1}
+                    max={Math.max(1, eff.maxQty - currentTotalQty + itemQty)}
+                    onDecrement={() => onSetQty(pid, Math.max(1, itemQty - 1))}
+                    onIncrement={() => onSetQty(pid, itemQty + 1)}
+                    variant="compact"
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Apply button */}
+      <TouchableOpacity
+        onPress={onClose}
+        className="mb-8 mt-4 items-center rounded-xl bg-[#e13e00] py-3.5"
+        activeOpacity={0.85}>
+        <Text className="text-sm font-bold text-white">Apply</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -280,114 +374,118 @@ export default function ProductDetailsPage() {
   const hasModifiers =
     product && Array.isArray(product.modifierGroups) && product.modifierGroups.length > 0;
 
-  // Build stable initial selection state from product modifier groups
-  const initialModifierSelection = useMemo<ModifierSelectionState>(() => {
-    const initial: ModifierSelectionState = {};
-    if (product?.modifierGroups) {
-      for (const g of product.modifierGroups) {
-        const gid = g._id || g.name;
-        initial[gid] = { selected: new Map() };
-      }
-    }
-    return initial;
-  }, [product?.modifierGroups]);
+  // Maps groupId → (productId → quantity). Quantity 0 means "not selected".
+  const [modifierQuantities, setModifierQuantities] = useState<Map<string, Map<string, number>>>(
+    () => new Map()
+  );
 
-  const [modifierSelection, setModifierSelection] = useState<ModifierSelectionState>(initialModifierSelection);
+  // Track which modifier group bottom sheet is open
+  const [openModifierGroupId, setOpenModifierGroupId] = useState<string | null>(null);
 
-  // Re-initialize when product changes (e.g. branch switch loads different product data)
+  // Reset quantities when product changes
   useEffect(() => {
-    setModifierSelection(initialModifierSelection);
-  }, [initialModifierSelection]);
+    setModifierQuantities(new Map());
+  }, [product?._id]);
 
-  const handleModifierToggle = useCallback(
-    (groupId: string, itemId: string) => {
-      setModifierSelection((prev) => {
-        const group = prev[groupId];
-        if (!group) return prev;
-
-        const modGroup = product?.modifierGroups?.find(
-          (g) => (g._id || g.name) === groupId
-        );
-
-        const newSelected = new Map(group.selected);
-        if (newSelected.has(itemId)) {
-          // Prevent deselecting if it would drop below minSelect on a required group
-          if (modGroup && modGroup.required && modGroup.minSelect > 0 && newSelected.size <= modGroup.minSelect) {
-            if (Platform.OS === 'android') {
-              ToastAndroid.show(
-                `At least ${modGroup.minSelect} item(s) required for "${modGroup.name}"`,
-                ToastAndroid.SHORT
-              );
-            }
-            return prev;
+  // Pre-select isIncluded items when product loads
+  useEffect(() => {
+    if (!product?.modifierGroups) return;
+    setModifierQuantities((prev) => {
+      const next = new Map(prev);
+      let changed = false;
+      for (const group of product.modifierGroups!) {
+        const gid = group._id || group.name;
+        const groupMap = new Map(next.get(gid) ?? new Map<string, number>());
+        for (const item of group.items) {
+          if (!item.isIncluded) continue;
+          const pid = getModProductId(item);
+          if (pid && !groupMap.has(pid)) {
+            groupMap.set(pid, 1);
+            changed = true;
           }
-          newSelected.delete(itemId);
+        }
+        if (changed) next.set(gid, groupMap);
+      }
+      return changed ? next : prev;
+    });
+  }, [product?._id]);
+
+  // Effective settings (linked groups derive from main at runtime)
+  const effectiveSettings = useMemo(
+    () => buildEffectiveSettings(product?.modifierGroups ?? [], modifierQuantities),
+    [product?.modifierGroups, modifierQuantities]
+  );
+
+  // Set modifier item quantity (handles toggle, radio-style, max constraints)
+  const setModifierItemQty = useCallback(
+    (groupId: string, productId: string, newQty: number) => {
+      setModifierQuantities((prev) => {
+        const next = new Map(prev);
+        const groupMap = new Map(next.get(groupId) ?? new Map<string, number>());
+
+        if (newQty <= 0) {
+          groupMap.delete(productId);
         } else {
-          // Find the modifier item and add it
-          const modItem = modGroup?.items.find((mi) => {
-            const miProductId = typeof mi.product === 'object' && mi.product !== null
-              ? (mi.product as any)._id
-              : mi.product;
-            return String(miProductId ?? '') === itemId;
-          });
-          if (modItem) {
-            // For single-select groups (maxSelect === 1), replace the existing selection
-            if (modGroup && modGroup.maxSelect === 1) {
-              newSelected.clear();
-            } else if (modGroup && modGroup.maxSelect > 0 && newSelected.size >= modGroup.maxSelect) {
+          const eff = effectiveSettings.get(groupId);
+          const maxSelect = eff?.maxSelect ?? 999;
+          const maxQty = eff?.maxQty ?? 999;
+
+          // Check maxSelect constraint
+          const currentSelectedCount = [...groupMap.values()].filter((q) => q > 0).length;
+          if ((groupMap.get(productId) ?? 0) === 0 && currentSelectedCount >= maxSelect) {
+            if (maxSelect === 1) {
+              groupMap.clear(); // radio-style: switch selection
+            } else {
               if (Platform.OS === 'android') {
-                ToastAndroid.show(
-                  `Maximum ${modGroup.maxSelect} item(s) allowed for "${modGroup.name}"`,
-                  ToastAndroid.SHORT
-                );
+                ToastAndroid.show(`Maximum ${maxSelect} items allowed`, ToastAndroid.SHORT);
               }
               return prev;
             }
-            newSelected.set(itemId, { item: modItem, qty: 1 });
           }
+
+          // Enforce maxQty
+          const currentTotalQty = [...groupMap.values()].reduce((sum, q) => sum + q, 0);
+          const currentQtyForThisItem = groupMap.get(productId) ?? 0;
+          const newTotalQty = currentTotalQty - currentQtyForThisItem + newQty;
+          if (newTotalQty > maxQty) {
+            if (Platform.OS === 'android') {
+              ToastAndroid.show(`Maximum total quantity is ${maxQty}`, ToastAndroid.SHORT);
+            }
+            return prev;
+          }
+
+          groupMap.set(productId, newQty);
         }
 
-        return { ...prev, [groupId]: { selected: newSelected } };
+        next.set(groupId, groupMap);
+        return next;
       });
     },
-    [product]
+    [effectiveSettings]
   );
 
-  const handleModifierQtyChange = useCallback(
-    (groupId: string, itemId: string, qty: number) => {
-      setModifierSelection((prev) => {
-        const group = prev[groupId];
-        if (!group) return prev;
-
-        const newSelected = new Map(group.selected);
-        const entry = newSelected.get(itemId);
-        if (entry) {
-          newSelected.set(itemId, { ...entry, qty });
+  // Compute upgrade total (skip isIncluded items — they're part of base price)
+  const upgradeTotal = useMemo(() => {
+    if (!hasModifiers || !product?.modifierGroups) return 0;
+    let sum = 0;
+    for (const group of product.modifierGroups) {
+      const gid = group._id || group.name;
+      const groupQtyMap = modifierQuantities.get(gid);
+      if (!groupQtyMap) continue;
+      for (const modItem of group.items) {
+        if (modItem.isIncluded) continue;
+        const pid = getModProductId(modItem);
+        const qty = groupQtyMap.get(pid) ?? 0;
+        if (qty > 0) {
+          const upgradePrice = getModPrice(modItem);
+          sum += upgradePrice * qty;
         }
-
-        return { ...prev, [groupId]: { selected: newSelected } };
-      });
-    },
-    []
-  );
-
-  // Compute modifier total
-  const modifierTotal = useMemo(() => {
-    let total = 0;
-    for (const group of Object.values(modifierSelection)) {
-      for (const { item, qty } of group.selected.values()) {
-        const price =
-          item.price ??
-          (typeof item.product === 'object' && item.product !== null && 'price' in item.product
-            ? (item.product as any).price ?? 0
-            : 0);
-        total += price * qty;
       }
     }
-    return total;
-  }, [modifierSelection]);
+    return sum;
+  }, [hasModifiers, product?.modifierGroups, modifierQuantities]);
 
-  const unitPrice = (product?.price ?? 0) + modifierTotal;
+  const unitPrice = (product?.price ?? 0) + upgradeTotal;
   const totalPrice = unitPrice * quantity;
 
   const formattedPrice =
@@ -401,27 +499,30 @@ export default function ProductDetailsPage() {
 
   const isLowStock = hasBranch && status === STOCK_STATUSES.LOW_STOCK;
 
-  // Validate modifier selection
-  const getModifierValidationState = (): { valid: boolean; message?: string } => {
-    if (!hasModifiers || !product?.modifierGroups) return { valid: true };
-
+  // Validate modifier selection using effective settings
+  const modifierValidationErrors = useMemo(() => {
+    if (!hasModifiers || !product?.modifierGroups) return [];
+    const errors: string[] = [];
     for (const group of product.modifierGroups) {
-      if (!group.required) continue;
-
       const gid = group._id || group.name;
-      const sel = modifierSelection[gid]?.selected;
-      const count = sel ? sel.size : 0;
-      const minSelect = group.minSelect ?? 1;
+      const eff = effectiveSettings.get(gid);
+      if (!eff) continue;
 
-      if (count < minSelect) {
-        return {
-          valid: false,
-          message: `Complete Selection`,
-        };
+      const groupQtyMap = modifierQuantities.get(gid);
+      const selectedCount = groupQtyMap ? [...groupQtyMap.values()].filter((q) => q > 0).length : 0;
+      const totalQty = groupQtyMap ? [...groupQtyMap.values()].reduce((sum, q) => sum + q, 0) : 0;
+
+      if (eff.required && selectedCount < eff.minSelect) {
+        errors.push(`${group.name}: select at least ${eff.minSelect}`);
+      }
+      if (eff.required && eff.isLinked && totalQty < eff.maxQty) {
+        errors.push(`${group.name}: total quantity must be ${eff.maxQty}`);
       }
     }
-    return { valid: true };
-  };
+    return errors;
+  }, [hasModifiers, product?.modifierGroups, modifierQuantities, effectiveSettings]);
+
+  const canAddToCart = modifierValidationErrors.length === 0;
 
   // Build selected modifiers for cart
   const buildSelectedModifiers = (): ModifierSelection[] => {
@@ -430,32 +531,25 @@ export default function ProductDetailsPage() {
     const result: ModifierSelection[] = [];
     for (const group of product.modifierGroups) {
       const gid = group._id || group.name;
-      const sel = modifierSelection[gid]?.selected;
-      if (!sel || sel.size === 0) continue;
+      const groupQtyMap = modifierQuantities.get(gid);
+      if (!groupQtyMap) continue;
 
       const items: ModifierSelectionItem[] = [];
-      for (const { item, qty } of sel.values()) {
-        const productId = typeof item.product === 'object' && item.product !== null
-          ? (item.product as any)._id
-          : String(item.product);
-        const name =
-          item.label ??
-          (typeof item.product === 'object' && item.product !== null && 'name' in item.product
-            ? (item.product as any).name
-            : String(item.product));
-        const upgradePrice =
-          item.price ??
-          (typeof item.product === 'object' && item.product !== null && 'price' in item.product
-            ? (item.product as any).price ?? 0
-            : 0);
+      for (const modItem of group.items) {
+        const pid = getModProductId(modItem);
+        const qty = groupQtyMap.get(pid) ?? 0;
+        if (qty <= 0) continue;
+
         items.push({
-          productId: productId || '',
-          name: name || '',
-          label: item.label ?? null,
-          upgradePrice,
+          productId: pid,
+          name: getModName(modItem),
+          label: modItem.label ?? null,
+          upgradePrice: getModPrice(modItem),
           quantity: qty,
         });
       }
+
+      if (items.length === 0) continue;
 
       result.push({
         groupId: gid,
@@ -476,10 +570,9 @@ export default function ProductDetailsPage() {
     if (isOutOfStock) return { label: 'Out of Stock', style: 'bg-gray-200', disabled: true };
     if (isStoreClosed) return { label: 'Store is Closed', style: 'bg-gray-200', disabled: true };
 
-    const validation = getModifierValidationState();
-    if (!validation.valid) {
+    if (!canAddToCart) {
       return {
-        label: validation.message || 'Complete selection',
+        label: 'Complete Selection',
         style: 'bg-gray-400',
         disabled: true,
       };
@@ -487,18 +580,15 @@ export default function ProductDetailsPage() {
 
     const priceStr = totalPrice.toLocaleString('en-PH');
     return {
-      label: `Add to Cart · ₱${priceStr}`,
-      style: isAdded ? 'bg-orange-200' : 'bg-orange-600',
+      label: isAdded ? 'Added!' : `Add to Cart · ₱${priceStr}`,
+      style: isAdded ? 'bg-green-500' : 'bg-[#e13e00]',
     };
   };
 
   const handleAddToCart = () => {
-    if (!product) return;
-
-    const validation = getModifierValidationState();
-    if (!validation.valid) {
-      if (Platform.OS === 'android') {
-        ToastAndroid.show(validation.message || 'Please complete your selection', ToastAndroid.SHORT);
+    if (!product || !canAddToCart) {
+      if (!canAddToCart && Platform.OS === 'android') {
+        ToastAndroid.show('Please complete your selection', ToastAndroid.SHORT);
       }
       return;
     }
@@ -510,12 +600,16 @@ export default function ProductDetailsPage() {
       name: product.name,
       price: unitPrice,
       image: product.image.url,
-      category: typeof product.category === 'string'
-        ? { _id: product.category, name: '' }
-        : { _id: product.category?._id ?? '', name: product.category?.name ?? '' },
+      category:
+        typeof product.category === 'string'
+          ? { _id: product.category, name: '' }
+          : { _id: product.category?._id ?? '', name: product.category?.name ?? '' },
       quantity: quantity,
       modifierSelections: modifierSelections.length > 0 ? modifierSelections : undefined,
-      includedItems: product.includedItems && product.includedItems.length > 0 ? product.includedItems : undefined,
+      includedItems:
+        product.includedItems && product.includedItems.length > 0
+          ? product.includedItems
+          : undefined,
     });
 
     setIsAdded(true);
@@ -611,11 +705,8 @@ export default function ProductDetailsPage() {
         })}
         style={{ transform: [{ translateY: panY }], opacity: pageOpacity }}
         {...panResponder.panHandlers}>
-
-
         {/* ── Hero Image ── */}
         <View style={{ height: 420, width: SCREEN_WIDTH }} className="overflow-hidden bg-[#fff3ee]">
-
           {/** out/low stock product overlay */}
           {(isOutOfStock || isLowStock) && (
             <View className="absolute inset-0 z-10 flex flex-row items-center justify-center bg-black/40">
@@ -637,9 +728,7 @@ export default function ProductDetailsPage() {
             </TouchableOpacity>
 
             <View className="flex flex-row gap-2">
-              <TouchableOpacity
-                onPress={() => id && toggle(id)}
-                style={styles.circleBtn}>
+              <TouchableOpacity onPress={() => id && toggle(id)} style={styles.circleBtn}>
                 <Ionicons
                   name={productIsFav ? 'heart' : 'heart-outline'}
                   size={20}
@@ -673,14 +762,21 @@ export default function ProductDetailsPage() {
 
           {/* Badges */}
           <View className="mb-3 flex-row flex-wrap gap-1.5">
-            <Badge label={product.productType} variant="category" />
             <Badge
-              label={typeof product.category === 'string' ? product.category : product.category?.name ?? ''}
+              label={
+                typeof product.category === 'string'
+                  ? product.category
+                  : (product.category?.name ?? '')
+              }
               variant="category"
             />
             {product.subcategory && (
               <Badge
-                label={typeof product.subcategory === 'string' ? product.subcategory : product.subcategory?.name ?? ''}
+                label={
+                  typeof product.subcategory === 'string'
+                    ? product.subcategory
+                    : (product.subcategory?.name ?? '')
+                }
                 variant="subcategory"
               />
             )}
@@ -738,19 +834,86 @@ export default function ProductDetailsPage() {
             </>
           )}
 
-          {/* Modifier Selection */}
+          {/* Modifier Groups — Compact Preview Rows */}
           {hasModifiers && product.modifierGroups && (
-            <ModifierSection
-              groups={product.modifierGroups}
-              selection={modifierSelection}
-              onToggle={handleModifierToggle}
-              onQtyChange={handleModifierQtyChange}
-            />
+            <>
+              <View className="my-4 h-px bg-gray-100" />
+              <Text className="mb-2 text-sm font-semibold text-gray-900">Customize Your Order</Text>
+
+              {/* Validation errors */}
+              {modifierValidationErrors.length > 0 && (
+                <View className="mb-3 rounded-lg border border-red-100 bg-red-50 p-3">
+                  {modifierValidationErrors.map((err, i) => (
+                    <Text key={i} className="text-xs text-red-700">
+                      • {err}
+                    </Text>
+                  ))}
+                </View>
+              )}
+
+              <View className="border-t border-gray-100">
+                {product.modifierGroups.map((group) => {
+                  const gid = group._id || group.name;
+                  const eff = effectiveSettings.get(gid) ?? {
+                    required: group.required,
+                    minSelect: group.minSelect,
+                    maxSelect: group.maxSelect,
+                    maxQty: group.maxQty,
+                    isLinked: false,
+                  };
+                  const groupQtyMap = modifierQuantities.get(gid);
+
+                  return (
+                    <ModifierGroupPreview
+                      key={gid}
+                      group={group}
+                      eff={eff}
+                      groupQtyMap={groupQtyMap}
+                      onOpen={() => setOpenModifierGroupId(gid)}
+                    />
+                  );
+                })}
+              </View>
+            </>
           )}
 
-          <View className="h-24" />
+          {/* Bottom spacer to prevent content overlapping the fixed CTA bar */}
+          <View style={{ height: Math.max(insets.bottom, 48) + 72 }} />
         </Animated.View>
       </Animated.ScrollView>
+
+      {/* ── Modifier Selection Bottom Sheet ── */}
+      {openModifierGroupId &&
+        (() => {
+          const group = product?.modifierGroups?.find(
+            (g) => (g._id || g.name) === openModifierGroupId
+          );
+          if (!group) return null;
+
+          const gid = openModifierGroupId;
+          const eff = effectiveSettings.get(gid) ?? {
+            required: group.required,
+            minSelect: group.minSelect,
+            maxSelect: group.maxSelect,
+            maxQty: group.maxQty,
+            isLinked: false,
+          };
+          const groupQtyMap = modifierQuantities.get(gid);
+
+          return (
+            <BottomSheet
+              visible={!!openModifierGroupId}
+              onClose={() => setOpenModifierGroupId(null)}>
+              <ModifierSheetContent
+                group={group}
+                eff={eff}
+                groupQtyMap={groupQtyMap}
+                onSetQty={(productId, qty) => setModifierItemQty(gid, productId, qty)}
+                onClose={() => setOpenModifierGroupId(null)}
+              />
+            </BottomSheet>
+          );
+        })()}
 
       {/* ── Bottom CTA ── */}
       <View

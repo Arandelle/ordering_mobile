@@ -25,6 +25,7 @@ export interface ModifierItem {
   product: string | Product; // string when sending, populated Product when receiving
   label: string | null;
   price?: number | null; // override price for this item in the combo context
+  isIncluded?: boolean; // marks as included in base product (auto-selected, no upgrade charge)
   snapshotName?: string | null;
   snapshotPrice?: number | null;
   position?: number;
