@@ -19,8 +19,8 @@ import { authClient } from '@/lib/auth-client';
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string | number) => void;
-  updateQuantity: (id: string | number, quantity: number) => void;
+  removeFromCart: (cartKey: string) => void;
+  updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => Promise<void>;
   totalProducts: number;
   totalItems: number;
@@ -40,6 +40,29 @@ interface CartContextType {
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   isSyncing: boolean;
+}
+
+// ─── Cart Key ─────────────────────────────────────────────────────────────────
+
+/**
+ * Composite key that distinguishes cart lines.
+ * Solo items use their _id; combo/set items append a hash of modifier selections
+ * so the same product with different modifiers stays as separate lines.
+ */
+export function getCartKey(item: CartItem): string {
+  if (!item.modifierSelections || item.modifierSelections.length === 0) {
+    return String(item._id);
+  }
+  const selKey = item.modifierSelections
+    .map((g) =>
+      g.items
+        .map((i) => `${i.productId}:${i.quantity}:${i.upgradePrice}`)
+        .sort()
+        .join(','),
+    )
+    .sort()
+    .join('|');
+  return `${item._id}__${selKey}`;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -132,7 +155,7 @@ export const CartProvider: React.FC<{
 
   useEffect(() => {
     if (!isHydrated) return;
-    setSelectedItemIds(new Set(cartItems.map((item) => String(item._id))));
+    setSelectedItemIds(new Set(cartItems.map((item) => getCartKey(item))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartItems.length, isHydrated]);
 
@@ -183,27 +206,32 @@ export const CartProvider: React.FC<{
 
   const addToCart = useCallback((item: CartItem) => {
     setCartItems((prev) => {
-      const existing = prev.find((c) => c._id === item._id);
+      const itemKey = getCartKey(item);
+      const existing = prev.find((c) => getCartKey(c) === itemKey);
       if (existing) {
-        return prev.map((c) => (c._id === item._id ? { ...c, quantity: c.quantity + item.quantity } : c));
+        return prev.map((c) =>
+          getCartKey(c) === itemKey ? { ...c, quantity: c.quantity + item.quantity } : c,
+        );
       }
       return [...prev, { ...item }];
     });
   }, []);
 
-  const removeFromCart = useCallback((id: string | number) => {
-    setCartItems((prev) => prev.filter((item) => item._id !== id));
+  const removeFromCart = useCallback((cartKey: string) => {
+    setCartItems((prev) => prev.filter((item) => getCartKey(item) !== cartKey));
   }, []);
 
   const updateQuantity = useCallback(
-    (id: string | number, quantity: number) => {
+    (cartKey: string, quantity: number) => {
       if (quantity <= 0) {
-        removeFromCart(id);
+        removeFromCart(cartKey);
         return;
       }
-      setCartItems((prev) => prev.map((item) => (item._id === id ? { ...item, quantity } : item)));
+      setCartItems((prev) =>
+        prev.map((item) => (getCartKey(item) === cartKey ? { ...item, quantity } : item)),
+      );
     },
-    [removeFromCart]
+    [removeFromCart],
   );
 
   const clearCart = useCallback(async () => {
@@ -237,37 +265,37 @@ export const CartProvider: React.FC<{
   const toggleCategorySelection = useCallback(
     (categoryId: string) => {
       setSelectedItemIds((prev) => {
-        const categoryItemIds = cartItems
+        const categoryKeys = cartItems
           .filter((item) => item.category?._id === categoryId)
-          .map((item) => String(item._id));
+          .map((item) => getCartKey(item));
 
-        const allSelected = categoryItemIds.every((id) => prev.has(id));
+        const allSelected = categoryKeys.every((key) => prev.has(key));
         const next = new Set(prev);
 
         if (allSelected) {
-          categoryItemIds.forEach((id) => next.delete(id));
+          categoryKeys.forEach((key) => next.delete(key));
         } else {
-          categoryItemIds.forEach((id) => next.add(id));
+          categoryKeys.forEach((key) => next.add(key));
         }
 
         return next;
       });
     },
-    [cartItems]
+    [cartItems],
   );
 
   const isCategorySelected = useCallback(
     (categoryId: string) => {
-      const categoryItemIds = cartItems
+      const categoryKeys = cartItems
         .filter((item) => item.category?._id === categoryId)
-        .map((item) => String(item._id));
-      return categoryItemIds.length > 0 && categoryItemIds.every((id) => selectedItemIds.has(id));
+        .map((item) => getCartKey(item));
+      return categoryKeys.length > 0 && categoryKeys.every((key) => selectedItemIds.has(key));
     },
-    [cartItems, selectedItemIds]
+    [cartItems, selectedItemIds],
   );
 
   const selectAll = useCallback(() => {
-    setSelectedItemIds(new Set(cartItems.map((item) => String(item._id))));
+    setSelectedItemIds(new Set(cartItems.map((item) => getCartKey(item))));
   }, [cartItems]);
 
   const deselectAll = useCallback(() => {
@@ -282,7 +310,7 @@ export const CartProvider: React.FC<{
   const vatableSales = totalPrice / 1.12;
   const vatAmount = totalPrice - vatableSales;
 
-  const selectedItems = cartItems.filter((item) => selectedItemIds.has(String(item._id)));
+  const selectedItems = cartItems.filter((item) => selectedItemIds.has(getCartKey(item)));
   const selectedTotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
   const isAllSelected = cartItems.length > 0 && selectedItems.length === cartItems.length;
