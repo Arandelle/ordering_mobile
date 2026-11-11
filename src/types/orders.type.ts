@@ -49,6 +49,7 @@ export interface OrderModifierSelectionItem {
   label: string | null;
   upgradePrice: number;
   quantity: number;
+  isIncluded?: boolean;
 }
 
 /** Snapshot of a modifier group selection, stored on the order item */

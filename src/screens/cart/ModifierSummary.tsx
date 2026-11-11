@@ -13,7 +13,10 @@ export function ModifierSummary({ modifiers }: { modifiers: ModifierSelection[] 
   if (!modifiers || modifiers.length === 0) return null;
 
   const totalExtras = modifiers.reduce((sum, group) => {
-    return sum + group.items.reduce((g, item) => g + item.upgradePrice * item.quantity, 0);
+    return sum + group.items.reduce((g, item) => {
+      if (item.isIncluded) return g;
+      return g + item.upgradePrice * item.quantity;
+    }, 0);
   }, 0);
 
   return (
@@ -45,7 +48,10 @@ export function ModifierDetailsSheet({
   onClose: () => void;
 }) {
   const totalModifierPrice = modifiers.reduce((sum, group) => {
-    return sum + group.items.reduce((gSum, item) => gSum + item.upgradePrice * item.quantity, 0);
+    return sum + group.items.reduce((gSum, item) => {
+      if (item.isIncluded) return gSum;
+      return gSum + item.upgradePrice * item.quantity;
+    }, 0);
   }, 0);
 
   return (
@@ -85,9 +91,9 @@ export function ModifierDetailsSheet({
                     </Text>
                   )}
                 </View>
-                {item.upgradePrice > 0 && (
+                {!item.isIncluded && item.upgradePrice > 0 && (
                   <Text className="text-sm font-semibold text-gray-900">
-                    {formatMoney(item.upgradePrice * item.quantity)}
+                    +{formatMoney(item.upgradePrice * item.quantity)}
                   </Text>
                 )}
               </View>

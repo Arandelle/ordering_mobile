@@ -238,6 +238,7 @@ export type CheckoutEstimateParams = {
         label: string | null;
         upgradePrice: number;
         quantity: number;
+        isIncluded?: boolean;
       }[];
     }[];
   }[];

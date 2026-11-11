@@ -546,6 +546,7 @@ export default function ProductDetailsPage() {
           label: modItem.label ?? null,
           upgradePrice: getModPrice(modItem),
           quantity: qty,
+          isIncluded: modItem.isIncluded === true,
         });
       }
 

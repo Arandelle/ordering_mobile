@@ -91,7 +91,7 @@ function ModifierList({ modifiers }: { modifiers?: ModifierSelection[] }) {
               <Text key={iIdx} className="text-[11px] text-gray-500">
                 {item.name}
                 {item.quantity > 1 ? ` x${item.quantity}` : ''}
-                {item.upgradePrice > 0
+                {!item.isIncluded && item.upgradePrice > 0
                   ? ` (+₱${(item.upgradePrice * item.quantity).toLocaleString('en-PH')})`
                   : ''}
               </Text>
