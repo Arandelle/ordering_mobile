@@ -1,7 +1,7 @@
 import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useCart } from '@/context/CartContext';
+import { useCart, getCartKey } from '@/context/CartContext';
 import { useBranchContext } from '@/context/BranchContext';
 import { FULFILLMENT_TYPE } from '@/types/orders.type';
 
@@ -62,7 +62,7 @@ export function OrderConfirmationModal({
               <Text className="text-sm font-bold text-gray-900">{formatMoney(selectedTotal)}</Text>
             </View>
             {selectedItems.slice(0, 3).map((item) => (
-              <View key={String(item._id)} className="flex-row justify-between py-1">
+              <View key={getCartKey(item)} className="flex-row justify-between py-1">
                 <Text className="flex-1 text-xs text-gray-600" numberOfLines={1}>
                   {item.quantity}× {item.name}
                 </Text>

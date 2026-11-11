@@ -11,7 +11,7 @@ const DEFAULT_DURATION = 5;
  *   });
  *
  *   // Start the undo window after performing a destructive action:
- *   removeFromCart(item._id);
+ *   removeFromCart(getCartKey(item));
  *   trigger(item);
  *
  *   // Restore on undo:

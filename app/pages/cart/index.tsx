@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useRef } from 'react';
 import { SectionList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart } from '@/context/CartContext';
+import { useCart, getCartKey } from '@/context/CartContext';
 import { CartItem } from '@/types/menu-types';
 import { formatMoney } from '@/helper/formatter';
 import { Button } from '@/components/ui/Button';
@@ -59,7 +59,7 @@ export default function CartScreen() {
   });
 
   const handleRemove = (item: CartItem) => {
-    removeFromCart(item._id);
+    removeFromCart(getCartKey(item));
     trigger(item);
   };
 
@@ -105,7 +105,7 @@ export default function CartScreen() {
       ) : (
         <SectionList
           sections={sections}
-          keyExtractor={(item) => String(item._id)}
+          keyExtractor={(item) => getCartKey(item)}
           contentContainerStyle={{
             paddingTop: 4,
             paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 80,
@@ -143,8 +143,8 @@ export default function CartScreen() {
           renderItem={({ item, section, index }) => (
             <CartItemCard
               item={item}
-              isSelected={selectedItemIds.has(String(item._id))}
-              onToggleSelect={() => toggleItemSelection(String(item._id))}
+              isSelected={selectedItemIds.has(getCartKey(item))}
+              onToggleSelect={() => toggleItemSelection(getCartKey(item))}
               onSwipeOpen={handleSwipeOpen}
               onRemove={handleRemove}
               isLast={index === section.data.length - 1}

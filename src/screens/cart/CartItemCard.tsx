@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import DynamicImage from '@/components/ui/DynamicImage';
 import { Icon } from '@/components/ui/Icon';
-import { useCart } from '@/context/CartContext';
+import { useCart, getCartKey } from '@/context/CartContext';
 import { CartItem } from '@/types/menu-types';
 import { useRef } from 'react';
 import { Text, View } from 'react-native';
@@ -101,8 +101,8 @@ export function CartItemCard({
                   value={item.quantity}
                   min={1}
                   variant="compact"
-                  onDecrement={() => updateQuantity(item._id, item.quantity - 1)}
-                  onIncrement={() => updateQuantity(item._id, item.quantity + 1)}
+                  onDecrement={() => updateQuantity(getCartKey(item), item.quantity - 1)}
+                  onIncrement={() => updateQuantity(getCartKey(item), item.quantity + 1)}
                 />
               </View>
             </View>

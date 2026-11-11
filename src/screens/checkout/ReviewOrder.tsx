@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBranchContext } from '@/context/BranchContext';
-import { useCart } from '@/context/CartContext';
+import { useCart, getCartKey } from '@/context/CartContext';
 import { BranchSelector } from '@/components/home/BranchSelector';
 import { useCheckout } from '@/context/CheckoutContext';
 import { CreateOrderPayload, FULFILLMENT_TYPE } from '@/types/orders.type';
@@ -479,7 +479,7 @@ const ReviewOrder = () => {
 
         <View className="gap-3">
           {selectedItems.map((item) => (
-            <View key={String(item._id)} className="flex-row items-start justify-between gap-3">
+            <View key={getCartKey(item)} className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-gray-900" numberOfLines={2}>
                   {item.name}
@@ -490,15 +490,15 @@ const ReviewOrder = () => {
                 <TouchableOpacity
                   className="mt-1.5 self-start"
                   activeOpacity={0.7}
-                  onPress={() => removeFromCart(item._id)}>
+                  onPress={() => removeFromCart(getCartKey(item))}>
                   <Text className="text-xs font-medium text-red-500">Remove</Text>
                 </TouchableOpacity>
               </View>
               <View className="items-end gap-2">
                 <QuantityStepper
                   value={item.quantity}
-                  onDecrement={() => updateQuantity(item._id, item.quantity - 1)}
-                  onIncrement={() => updateQuantity(item._id, item.quantity + 1)}
+                  onDecrement={() => updateQuantity(getCartKey(item), item.quantity - 1)}
+                  onIncrement={() => updateQuantity(getCartKey(item), item.quantity + 1)}
                 />
                 <Text className="text-sm font-semibold text-gray-900">
                   {formatMoney(item.price * item.quantity)}
